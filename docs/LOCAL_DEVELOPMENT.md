@@ -117,6 +117,38 @@ npm run seed
 npm run dev        # http://127.0.0.1:3000
 ```
 
+## Trabalhar sem internet
+
+Depois de `npm install` e de uma primeira execução dos emuladores, **tudo roda
+offline**:
+
+| Comando                                  | Offline                                                                              |
+| ---------------------------------------- | ------------------------------------------------------------------------------------ |
+| `npm run test`                           | ✔ Node puro                                                                          |
+| `npm run test:rules`                     | ✔ o JAR do Firestore fica em `~/.cache/firebase/emulators/` e só é baixado se faltar |
+| `npm run dev:local`, `npm run emulators` | ✔ mesmos JARs; o emulador de Auth é JS em `node_modules`                             |
+| `npm run seed`                           | ✔ Admin SDK apontado para `127.0.0.1`                                                |
+| `npm run test:e2e`                       | ✔ navegadores já instalados; os testes batem em `127.0.0.1`                          |
+| `npm run build`, `npm run dev`           | ✔ desde que a fonte esteja versionada (ver abaixo)                                   |
+| `npm install`, `npx playwright install`  | ✖ precisam de rede, uma vez                                                          |
+
+Usar a aplicação também é offline: todo Firebase vai para os emuladores, a
+publicidade nunca carrega fora de produção e a fonte é servida do próprio
+domínio. Há teste E2E afirmando que **nenhuma requisição a terceiros** sai das
+páginas públicas.
+
+### Por que a fonte está no repositório
+
+`src/app/fonts/inter-latin-variable.woff2`, 48 KB, versionado.
+
+Antes o projeto usava `next/font/google`, que baixava a fonte do Google **a
+cada build** — o download não é guardado em cache persistente, ele some junto
+com `.next`. Como apagar `.next` é rotina (ver o problema do `_buildManifest`
+logo abaixo), o build acabava dependendo de rede com frequência.
+
+Só o subset latino está versionado, o que cobre o português inteiro. Texto em
+cirílico ou grego cai na pilha de fontes do sistema.
+
 ## Problemas conhecidos
 
 ### "Could not start Firestore Emulator, port taken"

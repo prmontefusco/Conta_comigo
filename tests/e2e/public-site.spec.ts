@@ -30,19 +30,22 @@ test.describe("páginas públicas", () => {
     });
   }
 
-  test("nenhuma página pública carrega scripts de anúncio localmente", async ({ page }) => {
-    const adRequests: string[] = [];
+  test("nenhuma página pública faz requisição a terceiros", async ({ page }) => {
+    // Publicidade nunca carrega fora de produção, e a fonte é servida do
+    // próprio domínio: o build não depende de rede e o navegador de quem usa
+    // não conversa com o Google (docs/LOCAL_DEVELOPMENT.md, docs/ADSENSE.md).
+    const external: string[] = [];
     page.on("request", (request) => {
-      if (/googlesyndication|doubleclick|googleadservices/.test(request.url())) {
-        adRequests.push(request.url());
-      }
+      const url = request.url();
+      if (url.startsWith("http://127.0.0.1:") || url.startsWith("data:")) return;
+      external.push(url);
     });
 
     for (const [path] of PAGES) {
       await page.goto(path);
     }
 
-    expect(adRequests).toEqual([]);
+    expect(external).toEqual([]);
   });
 
   test("ads.txt não expõe publisher id fora de produção", async ({ page }) => {

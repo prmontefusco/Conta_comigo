@@ -2,7 +2,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Conta comigo — quanto tenho, quanto já comprometi, para onde estou indo",
+  // `absolute` evita o sufixo do template do layout raiz, que aqui produziria
+  // "Conta comigo — ... | Conta comigo".
+  title: {
+    absolute: "Conta comigo — quanto tenho, quanto já comprometi, para onde estou indo",
+  },
   description:
     "Uma ferramenta de planejamento financeiro pessoal e familiar que mostra o saldo real, " +
     "o que já está comprometido e como serão os próximos meses. Sem julgamento.",

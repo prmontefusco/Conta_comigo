@@ -1,9 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
+/**
+ * Inter, servido do próprio repositório.
+ *
+ * `next/font/google` baixava a fonte a cada build, porque o download não é
+ * guardado em cache persistente: some junto com `.next`. Isso tornava o build
+ * dependente de rede, o que contraria o requisito de desenvolvimento
+ * inteiramente local (docs/LOCAL_DEVELOPMENT.md).
+ *
+ * Aqui vai só o subset latino, 48 KB, que cobre o português inteiro. É um
+ * arquivo só e sem `unicode-range`, então o navegador sempre o baixa — por
+ * isso vale manter pequeno. Texto em cirílico ou grego cai na pilha de fontes
+ * do sistema, o que é aceitável num produto pt-BR.
+ *
+ * A fonte continua sendo servida pelo nosso domínio: nenhuma requisição sai
+ * para o Google, nem em produção.
+ */
+const inter = localFont({
+  src: "./fonts/inter-latin-variable.woff2",
+  weight: "100 900",
   variable: "--font-inter",
   display: "swap",
 });
