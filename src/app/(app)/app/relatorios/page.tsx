@@ -27,7 +27,7 @@ import {
  */
 export default function ReportsPage() {
   const finance = useFinance();
-  const { profile } = useSession();
+  const { isPremium } = useSession();
   const [monthsBack, setMonthsBack] = useState(6);
 
   const months = useMemo(() => recentMonths(finance.asOf, monthsBack), [finance.asOf, monthsBack]);
@@ -67,7 +67,7 @@ export default function ReportsPage() {
       <CategoriesSection months={months} />
 
       {/* Between two informational blocks, never next to an action. */}
-      <AdSlot placement="dashboard-inline" hidden={profile?.plan === "PREMIUM"} />
+      <AdSlot placement="dashboard-inline" hidden={isPremium} />
 
       <TrendSection months={months} hasHistory={hasHistory} />
 

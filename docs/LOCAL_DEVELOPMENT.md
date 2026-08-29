@@ -96,6 +96,7 @@ apontando para um projeto real sem emuladores.
 | `npm run dev`              | Só o Next.js na porta 3000                    |
 | `npm run seed`             | Recria os dados fictícios                     |
 | `npm run emulators:export` | Exporta o estado para `firebase-export-data/` |
+| `npm run emulators:kill`   | Libera portas de emulador que ficaram presas  |
 | `npm run typecheck`        | TypeScript estrito                            |
 | `npm run lint`             | ESLint                                        |
 | `npm run test`             | Testes unitários                              |
@@ -154,15 +155,13 @@ cirílico ou grego cai na pilha de fontes do sistema.
 ### "Could not start Firestore Emulator, port taken"
 
 O processo Java do emulador nem sempre encerra ao receber SIGINT no Windows.
-Verifique e encerre:
 
 ```bash
-netstat -ano | grep LISTENING | grep ":8080"
+npm run emulators:kill
 ```
 
-```powershell
-Stop-Process -Id <PID> -Force
-```
+Libera as portas 4000, 4400, 4500, 5002, 8080, 9099 e 9150. Funciona no Windows
+e em sistemas POSIX.
 
 ### Erros `ENOENT: _buildManifest.js.tmp`
 

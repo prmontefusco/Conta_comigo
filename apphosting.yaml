@@ -51,3 +51,30 @@ env:
   - variable: NEXT_PUBLIC_APPCHECK_SITE_KEY
     value: REPLACE_WITH_RECAPTCHA_V3_SITE_KEY
     availability: [BUILD, RUNTIME]
+
+  # ── Pagamentos ─────────────────────────────────────────────────────────────
+  # RUNTIME apenas, sempre. Uma chave de pagamento em BUILD acabaria no bundle
+  # servido ao navegador, e quem a tivesse emitiria cobranças em seu nome.
+  #
+  # Cada uma falha fechada quando ausente:
+  #   ASAAS_API_KEY           ausente → checkout desabilitado, API responde 503
+  #   PAYMENT_WEBHOOK_SECRET  ausente → webhook recusa toda requisição (503)
+  #
+  # Crie os segredos antes de descomentar:
+  #   npx firebase apphosting:secrets:set ASAAS_API_KEY
+  #   npx firebase apphosting:secrets:set PAYMENT_WEBHOOK_SECRET
+  #
+  # O mesmo segredo precisa ser cadastrado no painel do Asaas, em
+  # Integrações → Webhooks, como cabeçalho `asaas-access-token`.
+  #
+  # - variable: ASAAS_API_KEY
+  #   secret: ASAAS_API_KEY
+  #   availability: [RUNTIME]
+  # - variable: PAYMENT_WEBHOOK_SECRET
+  #   secret: PAYMENT_WEBHOOK_SECRET
+  #   availability: [RUNTIME]
+  #
+  # Sandbox: https://api-sandbox.asaas.com/v3
+  - variable: ASAAS_API_BASE_URL
+    value: https://api.asaas.com/v3
+    availability: [RUNTIME]

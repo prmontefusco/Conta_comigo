@@ -46,7 +46,7 @@ const SECTIONS = [
 ] as const;
 
 export default function MorePage() {
-  const { household, role, profile } = useSession();
+  const { household, role, isPremium } = useSession();
 
   return (
     <div className="space-y-4">
@@ -65,7 +65,7 @@ export default function MorePage() {
           </div>
           <div className="flex justify-between gap-4">
             <dt style={{ color: "var(--muted-fg)" }}>Plano</dt>
-            <dd className="font-medium">{profile?.plan === "PREMIUM" ? "Premium" : "Gratuito"}</dd>
+            <dd className="font-medium">{isPremium ? "Premium" : "Gratuito"}</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt style={{ color: "var(--muted-fg)" }}>Fuso horário</dt>

@@ -19,7 +19,7 @@ import { useSession } from "@/modules/household/ui/session-provider";
  */
 export default function DashboardPage() {
   const finance = useFinance();
-  const { profile } = useSession();
+  const { isPremium } = useSession();
 
   if (finance.loading) {
     return <Spinner label="Carregando suas finanças" />;
@@ -51,7 +51,7 @@ export default function DashboardPage() {
 
       {/* Between two informational blocks, never inside a form or next to an
           action. See docs/ADSENSE.md for the placement rules. */}
-      <AdSlot placement="dashboard-inline" hidden={profile?.plan === "PREMIUM"} />
+      <AdSlot placement="dashboard-inline" hidden={isPremium} />
 
       <Next30DaysBlock />
 

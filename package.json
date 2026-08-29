@@ -9,6 +9,7 @@
     "emulators": "firebase emulators:start --project demo-conta-comigo --only auth,firestore",
     "emulators:all": "firebase emulators:start --project demo-conta-comigo",
     "emulators:export": "firebase emulators:export ./firebase-export-data --project demo-conta-comigo --force",
+    "emulators:kill": "node scripts/kill-emulators.mjs",
     "seed": "tsx scripts/seed.ts",
     "seed:when-ready": "wait-on -t 240000 tcp:127.0.0.1:8080 tcp:127.0.0.1:9099 && npm run seed",
     "build": "next build --turbopack",
@@ -31,10 +32,12 @@
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
     "firebase": "^12.18.0",
+    "firebase-admin": "^14.3.0",
     "next": "15.5.24",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hook-form": "^7.86.0",
+    "server-only": "^0.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -54,7 +57,6 @@
     "concurrently": "^9.2.4",
     "eslint": "^9",
     "eslint-config-next": "15.5.24",
-    "firebase-admin": "^14.3.0",
     "firebase-tools": "^15.28.2",
     "jsdom": "^27.4.0",
     "prettier": "^3.9.6",

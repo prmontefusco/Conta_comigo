@@ -14,6 +14,7 @@ import {
   HOUSEHOLD_A,
   HOUSEHOLD_B,
   MEMBER_A,
+  NOW,
   OUTSIDER,
   OWNER_A,
   OWNER_B,
@@ -569,6 +570,70 @@ describe("data shape", () => {
         ...auditFor(MEMBER_A),
       }),
     );
+  });
+});
+
+describe("assinaturas", () => {
+  it("a pessoa lê a própria assinatura", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc(`subscriptions/${OWNER_A}`).set({
+        userId: OWNER_A,
+        plan: "PREMIUM",
+        status: "ACTIVE",
+        updatedAt: NOW,
+      });
+    });
+
+    await assertSucceeds(as(testEnv, OWNER_A).firestore().doc(`subscriptions/${OWNER_A}`).get());
+  });
+
+  it("ninguém lê a assinatura de outra pessoa", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc(`subscriptions/${OWNER_A}`).set({
+        userId: OWNER_A,
+        plan: "PREMIUM",
+        status: "ACTIVE",
+        updatedAt: NOW,
+      });
+    });
+
+    await assertFails(as(testEnv, MEMBER_A).firestore().doc(`subscriptions/${OWNER_A}`).get());
+    await assertFails(anonymous(testEnv).firestore().doc(`subscriptions/${OWNER_A}`).get());
+  });
+
+  it("ninguém se concede um plano", async () => {
+    // O caminho inteiro do dinheiro depende disto: quem paga não declara que
+    // pagou. Só o Admin SDK grava aqui, e ele ignora estas regras.
+    const db = as(testEnv, OWNER_A).firestore();
+
+    await assertFails(
+      db.doc(`subscriptions/${OWNER_A}`).set({
+        userId: OWNER_A,
+        plan: "PREMIUM",
+        status: "ACTIVE",
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        updatedAt: NOW,
+      }),
+    );
+  });
+
+  it("nem mesmo atualiza a própria assinatura existente", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc(`subscriptions/${OWNER_A}`).set({
+        userId: OWNER_A,
+        plan: "FREE",
+        status: "NONE",
+        updatedAt: NOW,
+      });
+    });
+
+    const db = as(testEnv, OWNER_A).firestore();
+    await assertFails(db.doc(`subscriptions/${OWNER_A}`).update({ plan: "PREMIUM" }));
+    await assertFails(db.doc(`subscriptions/${OWNER_A}`).delete());
+  });
+
+  it("ninguém lista assinaturas", async () => {
+    await assertFails(as(testEnv, OWNER_A).firestore().collection("subscriptions").get());
   });
 });
 

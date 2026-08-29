@@ -10,11 +10,21 @@ executados por `npm run test:rules`.
 
 ## Modelo
 
-Todo acesso a dados acontece no cliente. As Security Rules **são** a camada de
-autorização, não uma segunda linha de defesa. Não existe caminho alternativo,
-nenhum service account, nenhum backend privilegiado.
+Todo acesso a **dados financeiros** acontece no cliente. As Security Rules
+**são** a camada de autorização, não uma segunda linha de defesa.
 
-Ver [`adr/0002-client-side-data-access.md`](adr/0002-client-side-data-access.md).
+Existe **uma** exceção, e ela é deliberada e delimitada: a superfície de
+pagamentos sob `src/app/api/` e `src/modules/billing/`, que usa o Admin SDK e
+portanto ignora as regras. Ela existe porque uma chave de pagamento não pode
+estar no navegador e porque quem paga não pode declarar que pagou. Nenhum dado
+financeiro do household passa por ali.
+
+Continua não havendo arquivo de service account no repositório: no App Hosting
+o backend recebe identidade em runtime, e localmente o Admin SDK fala com os
+emuladores.
+
+Ver [`adr/0002-client-side-data-access.md`](adr/0002-client-side-data-access.md)
+e [`adr/0009-server-side-payments.md`](adr/0009-server-side-payments.md).
 
 ## Os três princípios das regras
 

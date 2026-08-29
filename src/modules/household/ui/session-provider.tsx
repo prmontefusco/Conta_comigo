@@ -12,6 +12,11 @@ import {
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import { getAuthClient, getDb } from "@/lib/firebase/client";
+import {
+  resolveEffectivePlan,
+  type Subscription,
+  type UserPlan,
+} from "@/modules/billing/domain/subscription";
 import type { HouseholdRole } from "@/modules/shared/domain/common";
 import {
   householdSchema,
@@ -44,6 +49,16 @@ interface SessionValue {
   readonly role: HouseholdRole | null;
   readonly canWrite: boolean;
   readonly canAdminister: boolean;
+  readonly subscription: Subscription | null;
+  /**
+   * O plano que vale agora, já considerando a data de vencimento.
+   *
+   * Nunca leia `profile.plan` para decidir o que mostrar: ele é um espelho de
+   * conveniência escrito pelo servidor e não sabe se o prazo acabou. Uma
+   * assinatura vencida ficaria sem anúncios para sempre.
+   */
+  readonly effectivePlan: UserPlan;
+  readonly isPremium: boolean;
   selectHousehold(householdId: string): void;
   logout(): Promise<void>;
   refreshProfile(): Promise<void>;
@@ -60,6 +75,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [households, setHouseholds] = useState<HouseholdDoc[]>([]);
   const [membership, setMembership] = useState<MembershipDoc | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
 
   /* --- Auth state ---------------------------------------------------- */
 
@@ -72,6 +88,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setHouseholds([]);
         setMembership(null);
         setSelectedId(null);
+        setSubscription(null);
       }
     });
   }, []);
@@ -91,6 +108,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     void loadProfile(user.uid);
   }, [user, loadProfile]);
+
+  /* --- Assinatura ----------------------------------------------------- */
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Legível só pela própria pessoa, e gravável por ninguém pelo cliente
+    // (firestore.rules, docs/adr/0009-server-side-payments.md).
+    return onSnapshot(
+      doc(getDb(), "subscriptions", user.uid),
+      (snapshot) => {
+        setSubscription(snapshot.exists() ? (snapshot.data() as Subscription) : null);
+      },
+      () => setSubscription(null),
+    );
+  }, [user]);
 
   /* --- Households the user belongs to -------------------------------- */
 
@@ -178,6 +211,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const household = households.find((item) => item.id === selectedId) ?? null;
   const role = membership?.status === "ACTIVE" ? membership.role : null;
+  const effectivePlan = resolveEffectivePlan(subscription);
 
   const value = useMemo<SessionValue>(
     () => ({
@@ -190,6 +224,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       role,
       canWrite: role === "OWNER" || role === "ADMIN" || role === "MEMBER",
       canAdminister: role === "OWNER" || role === "ADMIN",
+      subscription,
+      effectivePlan,
+      isPremium: effectivePlan === "PREMIUM",
       selectHousehold,
       logout,
       refreshProfile,
@@ -202,6 +239,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       household,
       membership,
       role,
+      subscription,
+      effectivePlan,
       selectHousehold,
       logout,
       refreshProfile,

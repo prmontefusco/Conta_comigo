@@ -118,6 +118,24 @@ service cloud.firestore {
     }
 
     /* ------------------------------------------------------------ */
+    /* Assinaturas                                                   */
+    /* ------------------------------------------------------------ */
+
+    match /subscriptions/{uid} {
+      // A pessoa lê a própria assinatura para a interface saber o que mostrar
+      // e até quando vale. Listar todas nunca é permitido, para ninguém.
+      allow get: if isSelf(uid);
+      allow list: if false;
+
+      // Escrita por ninguém, deliberadamente. Quem paga não pode declarar que
+      // pagou. O servidor grava com o Admin SDK, que ignora estas regras —
+      // é o único caminho privilegiado do projeto, e está inteiro sob
+      // src/app/api/ e src/modules/billing/
+      // (docs/adr/0009-server-side-payments.md).
+      allow write: if false;
+    }
+
+    /* ------------------------------------------------------------ */
     /* Households                                                    */
     /* ------------------------------------------------------------ */
 

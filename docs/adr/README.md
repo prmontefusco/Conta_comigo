@@ -14,6 +14,7 @@ motivo para perguntar "por que assim?".
 | [0006](0006-single-obligation-stream.md)     | Uma coleção `obligations`, não `payables` + `receivables`        | aceito |
 | [0007](0007-derived-card-statements.md)      | Faturas e parcelas são derivadas, não armazenadas                | aceito |
 | [0008](0008-nextjs-version.md)               | Next.js 15.5, e não a versão mais recente                        | aceito |
+| [0009](0009-server-side-payments.md)         | Uma superfície de servidor, exclusivamente para pagamentos       | aceito |
 
 ## Formato
 
