@@ -25,9 +25,9 @@ emulador e **nunca devem ser silenciosamente puladas** — daí a separação.
 ## Estado atual
 
 ```
-npm run test         → 189 testes, 8 arquivos
+npm run test         → 217 testes, 9 arquivos
 npm run test:rules   →  45 testes
-npm run test:e2e     →  30 testes por perfil (mobile e desktop)
+npm run test:e2e     →  39 testes por perfil (mobile e desktop)
 ```
 
 ## Casos financeiros obrigatórios
@@ -107,7 +107,8 @@ acessível.
 ## O que não é testado, de propósito
 
 - Aparência. Testes de screenshot quebram com qualquer ajuste e raramente
-  pegam um bug real.
+  pegam um bug real. O que é testado nos gráficos é o contrato: que o SVG seja
+  decorativo e que exista uma tabela com os mesmos números ao lado dele.
 - O SDK do Firebase. É responsabilidade do Google.
 - Getters e construtores triviais.
 

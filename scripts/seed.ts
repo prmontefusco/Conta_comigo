@@ -34,7 +34,13 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { instant } from "../src/core/date/calendar-date";
 import { DEFAULT_HOUSEHOLD_SETTINGS } from "../src/modules/household/domain/household";
-import { categoriesFor, SEED_HOUSEHOLDS, seedAnchors, SEED_TIMEZONE } from "./seed-data";
+import {
+  categoriesFor,
+  realisedHistory,
+  SEED_HOUSEHOLDS,
+  seedAnchors,
+  SEED_TIMEZONE,
+} from "./seed-data";
 
 const app = initializeApp({ projectId: PROJECT_ID });
 const db = getFirestore(app);
@@ -140,7 +146,19 @@ async function seedHousehold(household: (typeof SEED_HOUSEHOLDS)[number]) {
   await writeCollection(household.id, "cardPurchases", content.cardPurchases, audit);
   await writeCollection(household.id, "recurringRules", content.recurringRules, audit);
   await writeCollection(household.id, "obligations", content.obligations, audit);
-  await writeCollection(household.id, "transactions", content.transactions, audit);
+
+  // Realised movement for the past months, so the reports have something to
+  // compare. Generated from the household's own recurring rules, which keeps
+  // the history consistent with the projection ahead of it.
+  const history = realisedHistory(
+    household.id,
+    content,
+    anchors,
+    household.monthsOfHistory,
+    household.historyAccountId,
+    owner.uid,
+  );
+  await writeCollection(household.id, "transactions", [...content.transactions, ...history], audit);
   await writeCollection(household.id, "debts", content.debts, audit);
   await writeCollection(household.id, "reserves", content.reserves, audit);
   await writeCollection(household.id, "goals", content.goals, audit);
@@ -152,6 +170,7 @@ async function seedHousehold(household: (typeof SEED_HOUSEHOLDS)[number]) {
     ["compras", content.cardPurchases.length],
     ["recorrências", content.recurringRules.length],
     ["obrigações", content.obligations.length],
+    ["meses de histórico", household.monthsOfHistory],
     ["dívidas", content.debts.length],
     ["reservas", content.reserves.length],
   ] as const;
@@ -169,15 +188,23 @@ async function writeCollection(
 ) {
   if (documents.length === 0) return;
 
-  const batch = db.batch();
-  for (const document of documents) {
-    const { id, ...data } = document as { id?: string } & Record<string, unknown>;
-    const ref = id
-      ? db.doc(`households/${householdId}/${collectionName}/${id}`)
-      : db.collection(`households/${householdId}/${collectionName}`).doc();
-    batch.set(ref, { ...audit, ...data });
+  // Firestore caps a batch at 500 writes. The generated history grows with the
+  // number of rules and months, so this chunks rather than assuming it fits.
+  const CHUNK = 400;
+
+  for (let start = 0; start < documents.length; start += CHUNK) {
+    const batch = db.batch();
+
+    for (const document of documents.slice(start, start + CHUNK)) {
+      const { id, ...data } = document as { id?: string } & Record<string, unknown>;
+      const ref = id
+        ? db.doc(`households/${householdId}/${collectionName}/${id}`)
+        : db.collection(`households/${householdId}/${collectionName}`).doc();
+      batch.set(ref, { ...audit, ...data });
+    }
+
+    await batch.commit();
   }
-  await batch.commit();
 }
 
 function printSummary() {

@@ -7,11 +7,17 @@ import { ROLE_LABELS } from "@/modules/household/domain/household";
 
 const SECTIONS = [
   {
+    title: "Entender",
+    items: [
+      { href: "/app/relatorios", label: "Relatórios", icon: "📊" },
+      { href: "/app/orcamento", label: "Orçamento do mês", icon: "🎯" },
+    ],
+  },
+  {
     title: "Dinheiro",
     items: [
       { href: "/app/contas-bancarias", label: "Contas e saldos", icon: "🏦" },
       { href: "/app/reservas", label: "Reservas e metas", icon: "🛟" },
-      { href: "/app/orcamento", label: "Orçamento do mês", icon: "🎯" },
     ],
   },
   {

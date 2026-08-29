@@ -1,4 +1,5 @@
 import {
+  addDays,
   addMonths,
   calendarDate,
   monthKeyOf,
@@ -8,6 +9,7 @@ import {
 } from "@/core/date/calendar-date";
 import { fromDecimal } from "@/core/money/money";
 import { DEFAULT_CATEGORIES } from "@/modules/categories/domain/category";
+import { occurrencesBetween, type RecurringRule } from "@/modules/recurring/domain/recurring-rule";
 
 /**
  * Development fixtures.
@@ -53,7 +55,79 @@ export interface SeedHousehold {
   readonly name: string;
   readonly summary: string;
   readonly users: readonly SeedUser[];
+  /** Months of realised movement to generate, so the reports have a series. */
+  readonly monthsOfHistory: number;
+  /** Account the generated history moves through. */
+  readonly historyAccountId: string;
   build(anchors: Anchors): SeedContent;
+}
+
+/**
+ * Turns a household's recurring rules into transactions that already happened.
+ *
+ * Without a few months of realised movement the reports have nothing to
+ * compare, and a page of charts showing zeros is worse than no page at all.
+ * Variable bills wobble by a deterministic amount so the trend lines look like
+ * a real household rather than a ruler - deterministic because a seed that
+ * produces different numbers on every run makes failures impossible to read.
+ */
+export function realisedHistory(
+  householdId: string,
+  content: SeedContent,
+  anchors: Anchors,
+  monthsBack: number,
+  accountId: string,
+  createdBy: string,
+): Record<string, unknown>[] {
+  const transactions: Record<string, unknown>[] = [];
+  const from = addMonths(anchors.monthStart, -monthsBack);
+  // Stop before the current month: it is still in progress.
+  const to = addDays(anchors.monthStart, -1);
+
+  for (const raw of content.recurringRules) {
+    const rule = raw as unknown as RecurringRule;
+    if (!rule.active) continue;
+
+    for (const occurrence of occurrencesBetween(rule, from, to)) {
+      const isIncome = rule.direction === "INFLOW";
+      // A stable wobble: same rule, same month, same number, every run.
+      const wobble =
+        rule.expenseNature === "VARIABLE" || rule.confidence === "ESTIMATED"
+          ? 1 + (hashOf(`${rule.id}:${occurrence.dueDate}`) % 31) / 100 - 0.15
+          : 1;
+
+      transactions.push({
+        id: `${householdId}-tx-${rule.id}-${occurrence.dueDate}`,
+        householdId,
+        kind: isIncome ? "INCOME" : "EXPENSE",
+        amount: {
+          amount: Math.round(occurrence.amount.amount * wobble),
+          currency: "BRL",
+        },
+        transactionDate: occurrence.dueDate,
+        competenceDate: occurrence.competenceDate,
+        description: rule.description,
+        visibility: rule.visibility,
+        accountId,
+        ...(isIncome
+          ? {}
+          : { categoryId: rule.categoryId ?? categoryId(householdId, "outros-gastos") }),
+        ...(rule.responsibleMemberId ? { responsibleMemberId: rule.responsibleMemberId } : {}),
+        createdBy,
+      });
+    }
+  }
+
+  return transactions;
+}
+
+/** Small, stable hash. Only used to make the seed's variation reproducible. */
+function hashOf(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) % 100_000;
+  }
+  return hash;
 }
 
 export interface SeedContent {
@@ -181,6 +255,8 @@ const scenarioA: SeedHousehold = {
       role: "ADMIN",
     },
   ],
+  monthsOfHistory: 6,
+  historyAccountId: "seed-familia-organizada-conta-corrente",
   build(anchors) {
     const h = this.id;
     return {
@@ -357,6 +433,8 @@ const scenarioB: SeedHousehold = {
       role: "OWNER",
     },
   ],
+  monthsOfHistory: 6,
+  historyAccountId: "seed-familia-apertada-conta",
   build(anchors) {
     const h = this.id;
     return {
@@ -547,6 +625,8 @@ const scenarioC: SeedHousehold = {
       role: "MEMBER",
     },
   ],
+  monthsOfHistory: 9,
+  historyAccountId: "seed-familia-endividada-conta",
   build(anchors) {
     const h = this.id;
     return {

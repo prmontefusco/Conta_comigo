@@ -60,6 +60,14 @@ para validar a projeção.
 
 As datas do seed são relativas a "hoje", então os cenários nunca envelhecem.
 
+O seed também gera **movimentação já realizada** dos meses anteriores, a partir
+das próprias regras de recorrência de cada família: seis meses para as duas
+primeiras, nove para a endividada. Contas variáveis oscilam por um valor
+derivado de um hash estável — mesma regra, mesmo mês, mesmo número em toda
+execução — para que as séries dos relatórios pareçam um household real sem
+tornar uma falha impossível de reproduzir. O mês corrente fica de fora: ele
+ainda está em andamento.
+
 ## Por que isso não toca em produção
 
 O projeto local é `demo-conta-comigo`. Um id que começa com `demo-` faz o

@@ -72,14 +72,33 @@ orçamento reportados à parte.
 Reservas protegidas e não protegidas, metas, cobertura de emergência, meses de
 autonomia, saldo livre distinto do saldo total.
 
-### Fase 10 — Dashboard e relatórios ✔ (parcial)
+### Fase 10 — Dashboard ✔
 
 Painel com Hoje, Pontos de atenção, Este mês, Próximos 30 dias e Próximos
 meses. Telas de contas, cartões, projeção, dívidas, reservas, orçamento,
 recorrências, membros e configurações. Simulador com cinco cenários.
 
-**Pendente:** relatórios dedicados — despesas por categoria, evolução mensal,
-fixas x variáveis, previsto x realizado ao longo do tempo.
+### Fase 10b — Relatórios ✔
+
+Seis blocos, cada um titulado com a pergunta que responde:
+
+| Pergunta                           | O que mostra                                                                          |
+| ---------------------------------- | ------------------------------------------------------------------------------------- |
+| Quanto entrou e quanto saiu?       | Receitas e despesas por competência, mês a mês                                        |
+| Para onde meu dinheiro foi?        | Categorias do mês, separando gasto de comprometido, com comparação com o mês anterior |
+| Isso é sempre assim?               | Evolução de uma categoria ou do total, com média                                      |
+| Quanto do meu custo é obrigatório? | Fixas, variáveis e eventuais, com a fatia das fixas                                   |
+| O orçamento está funcionando?      | Planejado contra gasto + comprometido, ao longo dos meses                             |
+| Estou reduzindo meu endividamento? | Trajetória do total devido em 12 meses e data de término de cada dívida               |
+
+Os cálculos são funções puras em `modules/reports/domain`, sem I/O, cobertas
+por 28 testes. Os gráficos são SVG escrito à mão — sem biblioteca — e cada um
+é decorativo para leitores de tela, sempre acompanhado dos mesmos números numa
+tabela real.
+
+O seed passou a gerar histórico realizado a partir das próprias regras de
+recorrência de cada família, porque uma página de gráficos zerados é pior que
+nenhuma página.
 
 ### Fase 11 — Site público + AdSense Ready ✔
 
@@ -88,18 +107,6 @@ metadata por página, sitemap, robots, `ads.txt` gerado, `AdSlot` com
 placeholders locais.
 
 ## Pendente
-
-### Fase 10b — Relatórios
-
-- Fluxo de caixa realizado
-- Despesas por categoria, com evolução
-- Receitas por origem
-- Fixas x variáveis
-- Previsto x realizado ao longo de vários meses
-- Evolução do endividamento
-
-Cada gráfico precisa responder uma pergunta. Um painel cheio de gráficos sem
-pergunta é ruído.
 
 ### Fase 12 — Production Readiness
 
