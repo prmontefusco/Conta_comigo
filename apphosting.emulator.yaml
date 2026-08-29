@@ -1,0 +1,30 @@
+# Firebase App Hosting - LOCAL EMULATOR overrides.
+#
+# Applied on top of apphosting.yaml when running `firebase emulators:start`.
+# Everything here points at the demo project and the local emulators, so local
+# development can never reach production Firebase resources.
+
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: demo-conta-comigo
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: demo-api-key
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: demo-conta-comigo.firebaseapp.com
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:000000000000:web:demolocal"
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "000000000000"
+
+  - variable: NEXT_PUBLIC_USE_FIREBASE_EMULATORS
+    value: "true"
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST
+    value: 127.0.0.1:9099
+  - variable: NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST
+    value: 127.0.0.1:8080
+
+  # No real advertising network is ever contacted from a developer machine.
+  - variable: NEXT_PUBLIC_ADS_ENABLED
+    value: "false"
+  - variable: NEXT_PUBLIC_SITE_URL
+    value: http://127.0.0.1:5002

@@ -1,0 +1,47 @@
+# Firebase App Hosting - PRODUCTION configuration.
+#
+# This file is read when a real backend is built and deployed. It intentionally
+# contains no secrets: every sensitive value must be a Secret Manager reference.
+# See docs/LOCAL_DEVELOPMENT.md before changing anything here.
+
+runConfig:
+  minInstances: 0
+  maxInstances: 2
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  # Public Firebase Web SDK configuration. These identifiers are not secrets:
+  # access control is enforced by Firestore Security Rules, never by hiding them.
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: REPLACE_WITH_PRODUCTION_PROJECT_ID
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: REPLACE_WITH_PRODUCTION_API_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: REPLACE_WITH_PRODUCTION_AUTH_DOMAIN
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: REPLACE_WITH_PRODUCTION_APP_ID
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: REPLACE_WITH_PRODUCTION_SENDER_ID
+    availability: [BUILD, RUNTIME]
+
+  # Emulators are never used in production.
+  - variable: NEXT_PUBLIC_USE_FIREBASE_EMULATORS
+    value: "false"
+    availability: [BUILD, RUNTIME]
+
+  # AdSense. Real ad scripts only ever load in production (docs/ADSENSE.md).
+  - variable: NEXT_PUBLIC_ADS_ENABLED
+    value: "true"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_ADSENSE_CLIENT_ID
+    value: REPLACE_WITH_ADSENSE_CLIENT_ID
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_SITE_URL
+    value: REPLACE_WITH_PUBLIC_SITE_URL
+    availability: [BUILD, RUNTIME]

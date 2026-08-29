@@ -1,0 +1,362 @@
+rules_version = '2';
+
+// Conta comigo - Firestore Security Rules
+//
+// These rules are production code and are covered by tests in tests/rules.
+// No feature is considered done until its rule has a test (docs/SECURITY.md).
+//
+// Three principles:
+//   1. Default deny. Nothing is readable or writable unless a rule below says so.
+//   2. The household is the only tenant boundary. Access to any financial
+//      document requires an ACTIVE membership document in that household.
+//   3. A document can never claim to belong to a household other than the one
+//      it is stored under, and can never be moved between households.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* ------------------------------------------------------------ */
+    /* Helpers                                                       */
+    /* ------------------------------------------------------------ */
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function memberPath(householdId) {
+      return /databases/$(database)/documents/households/$(householdId)/members/$(request.auth.uid);
+    }
+
+    function householdPath(householdId) {
+      return /databases/$(database)/documents/households/$(householdId);
+    }
+
+    // Membership is the ONLY way to reach household data. A user who merely
+    // knows a householdId gets nothing.
+    function isMember(householdId) {
+      return isSignedIn()
+        && exists(memberPath(householdId))
+        && get(memberPath(householdId)).data.status == 'ACTIVE';
+    }
+
+    function memberRole(householdId) {
+      return get(memberPath(householdId)).data.role;
+    }
+
+    // VIEWER can see everything in the household and change nothing.
+    function canWrite(householdId) {
+      return isMember(householdId)
+        && memberRole(householdId) in ['OWNER', 'ADMIN', 'MEMBER'];
+    }
+
+    function canAdminister(householdId) {
+      return isMember(householdId)
+        && memberRole(householdId) in ['OWNER', 'ADMIN'];
+    }
+
+    function isOwner(householdId) {
+      return isMember(householdId) && memberRole(householdId) == 'OWNER';
+    }
+
+    // A document must declare the household it is stored under. This closes
+    // the door on a client writing a document into household A that carries
+    // household B's id and later being read back as if it belonged to B.
+    function declaresHousehold(householdId) {
+      return request.resource.data.householdId == householdId;
+    }
+
+    // Ownership and creation metadata are set once and never rewritten.
+    function immutableAudit() {
+      return request.resource.data.householdId == resource.data.householdId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+    }
+
+    function isIntegerMoney(value) {
+      return value is map
+        && value.amount is int
+        && value.currency is string;
+    }
+
+    // Financial documents are bounded in size. A runaway client cannot turn a
+    // household document into a megabyte of notes.
+    function reasonableSize() {
+      return request.resource.data.keys().size() <= 60;
+    }
+
+    function validNewDocument(householdId) {
+      return declaresHousehold(householdId)
+        && reasonableSize()
+        && request.resource.data.createdBy == request.auth.uid;
+    }
+
+    /* ------------------------------------------------------------ */
+    /* User profiles                                                 */
+    /* ------------------------------------------------------------ */
+
+    match /users/{uid} {
+      allow get: if isSelf(uid);
+      // Listing all users is never allowed, for anyone.
+      allow list: if false;
+
+      allow create: if isSelf(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.plan in ['FREE', 'PREMIUM'];
+
+      allow update: if isSelf(uid)
+        && request.resource.data.uid == resource.data.uid
+        // The plan is set by billing, never by the client. Until billing
+        // exists, it can only stay as it is.
+        && request.resource.data.plan == resource.data.plan;
+
+      // Account deletion is a supported, explicit action (LGPD, docs/SECURITY.md).
+      allow delete: if isSelf(uid);
+    }
+
+    /* ------------------------------------------------------------ */
+    /* Households                                                    */
+    /* ------------------------------------------------------------ */
+
+    match /households/{householdId} {
+      // Reading a household requires membership. The `list` case additionally
+      // relies on the query being constrained to memberUids array-contains the
+      // caller, which Firestore enforces against this same condition.
+      allow get: if isMember(householdId);
+      allow list: if isSignedIn() && request.auth.uid in resource.data.memberUids;
+
+      // Bootstrap: whoever creates a household is its owner and its only
+      // member. The matching members/{uid} document is written immediately
+      // afterwards (see docs/SECURITY.md, "household bootstrap").
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid]
+        && request.resource.data.createdBy == request.auth.uid
+        && reasonableSize();
+
+      allow update: if canAdminister(householdId)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && reasonableSize();
+
+      // Only the owner can delete the household.
+      allow delete: if isOwner(householdId);
+
+      /* ---------------------------------------------------------- */
+      /* Membership                                                  */
+      /* ---------------------------------------------------------- */
+
+      match /members/{memberUid} {
+        allow read: if isMember(householdId);
+
+        // Two ways a member document is created:
+        //  - the founder claiming ownership of the household they just made;
+        //  - an admin adding someone who is already listed in memberUids.
+        // The second half is what forces an admin to update the household
+        // document first, keeping the array and the subcollection in step.
+        allow create: if isSignedIn()
+          && request.resource.data.uid == memberUid
+          && request.resource.data.householdId == householdId
+          && (
+            (
+              memberUid == request.auth.uid
+              && get(householdPath(householdId)).data.ownerUid == request.auth.uid
+              && request.resource.data.role == 'OWNER'
+            )
+            || (
+              canAdminister(householdId)
+              && memberUid in get(householdPath(householdId)).data.memberUids
+              && request.resource.data.role in ['ADMIN', 'MEMBER', 'VIEWER']
+            )
+          );
+
+        // Admins manage roles, but nobody can promote themselves and the
+        // owner's role cannot be changed by anyone else.
+        allow update: if canAdminister(householdId)
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.householdId == householdId
+          && resource.data.role != 'OWNER'
+          && request.resource.data.role in ['ADMIN', 'MEMBER', 'VIEWER']
+          && !(memberUid == request.auth.uid && request.resource.data.role != resource.data.role);
+
+        // An admin can remove others; anyone can remove themselves. The owner
+        // cannot be removed while they own the household.
+        allow delete: if resource.data.role != 'OWNER'
+          && (canAdminister(householdId) || isSelf(memberUid));
+      }
+
+      /* ---------------------------------------------------------- */
+      /* Invites                                                     */
+      /* ---------------------------------------------------------- */
+
+      match /invites/{inviteId} {
+        allow read: if isMember(householdId);
+        allow create: if canAdminister(householdId)
+          && validNewDocument(householdId)
+          && request.resource.data.role in ['ADMIN', 'MEMBER', 'VIEWER'];
+        allow update, delete: if canAdminister(householdId);
+      }
+
+      /* ---------------------------------------------------------- */
+      /* Financial data                                              */
+      /*                                                             */
+      /* Every collection below follows the same contract: members    */
+      /* read, writers write, and a document can never change which   */
+      /* household it belongs to.                                    */
+      /* ---------------------------------------------------------- */
+
+      match /categories/{categoryId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId) && validNewDocument(householdId);
+        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
+        allow delete: if canWrite(householdId);
+      }
+
+      match /accounts/{accountId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId)
+          && validNewDocument(householdId)
+          && isIntegerMoney(request.resource.data.openingBalance);
+        allow update: if canWrite(householdId)
+          && immutableAudit()
+          && reasonableSize()
+          && isIntegerMoney(request.resource.data.openingBalance);
+        // Deleting an account would orphan its movements; the app archives
+        // instead. Only administrators may truly delete one.
+        allow delete: if canAdminister(householdId);
+      }
+
+      match /transactions/{transactionId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId)
+          && validNewDocument(householdId)
+          && isIntegerMoney(request.resource.data.amount)
+          && request.resource.data.amount.amount >= 0;
+        allow update: if canWrite(householdId)
+          && immutableAudit()
+          && reasonableSize()
+          && isIntegerMoney(request.resource.data.amount)
+          && request.resource.data.amount.amount >= 0;
+        allow delete: if canWrite(householdId);
+      }
+
+      match /obligations/{obligationId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId)
+          && validNewDocument(householdId)
+          && isIntegerMoney(request.resource.data.amount)
+          && request.resource.data.amount.amount >= 0
+          && request.resource.data.direction in ['INFLOW', 'OUTFLOW'];
+        allow update: if canWrite(householdId)
+          && immutableAudit()
+          && reasonableSize()
+          && isIntegerMoney(request.resource.data.amount);
+        allow delete: if canWrite(householdId);
+      }
+
+      match /creditCards/{cardId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId)
+          && validNewDocument(householdId)
+          && isIntegerMoney(request.resource.data.creditLimit)
+          && request.resource.data.closingDay is int
+          && request.resource.data.closingDay >= 1
+          && request.resource.data.closingDay <= 31
+          && request.resource.data.dueDay is int
+          && request.resource.data.dueDay >= 1
+          && request.resource.data.dueDay <= 31;
+        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
+        allow delete: if canAdminister(householdId);
+      }
+
+      match /cardPurchases/{purchaseId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId)
+          && validNewDocument(householdId)
+          && isIntegerMoney(request.resource.data.totalAmount)
+          && request.resource.data.totalAmount.amount >= 0
+          && request.resource.data.installmentCount is int
+          && request.resource.data.installmentCount >= 1
+          && request.resource.data.installmentCount <= 120;
+        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
+        allow delete: if canWrite(householdId);
+      }
+
+      match /debts/{debtId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId)
+          && validNewDocument(householdId)
+          && isIntegerMoney(request.resource.data.principalContracted)
+          && request.resource.data.installmentCount is int
+          && request.resource.data.installmentCount >= 1
+          && request.resource.data.installmentCount <= 600;
+        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
+        allow delete: if canAdminister(householdId);
+      }
+
+      match /recurringRules/{ruleId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId)
+          && validNewDocument(householdId)
+          && isIntegerMoney(request.resource.data.amount);
+        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
+        allow delete: if canWrite(householdId);
+      }
+
+      match /budgets/{budgetId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId) && validNewDocument(householdId);
+        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
+        allow delete: if canWrite(householdId);
+      }
+
+      match /reserves/{reserveId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId)
+          && validNewDocument(householdId)
+          && isIntegerMoney(request.resource.data.currentAmount);
+        allow update: if canWrite(householdId)
+          && immutableAudit()
+          && reasonableSize()
+          && isIntegerMoney(request.resource.data.currentAmount);
+        allow delete: if canWrite(householdId);
+      }
+
+      match /goals/{goalId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId)
+          && validNewDocument(householdId)
+          && isIntegerMoney(request.resource.data.targetAmount);
+        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
+        allow delete: if canWrite(householdId);
+      }
+
+      match /vehicles/{vehicleId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId) && validNewDocument(householdId);
+        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
+        allow delete: if canWrite(householdId);
+      }
+
+      // No catch-all is written here on purpose. In Firestore, rules are
+      // combined with OR: an `allow ... if false` cannot take away a grant, it
+      // can only look reassuring. Any sub-collection not named above is
+      // already denied because nothing grants it. A new feature must add its
+      // own match block, and its tests (tests/rules).
+    }
+
+    /* ------------------------------------------------------------ */
+    /* Everything else                                               */
+    /*                                                               */
+    /* Firestore denies by default; this block exists so the intent  */
+    /* is stated explicitly in the file rather than assumed.         */
+    /* ------------------------------------------------------------ */
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,51 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+/build
+
+# testing
+/coverage
+/playwright-report
+/test-results
+/blob-report
+/.playwright
+
+# env files
+.env
+.env.local
+.env*.local
+!.env.development
+!.env.example
+
+# secrets - never commit service accounts or credentials
+*service-account*.json
+*serviceaccount*.json
+*-key.json
+*.pem
+.firebase-credentials
+
+# firebase
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+database-debug.log*
+pubsub-debug.log*
+apphosting-debug.log*
+dataconnect-debug.log*
+/firebase-export-*
+# personal, machine-specific App Hosting overrides
+apphosting.local.yaml
+
+# misc
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+.vscode/*
+!.vscode/extensions.json
+.idea

@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens.
+ *
+ * The palette avoids the usual red-means-you-failed language. Money going out
+ * is not "bad"; a month that does not close is a fact that needs attention,
+ * not a scolding (docs/PRODUCT.md section 12). Attention states use amber and
+ * a deep rose rather than alarm red, and every colour pair below meets WCAG AA
+ * against its background.
+ */
+
+@theme {
+  --color-ink-900: oklch(0.21 0.02 250);
+  --color-ink-700: oklch(0.36 0.02 250);
+  --color-ink-500: oklch(0.52 0.015 250);
+  --color-ink-300: oklch(0.72 0.012 250);
+  --color-ink-100: oklch(0.92 0.008 250);
+  --color-ink-50: oklch(0.97 0.005 250);
+
+  --color-surface: oklch(1 0 0);
+  --color-surface-sunken: oklch(0.98 0.004 250);
+  --color-surface-raised: oklch(1 0 0);
+
+  --color-brand-700: oklch(0.42 0.11 195);
+  --color-brand-600: oklch(0.52 0.12 195);
+  --color-brand-500: oklch(0.62 0.12 195);
+  --color-brand-100: oklch(0.94 0.03 195);
+  --color-brand-50: oklch(0.97 0.017 195);
+
+  --color-positive-700: oklch(0.44 0.11 155);
+  --color-positive-600: oklch(0.54 0.12 155);
+  --color-positive-100: oklch(0.94 0.04 155);
+
+  --color-attention-700: oklch(0.48 0.11 65);
+  --color-attention-600: oklch(0.6 0.13 65);
+  --color-attention-100: oklch(0.95 0.05 70);
+
+  --color-critical-700: oklch(0.45 0.14 15);
+  --color-critical-600: oklch(0.55 0.16 15);
+  --color-critical-100: oklch(0.95 0.04 15);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-numeric: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 0.875rem;
+}
+
+:root {
+  color-scheme: light dark;
+  --page-bg: var(--color-ink-50);
+  --page-fg: var(--color-ink-900);
+  --card-bg: var(--color-surface);
+  --card-border: var(--color-ink-100);
+  --muted-fg: var(--color-ink-500);
+
+  /*
+   * Semantic tones for monetary figures.
+   *
+   * These are indirections rather than direct palette references because the
+   * palette above is tuned for a light background. Using --color-*-700 for
+   * text in dark mode leaves numbers barely legible against a dark card,
+   * which for a figure like "contas vencidas" is not a cosmetic problem.
+   */
+  --tone-positive: var(--color-positive-700);
+  --tone-outflow: var(--color-ink-700);
+  --tone-attention: var(--color-attention-700);
+  --tone-critical: var(--color-critical-700);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page-bg: oklch(0.19 0.015 250);
+    --page-fg: oklch(0.95 0.006 250);
+    --card-bg: oklch(0.24 0.017 250);
+    --card-border: oklch(0.32 0.02 250);
+    --muted-fg: oklch(0.72 0.012 250);
+
+    /* Lightened so every tone clears WCAG AA against --card-bg. */
+    --tone-positive: oklch(0.82 0.15 155);
+    --tone-outflow: oklch(0.86 0.008 250);
+    --tone-attention: oklch(0.85 0.14 75);
+    --tone-critical: oklch(0.78 0.16 18);
+  }
+}
+
+html {
+  /* Never let a horizontal scrollbar appear on a phone. */
+  overflow-x: hidden;
+}
+
+body {
+  background-color: var(--page-bg);
+  color: var(--page-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Space for the fixed bottom navigation on small screens. */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/*
+ * Monetary figures line up in columns only when digits share a width.
+ * Misaligned currency is genuinely harder to scan.
+ */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Visible focus for keyboard users, on every interactive element. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* Skip link: present for keyboard users, out of the way for everyone else. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+}
+.skip-link:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: var(--card-bg);
+  border: 2px solid var(--color-brand-600);
+  border-radius: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Touch targets stay at least 44px tall on phones (WCAG 2.5.5). */
+@media (pointer: coarse) {
+  button,
+  a[role="button"],
+  [role="tab"] {
+    min-height: 2.75rem;
+  }
+}

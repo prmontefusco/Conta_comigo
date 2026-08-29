@@ -1,0 +1,18 @@
+# Normalise line endings so the repository is identical regardless of the
+# platform someone works on. Without this, a Windows checkout rewrites every
+# file and the next diff on macOS or Linux is unreadable.
+* text=auto eol=lf
+
+# Binary files must never be touched.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+*.zip binary
+
+# Generated files: collapse them in diffs and code review.
+package-lock.json linguist-generated=true -diff
