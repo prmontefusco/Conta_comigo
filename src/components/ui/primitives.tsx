@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { formatMoney, formatMoneyAccessible } from "@/core/money/format";
+import { formatMoney } from "@/core/money/format";
 import { isNegative, type Money } from "@/core/money/money";
 
 /**
@@ -77,6 +77,37 @@ export function CardTitle({
 }
 
 /* ------------------------------------------------------------------ */
+/* Horizontal scrolling                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A container that scrolls sideways, reachable by keyboard.
+ *
+ * Wide tables and charts have to scroll inside themselves so the page never
+ * does. But a scroll container that cannot be focused is unreachable with a
+ * keyboard: the content past the right edge simply does not exist for someone
+ * who does not use a pointer. `tabIndex` makes it focusable and the arrow keys
+ * then scroll it; the label says what they are scrolling.
+ *
+ * Found by an axe audit on mobile viewports, where these actually overflow.
+ */
+export function ScrollableX({
+  children,
+  label,
+  className,
+}: {
+  children: ReactNode;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div role="region" aria-label={label} tabIndex={0} className={cn("overflow-x-auto", className)}>
+      {children}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Money                                                               */
 /* ------------------------------------------------------------------ */
 
@@ -99,8 +130,15 @@ const TONE_CLASS: Record<MoneyTone, string> = {
 /**
  * Renders an amount.
  *
- * Screen readers get "menos R$ 1.234,56" rather than a minus sign they may
- * skip, which is the difference between hearing a debt and missing it.
+ * The sign is spelled out for screen readers - "menos R$ 1.234,56" - because a
+ * "−" glyph is announced inconsistently, and the difference between hearing a
+ * debt and missing it is the whole point.
+ *
+ * Deliberately without `aria-label`: ARIA prohibits naming a plain `<span>`,
+ * which has no role. An earlier version did exactly that and an axe audit
+ * caught it: the label was ignorable and the visible text was `aria-hidden`,
+ * so a screen reader could have announced nothing at all where a number was.
+ * The sign is now a hidden word next to a visible glyph, which needs no ARIA.
  */
 export function MoneyText({
   value,
@@ -122,14 +160,30 @@ export function MoneyText({
     xl: "text-3xl font-semibold tracking-tight",
   }[size];
 
-  const resolvedTone: MoneyTone = tone === "neutral" && isNegative(value) ? "critical" : tone;
+  const negative = isNegative(value);
+  const resolvedTone: MoneyTone = tone === "neutral" && negative ? "critical" : tone;
+
+  const magnitude = formatMoney({
+    amount: Math.abs(value.amount),
+    currency: value.currency,
+  });
+  const showPlus = showSign && !negative && value.amount !== 0;
 
   return (
-    <span
-      className={cn("tabular", sizeClass, TONE_CLASS[resolvedTone], className)}
-      aria-label={formatMoneyAccessible(value)}
-    >
-      <span aria-hidden="true">{formatMoney(value, { showSign })}</span>
+    <span className={cn("tabular", sizeClass, TONE_CLASS[resolvedTone], className)}>
+      {negative ? (
+        <>
+          <span aria-hidden="true">−</span>
+          <span className="sr-only">menos </span>
+        </>
+      ) : null}
+      {showPlus ? (
+        <>
+          <span aria-hidden="true">+</span>
+          <span className="sr-only">mais </span>
+        </>
+      ) : null}
+      {magnitude}
     </span>
   );
 }

@@ -120,14 +120,34 @@ O provider assina cada subcoleção inteira e deriva o resto. Ver
 
 ## Índices
 
-`firestore.indexes.json` declara índices compostos para as consultas que a
-aplicação passará a fazer quando um household crescer o suficiente para
-justificar paginação — transações por conta e data, obrigações por status e
-vencimento, compras por cartão e data.
+**Nenhum índice composto é necessário hoje.**
 
-Eles estão declarados agora porque um índice ausente só aparece em produção, no
-momento em que o volume cresce. Declará-los cedo custa nada e evita uma falha
-que só se manifesta com dados reais.
+A aplicação faz exatamente uma consulta com filtro:
+
+```ts
+query(collection(db, "households"), where("memberUids", "array-contains", uid));
+```
+
+Atendida pelo índice de campo único que o Firestore cria automaticamente. Todo
+o resto é assinatura de coleção inteira, derivada em memória.
+
+### Uma correção da revisão da Fase 12
+
+A versão anterior deste documento declarava nove índices compostos "para as
+consultas que a aplicação passará a fazer", com o argumento de que declará-los
+cedo não custaria nada.
+
+Esse argumento estava errado. Cada índice composto é atualizado **em toda
+escrita** do documento — o que é cobrado, consome armazenamento e torna a
+escrita mais lenta. Um índice para uma consulta que não existe tem custo real e
+benefício zero. Nove deles, sobre as coleções que mais recebem escrita,
+multiplicariam o custo de gravação sem nenhum ganho.
+
+Os índices foram removidos. A regra passa a ser: **um índice entra junto com a
+consulta que precisa dele, nunca antes.**
+
+Um índice ausente falha de forma barulhenta e imediata — o Firestore devolve um
+erro com o link para criá-lo. É exatamente o tipo de falha que se prefere ter.
 
 ## Consistência
 

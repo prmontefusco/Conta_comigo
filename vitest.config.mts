@@ -26,6 +26,7 @@ export default defineConfig({
           environment: "node",
           include: [
             "src/core/**/*.test.ts",
+            "src/lib/**/*.test.ts",
             "src/modules/**/domain/**/*.test.ts",
             "src/modules/**/application/**/*.test.ts",
           ],

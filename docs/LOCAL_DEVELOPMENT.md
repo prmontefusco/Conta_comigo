@@ -147,6 +147,16 @@ rm -rf .next
 O Admin SDK tenta consultar o metadata server do Google Cloud, que não existe
 numa máquina local. É inofensivo em modo emulador.
 
+### `ERR_NO_BUFFER_SPACE` durante o Playwright
+
+Rodar os dois perfis de uma vez faz centenas de navegações e pode esgotar os
+sockets efêmeros do Windows. Rode um perfil por vez:
+
+```bash
+npx playwright test --project=desktop
+npx playwright test --project=mobile
+```
+
 ### O aviso "Running in emulator mode"
 
 Banner do próprio Firebase Authentication. Ele confirma que você está falando

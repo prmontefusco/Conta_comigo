@@ -356,6 +356,14 @@ describe("privilege escalation", () => {
     await assertSucceeds(db.doc(`households/${HOUSEHOLD_A}/members/${VIEWER_A}`).delete());
   });
 
+  it("the owner can remove itself, which is what account deletion needs", async () => {
+    // Without this, someone alone in their own household could never exercise
+    // the LGPD right to erasure (docs/SECURITY.md).
+    await seed();
+    const db = as(testEnv, OWNER_A).firestore();
+    await assertSucceeds(db.doc(`households/${HOUSEHOLD_A}/members/${OWNER_A}`).delete());
+  });
+
   it("an admin cannot add a member who is not in memberUids", async () => {
     await seed();
     const db = as(testEnv, ADMIN_A).firestore();

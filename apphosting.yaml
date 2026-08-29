@@ -45,3 +45,9 @@ env:
   - variable: NEXT_PUBLIC_SITE_URL
     value: REPLACE_WITH_PUBLIC_SITE_URL
     availability: [BUILD, RUNTIME]
+
+  # Firebase App Check. Raises the cost of automated abuse; it never replaces
+  # the Security Rules. Leave empty to keep it off; see docs/SECURITY.md.
+  - variable: NEXT_PUBLIC_APPCHECK_SITE_KEY
+    value: REPLACE_WITH_RECAPTCHA_V3_SITE_KEY
+    availability: [BUILD, RUNTIME]

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { instant } from "@/core/date/calendar-date";
@@ -131,13 +132,17 @@ export default function SettingsPage() {
       <Card>
         <CardTitle>Seus dados</CardTitle>
         <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
-          Você pode pedir a exportação ou a exclusão dos seus dados a qualquer momento. Nenhuma
-          informação financeira sua é usada para publicidade. Detalhes na{" "}
+          Você pode baixar ou excluir seus dados a qualquer momento, sem pedir autorização a
+          ninguém. Nenhuma informação financeira sua é usada para publicidade. Detalhes na{" "}
           <a href="/privacidade" className="underline underline-offset-2">
             Política de Privacidade
           </a>
           .
         </p>
+
+        <Link href="/app/meus-dados" className="mt-4 inline-block">
+          <Button variant="secondary">Meus dados</Button>
+        </Link>
       </Card>
     </div>
   );

@@ -103,8 +103,8 @@ export function CashFlowSection({ months, hasHistory }: SectionProps) {
       </dl>
 
       <p className="mt-4 text-xs" style={{ color: "var(--muted-fg)" }}>
-        Transferências entre suas contas não aparecem aqui: elas movimentam dinheiro sem alterar
-        o que você tem. O mesmo vale para pagamentos de fatura, que já foram contabilizados como
+        Transferências entre suas contas não aparecem aqui: elas movimentam dinheiro sem alterar o
+        que você tem. O mesmo vale para pagamentos de fatura, que já foram contabilizados como
         despesa no mês da compra.
       </p>
     </Card>
@@ -214,9 +214,7 @@ export function TrendSection({ months, hasHistory }: SectionProps) {
   );
 
   const categoryIndex = buildCategoryIndex(finance.categories);
-  const label = categoryFilter
-    ? categoryName(categoryIndex, categoryFilter)
-    : "Todas as despesas";
+  const label = categoryFilter ? categoryName(categoryIndex, categoryFilter) : "Todas as despesas";
 
   return (
     <Card aria-labelledby="tendencia-title">
@@ -253,9 +251,7 @@ export function TrendSection({ months, hasHistory }: SectionProps) {
 
           <MonthlyColumns
             months={months}
-            caption={
-              categoryFilter ? `Gastos mensais em ${label}` : "Gastos mensais totais"
-            }
+            caption={categoryFilter ? `Gastos mensais em ${label}` : "Gastos mensais totais"}
             series={[
               {
                 key: "spending",
@@ -481,11 +477,7 @@ export function DebtSection() {
             ) : (
               <>
                 Seguindo os contratos atuais, a dívida cresce{" "}
-                <MoneyText
-                  value={subtract(zero(), outlook.reduction)}
-                  size="sm"
-                  tone="critical"
-                />{" "}
+                <MoneyText value={subtract(zero(), outlook.reduction)} size="sm" tone="critical" />{" "}
                 em doze meses.
               </>
             )}
@@ -509,9 +501,7 @@ export function DebtSection() {
                     className="flex justify-between gap-3"
                   >
                     <span className="min-w-0 truncate">{ending.description}</span>
-                    <span style={{ color: "var(--muted-fg)" }}>
-                      {formatMonthKey(ending.month)}
-                    </span>
+                    <span style={{ color: "var(--muted-fg)" }}>{formatMonthKey(ending.month)}</span>
                   </li>
                 ))}
               </ul>

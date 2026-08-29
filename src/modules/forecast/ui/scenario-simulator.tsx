@@ -10,7 +10,7 @@ import {
 } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
 import { fromDecimalString } from "@/core/money/money";
-import { Button, Card, CardTitle, MoneyText } from "@/components/ui/primitives";
+import { Button, Card, CardTitle, MoneyText, ScrollableX } from "@/components/ui/primitives";
 import { DateField, FormError, MoneyField, SelectField, TextField } from "@/components/ui/form";
 import { simulate, type ScenarioChange } from "@/modules/forecast/domain/scenario";
 import { useFinance } from "@/modules/household/ui/finance-provider";
@@ -207,7 +207,10 @@ function ScenarioResultView({ result }: { result: ReturnType<typeof simulate> })
       ) : null}
 
       {affected.length > 0 ? (
-        <div className="-mx-4 mt-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <ScrollableX
+          label="Comparação do saldo livre por mês"
+          className="-mx-4 mt-4 px-4 sm:mx-0 sm:px-0"
+        >
           <table className="w-full min-w-[26rem] border-collapse text-sm">
             <caption className="sr-only">Comparação do saldo livre por mês</caption>
             <thead>
@@ -243,7 +246,7 @@ function ScenarioResultView({ result }: { result: ReturnType<typeof simulate> })
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollableX>
       ) : null}
 
       <p className="mt-4 text-xs" style={{ color: "var(--muted-fg)" }}>

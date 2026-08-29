@@ -182,10 +182,17 @@ service cloud.firestore {
           && request.resource.data.role in ['ADMIN', 'MEMBER', 'VIEWER']
           && !(memberUid == request.auth.uid && request.resource.data.role != resource.data.role);
 
-        // An admin can remove others; anyone can remove themselves. The owner
-        // cannot be removed while they own the household.
-        allow delete: if resource.data.role != 'OWNER'
-          && (canAdminister(householdId) || isSelf(memberUid));
+        // Leaving is always your own right, owner included: without it, the
+        // owner of a solo household could never delete their account, and the
+        // LGPD right to erasure would exist only on paper.
+        //
+        // What must never happen is somebody *else* removing the owner, so the
+        // admin branch excludes that case explicitly. The app additionally
+        // refuses to leave a shared household without a responsible person
+        // (see planAccountDeletion); this rule guarantees the part that
+        // matters for security.
+        allow delete: if isSelf(memberUid)
+          || (canAdminister(householdId) && resource.data.role != 'OWNER');
       }
 
       /* ---------------------------------------------------------- */

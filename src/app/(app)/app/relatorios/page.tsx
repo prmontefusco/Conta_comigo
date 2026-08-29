@@ -30,10 +30,7 @@ export default function ReportsPage() {
   const { profile } = useSession();
   const [monthsBack, setMonthsBack] = useState(6);
 
-  const months = useMemo(
-    () => recentMonths(finance.asOf, monthsBack),
-    [finance.asOf, monthsBack],
-  );
+  const months = useMemo(() => recentMonths(finance.asOf, monthsBack), [finance.asOf, monthsBack]);
 
   if (finance.loading) return <Spinner label="Montando seus relatórios" />;
 

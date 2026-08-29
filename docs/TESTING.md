@@ -14,9 +14,11 @@ tiver teste.**
 | Camada         | Ferramenta                              | Onde                         | Precisa de emulador |
 | -------------- | --------------------------------------- | ---------------------------- | ------------------- |
 | Domínio        | Vitest (node)                           | `src/**/domain/**/*.test.ts` | não                 |
+| Core e lib     | Vitest (node)                           | `src/core/**`, `src/lib/**`  | não                 |
 | Componentes    | Vitest (jsdom)                          | `src/**/*.test.tsx`          | não                 |
 | Security Rules | Vitest + `@firebase/rules-unit-testing` | `tests/rules/`               | sim                 |
 | E2E            | Playwright                              | `tests/e2e/`                 | stack completa      |
+| Acessibilidade | Playwright + axe-core                   | `tests/e2e/accessibility`    | stack completa      |
 
 Duas configurações separadas: `vitest.config.mts` (unitários) e
 `vitest.rules.config.mts` (regras). As regras são mais lentas, precisam de
@@ -25,9 +27,9 @@ emulador e **nunca devem ser silenciosamente puladas** — daí a separação.
 ## Estado atual
 
 ```
-npm run test         → 217 testes, 9 arquivos
-npm run test:rules   →  45 testes
-npm run test:e2e     →  39 testes por perfil (mobile e desktop)
+npm run test         → 234 testes, 11 arquivos
+npm run test:rules   →  46 testes
+npm run test:e2e     →  66 testes por perfil (mobile e desktop)
 ```
 
 ## Casos financeiros obrigatórios
@@ -96,6 +98,20 @@ Cobrem os caminhos que precisam funcionar de ponta a ponta: entrar, ver o
 resumo, encontrar o mês com déficit, navegar entre as telas, simular uma compra
 parcelada, e verificar que o site público não carrega publicidade real
 localmente.
+
+### Acessibilidade
+
+`accessibility.spec.ts` audita **24 páginas** contra WCAG 2.1 A e AA com
+axe-core, em mobile e desktop, mais navegação por teclado e comportamento de
+diálogo.
+
+Já encontrou dois defeitos que a revisão humana havia deixado passar: um
+`aria-label` proibido que podia fazer um leitor de tela anunciar **nada** onde
+havia um valor, e containers de rolagem horizontal inalcançáveis por teclado no
+mobile. Ambos corrigidos.
+
+O que axe não faz é julgar se a tela faz sentido. Por isso as outras suítes
+asseveram sobre nomes acessíveis, e não sobre classes CSS.
 
 Elementos são localizados por **papel e nome acessível**, nunca por classe CSS
 ou texto do rótulo visual. O rótulo de um campo obrigatório é "Senha*", mas o

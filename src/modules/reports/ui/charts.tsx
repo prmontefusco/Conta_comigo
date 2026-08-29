@@ -4,7 +4,7 @@ import { type ReactNode } from "react";
 import { formatMonthShort, type MonthKey } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
 import type { Money } from "@/core/money/money";
-import { MoneyText } from "@/components/ui/primitives";
+import { MoneyText, ScrollableX } from "@/components/ui/primitives";
 
 /**
  * Charts.
@@ -123,7 +123,7 @@ export function MonthlyColumns({
 
   return (
     <figure className="m-0">
-      <div className="-mx-1 overflow-x-auto px-1">
+      <ScrollableX label={caption} className="-mx-1 px-1">
         <svg
           aria-hidden="true"
           viewBox="0 0 100 44"
@@ -165,7 +165,7 @@ export function MonthlyColumns({
             }),
           )}
         </svg>
-      </div>
+      </ScrollableX>
 
       <div
         aria-hidden="true"
@@ -224,7 +224,7 @@ export function TrendLine({
 
   return (
     <figure className="m-0">
-      <div className="-mx-1 overflow-x-auto px-1">
+      <ScrollableX label={caption} className="-mx-1 px-1">
         <svg
           aria-hidden="true"
           viewBox="0 0 100 44"
@@ -252,7 +252,7 @@ export function TrendLine({
             />
           ))}
         </svg>
-      </div>
+      </ScrollableX>
 
       <div
         aria-hidden="true"

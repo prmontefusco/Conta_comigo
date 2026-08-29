@@ -3,7 +3,7 @@
 import { formatMonthKey, formatMonthShort } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
 import { isNegative } from "@/core/money/money";
-import { Badge, Card, CardTitle, MoneyText } from "@/components/ui/primitives";
+import { Badge, Card, CardTitle, MoneyText, ScrollableX } from "@/components/ui/primitives";
 import type { ForecastMonth } from "@/modules/forecast/domain/forecast-types";
 
 /**
@@ -48,7 +48,7 @@ export function MonthsTable({
       ) : null}
 
       {/* Wide table scrolls inside its own container; the page never does. */}
-      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      <ScrollableX label="Projeção mensal" className="-mx-4 px-4 sm:mx-0 sm:px-0">
         <table className="w-full min-w-[34rem] border-collapse text-sm">
           <caption className="sr-only">
             Projeção mensal de receitas, compromissos e saldo livre
@@ -118,7 +118,7 @@ export function MonthsTable({
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollableX>
 
       <p className="mt-4 text-xs" style={{ color: "var(--muted-fg)" }}>
         {hasPartialMonth ? (

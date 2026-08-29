@@ -1,78 +1,21 @@
 {
-  "indexes": [
-    {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "transactionDate", "order": "DESCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "accountId", "order": "ASCENDING" },
-        { "fieldPath": "transactionDate", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "kind", "order": "ASCENDING" },
-        { "fieldPath": "competenceDate", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "obligations",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "dueDate", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "obligations",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "direction", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "dueDate", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "obligations",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "competenceDate", "order": "ASCENDING" },
-        { "fieldPath": "categoryId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "cardPurchases",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "creditCardId", "order": "ASCENDING" },
-        { "fieldPath": "purchaseDate", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "recurringRules",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "active", "order": "ASCENDING" },
-        { "fieldPath": "direction", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "debts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "firstDueDate", "order": "ASCENDING" }
-      ]
-    }
+  "//": [
+    "Nenhum índice composto é necessário hoje.",
+    "",
+    "A aplicação faz exatamente uma consulta com filtro:",
+    "  households where memberUids array-contains <uid>",
+    "que é atendida pelo índice de campo único que o Firestore cria sozinho.",
+    "",
+    "Todo o resto é assinatura de coleção inteira, derivada em memória",
+    "(docs/ARCHITECTURE.md, 'Carregamento e derivação').",
+    "",
+    "Índices compostos foram removidos na revisão da Fase 12. Declará-los",
+    "'por precaução' não é gratuito: cada índice é atualizado em toda escrita",
+    "do documento, e isso é cobrado e torna a escrita mais lenta. Um índice",
+    "para uma consulta que não existe tem custo real e benefício zero.",
+    "",
+    "Adicione um índice junto com a consulta que precisa dele, nunca antes."
   ],
+  "indexes": [],
   "fieldOverrides": []
 }

@@ -108,22 +108,34 @@ placeholders locais.
 
 ## Pendente
 
-### Fase 12 — Production Readiness
+### Fase 12 — Production Readiness (em andamento)
 
-Antes de qualquer deploy, e **somente com autorização explícita**:
+A revisão está registrada em
+[`PRODUCTION_READINESS.md`](PRODUCTION_READINESS.md), com os cinco problemas
+que ela encontrou e o que ainda impede um deploy.
 
-- [ ] Revisão de segurança independente
-- [ ] Revisão das Security Rules por outra pessoa
-- [ ] Verificar índices contra as consultas reais
-- [ ] Estimativa de custo do Firestore
-- [ ] Auditoria de performance (Lighthouse, Core Web Vitals)
-- [ ] Auditoria de acessibilidade (leitor de tela, teclado, contraste)
-- [ ] Revisão de privacidade e LGPD
-- [ ] Exportação e exclusão de dados pela interface
-- [ ] App Check
-- [ ] Rate limiting na criação de conta
-- [ ] Monitoramento e alertas de erro
-- [ ] Revisão do posicionamento de anúncios em telas reais
+Concluído:
+
+- [x] Índices conferidos contra as consultas reais — os nove índices compostos
+      declarados não eram usados por consulta nenhuma e foram removidos
+- [x] Estimativa de custo do Firestore, com o limiar em que a arquitetura de
+      "carregar tudo e derivar" deixa de valer
+- [x] Auditoria de acessibilidade — 24 páginas contra WCAG 2.1 AA, automatizada
+- [x] Exportação e exclusão de dados pela interface (LGPD)
+- [x] Observabilidade que estruturalmente não registra valores financeiros
+- [x] App Check implementado e desligado localmente
+- [x] Revisão do posicionamento de anúncios
+
+Pendente:
+
+- [ ] **Revisão de segurança independente** — o item mais importante
+- [ ] Destino para os logs e alertas sobre taxa de erro
+- [ ] Rate limiting na criação de conta (exige Cloud Functions)
+- [ ] Chave reCAPTCHA e exigência de App Check no console
+- [ ] Lighthouse e Core Web Vitals contra um ambiente real
+- [ ] Mecanismo de consentimento (CMP), se o mercado exigir
+
+**Nenhum deploy sem autorização explícita.**
 
 ## Backlog
 

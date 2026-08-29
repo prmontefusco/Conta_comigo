@@ -43,20 +43,3 @@ export function formatMoney(value: Money, options: FormatMoneyOptions = {}): str
   }
   return formatted;
 }
-
-/**
- * Screen-reader friendly rendering.
- *
- * "R$ -1.234,56" is read inconsistently across screen readers, so accessible
- * labels spell the sign out instead.
- */
-export function formatMoneyAccessible(value: Money, locale = "pt-BR"): string {
-  const magnitude = formatMoney(
-    { amount: Math.abs(value.amount), currency: value.currency },
-    {
-      locale,
-    },
-  );
-  if (isNegative(value)) return `menos ${magnitude}`;
-  return magnitude;
-}

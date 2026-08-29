@@ -116,20 +116,21 @@ Detalhes em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Documentação
 
-| Documento                                                | Assunto                                            |
-| -------------------------------------------------------- | -------------------------------------------------- |
-| [`docs/PRODUCT.md`](docs/PRODUCT.md)                     | O que o produto é, para quem, e o tom da interface |
-| [`docs/DOMAIN.md`](docs/DOMAIN.md)                       | Modelo de domínio e as decisões financeiras        |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)           | Camadas, módulos e limites                         |
-| [`docs/FIRESTORE_MODEL.md`](docs/FIRESTORE_MODEL.md)     | Coleções, consultas e índices                      |
-| [`docs/SECURITY.md`](docs/SECURITY.md)                   | Regras de segurança e modelo de ameaças            |
-| [`docs/LOCAL_DEVELOPMENT.md`](docs/LOCAL_DEVELOPMENT.md) | Ambiente local e emuladores                        |
-| [`docs/TESTING.md`](docs/TESTING.md)                     | Estratégia de testes                               |
-| [`docs/FORECAST_ENGINE.md`](docs/FORECAST_ENGINE.md)     | Como a projeção é calculada                        |
-| [`docs/REPORTS.md`](docs/REPORTS.md)                     | Os relatórios e a pergunta que cada um responde    |
-| [`docs/ADSENSE.md`](docs/ADSENSE.md)                     | Publicidade e as regras de privacidade             |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md)                     | Fases e estado atual                               |
-| [`docs/adr/`](docs/adr/)                                 | Decisões arquiteturais registradas                 |
+| Documento                                                      | Assunto                                            |
+| -------------------------------------------------------------- | -------------------------------------------------- |
+| [`docs/PRODUCT.md`](docs/PRODUCT.md)                           | O que o produto é, para quem, e o tom da interface |
+| [`docs/DOMAIN.md`](docs/DOMAIN.md)                             | Modelo de domínio e as decisões financeiras        |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                 | Camadas, módulos e limites                         |
+| [`docs/FIRESTORE_MODEL.md`](docs/FIRESTORE_MODEL.md)           | Coleções, consultas e índices                      |
+| [`docs/SECURITY.md`](docs/SECURITY.md)                         | Regras de segurança e modelo de ameaças            |
+| [`docs/LOCAL_DEVELOPMENT.md`](docs/LOCAL_DEVELOPMENT.md)       | Ambiente local e emuladores                        |
+| [`docs/TESTING.md`](docs/TESTING.md)                           | Estratégia de testes                               |
+| [`docs/FORECAST_ENGINE.md`](docs/FORECAST_ENGINE.md)           | Como a projeção é calculada                        |
+| [`docs/REPORTS.md`](docs/REPORTS.md)                           | Os relatórios e a pergunta que cada um responde    |
+| [`docs/ADSENSE.md`](docs/ADSENSE.md)                           | Publicidade e as regras de privacidade             |
+| [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md) | Revisão da Fase 12: achados, custo e o que falta   |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md)                           | Fases e estado atual                               |
+| [`docs/adr/`](docs/adr/)                                       | Decisões arquiteturais registradas                 |
 
 ---
 

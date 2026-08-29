@@ -11,6 +11,7 @@ import {
   EmptyState,
   MoneyText,
   ProgressBar,
+  ScrollableX,
   Spinner,
   Stat,
 } from "@/components/ui/primitives";
@@ -157,7 +158,10 @@ export default function DebtsPage() {
               ) : null}
 
               {schedule[0]?.breakdownKnown ? (
-                <div className="-mx-4 mt-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+                <ScrollableX
+                  label={`Próximas parcelas de ${debt.description}`}
+                  className="-mx-4 mt-4 px-4 sm:mx-0 sm:px-0"
+                >
                   <table className="w-full min-w-[28rem] border-collapse text-sm">
                     <caption className="sr-only">Próximas parcelas de {debt.description}</caption>
                     <thead>
@@ -205,7 +209,7 @@ export default function DebtsPage() {
                     Só a parte de juros e encargos é despesa. A amortização troca dinheiro por uma
                     dívida menor: o seu patrimônio não muda com ela.
                   </p>
-                </div>
+                </ScrollableX>
               ) : (
                 <p className="mt-3 text-xs" style={{ color: "var(--muted-fg)" }}>
                   Sem a taxa de juros informada, a parcela inteira é tratada como amortização.

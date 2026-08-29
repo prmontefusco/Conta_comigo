@@ -38,6 +38,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/eslintrc": "^3",
     "@firebase/rules-unit-testing": "^5.0.2",
     "@playwright/test": "^1.62.1",
@@ -49,6 +50,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.11",
+    "axe-core": "^4.13.0",
     "concurrently": "^9.2.4",
     "eslint": "^9",
     "eslint-config-next": "15.5.24",

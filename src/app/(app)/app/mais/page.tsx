@@ -32,6 +32,7 @@ const SECTIONS = [
     items: [
       { href: "/app/membros", label: "Membros e permissões", icon: "👥" },
       { href: "/app/configuracoes", label: "Configurações", icon: "⚙️" },
+      { href: "/app/meus-dados", label: "Meus dados", icon: "🗂️" },
     ],
   },
   {

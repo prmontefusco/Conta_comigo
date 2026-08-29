@@ -106,7 +106,12 @@ export default function HomePage() {
           o primeiro mês em que as contas não fecham.
         </p>
 
-        <div className="mt-6 overflow-x-auto">
+        <div
+          role="region"
+          aria-label="Exemplo de projeção mensal"
+          tabIndex={0}
+          className="mt-6 overflow-x-auto"
+        >
           <table className="w-full min-w-[30rem] border-collapse text-sm">
             <caption className="sr-only">Exemplo de projeção mensal</caption>
             <thead>

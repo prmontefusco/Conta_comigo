@@ -150,19 +150,59 @@ Ver [`ADSENSE.md`](ADSENSE.md).
 | -------------------------- | --------------------------------------------------------------- |
 | Acesso aos dados           | ✔ a aplicação é a visualização                                  |
 | Correção                   | ✔ edição em todas as telas                                      |
-| Exclusão de conta          | Regras permitem `delete users/{uid}`; UI pendente               |
-| Exportação                 | Pendente (Fase 12)                                              |
+| Exportação                 | ✔ `/app/meus-dados`, JSON com tudo o que a pessoa pode ler      |
+| Exclusão de conta          | ✔ `/app/meus-dados`, com reautenticação e plano explícito       |
 | Minimização                | ✔ não coletamos dados bancários de acesso nem números de cartão |
 | Transparência              | ✔ `/privacidade`                                                |
-| Revogação de consentimento | Pendente                                                        |
+| Revogação de consentimento | Pendente (depende de um CMP)                                    |
+
+Nenhum dos dois primeiros exige abrir chamado. Um direito que depende de e-mail
+para um suporte não está realmente disponível.
+
+### Exclusão: o que ela faz antes de fazer
+
+`planAccountDeletion` decide, **antes de apagar qualquer coisa**, o que
+aconteceria com cada grupo, e mostra isso à pessoa:
+
+- grupo em que ela está sozinha → apagado com todos os dados;
+- grupo de outra pessoa → ela apenas sai;
+- grupo compartilhado do qual ela é responsável → **bloqueia**.
+
+O último caso é bloqueado de propósito. Apagar levaria dados que não são só
+dela, e transferir a responsabilidade para alguém que não pediu não é melhor.
+Transferir é uma decisão, e decisões pertencem a pessoas.
+
+A exclusão pede a senha de novo: o Firebase exige login recente, e pedir também
+torna a ação deliberada.
+
+A ordem dos apagamentos não é a óbvia. Apagar o documento do household exige ser
+o responsável, e as regras verificam isso lendo o documento de **membro** de
+quem chama — então os membros precisam sobreviver ao household, e não o
+contrário.
+
+### Uma correção da revisão da Fase 12
+
+A regra de exclusão de membership exigia `resource.data.role != 'OWNER'`, para
+impedir que alguém removesse o responsável. O efeito colateral era que o próprio
+responsável nunca podia sair — e quem estivesse sozinho no próprio grupo jamais
+conseguiria excluir a conta. O direito à eliminação existiria só no texto da
+política.
+
+A regra passou a permitir que qualquer pessoa saia, inclusive o responsável, e a
+proibir apenas que **outra** pessoa o remova. Há teste para os dois lados.
 
 ## O que ainda não foi feito
 
-- App Check, para dificultar acesso por clientes não oficiais.
-- Rate limiting em criação de conta.
+- **Revisão de segurança independente.** Escrevi as regras e escrevi os testes
+  delas; isso não substitui outra pessoa tentando quebrá-las. É o item mais
+  importante que falta.
+- Rate limiting em criação de conta — não é possível só no cliente.
 - Auditoria de alterações sensíveis (mudança de papel, exclusão).
-- Exportação e exclusão de dados pela interface.
-- Revisão de segurança independente antes de qualquer deploy (Fase 12).
+- Destino para os logs e alertas sobre taxa de erro.
+
+App Check está implementado em `lib/firebase/app-check.ts` e desligado
+localmente; falta a chave reCAPTCHA e ligar a exigência no console. Ele nunca
+substitui as regras — apenas encarece o abuso automatizado.
 
 ## Antes de qualquer deploy
 
