@@ -37,8 +37,8 @@ function fromProviderAmount(value: unknown): Money | undefined {
 
 export class PaymentGatewayUnavailableError extends Error {
   readonly code = "PAYMENT_GATEWAY_UNAVAILABLE";
-  constructor() {
-    super("Nenhum provedor de pagamento está configurado neste ambiente.");
+  constructor(reason = "Nenhum provedor de pagamento está configurado neste ambiente.") {
+    super(reason);
     this.name = "PaymentGatewayUnavailableError";
   }
 }
@@ -91,9 +91,32 @@ export interface PaymentVerification {
   readonly belongsToThisProduct: boolean;
 }
 
+const PRODUCTION_BASE_URL = "https://api.asaas.com/v3";
+
 export class AsaasGateway {
+  /**
+   * Endereço da API.
+   *
+   * Recusa apontar para produção fora de produção. Sob `npm run dev:local`, o
+   * emulador do App Hosting usa `apphosting.yaml` como base e só então aplica
+   * `apphosting.emulator.yaml` — foi assim que uma máquina de desenvolvimento
+   * acabou emitindo uma requisição para `api.asaas.com`. Uma chave válida no
+   * ambiente errado criaria cobranças de verdade.
+   *
+   * Análogo a `assertSafeEnvironment()` no Admin SDK, e pela mesma razão: o
+   * ambiente seguro não pode depender de ninguém lembrar de configurá-lo.
+   */
   private get baseUrl(): string {
-    return (process.env.ASAAS_API_BASE_URL ?? "https://api.asaas.com/v3").replace(/\/$/, "");
+    const configured = (process.env.ASAAS_API_BASE_URL ?? PRODUCTION_BASE_URL).replace(/\/$/, "");
+
+    if (process.env.NODE_ENV !== "production" && configured === PRODUCTION_BASE_URL) {
+      throw new PaymentGatewayUnavailableError(
+        "Recusando falar com a API de produção do Asaas fora de produção. " +
+          "Use o sandbox: ASAAS_API_BASE_URL=https://api-sandbox.asaas.com/v3.",
+      );
+    }
+
+    return configured;
   }
 
   private get apiKey(): string {
@@ -208,6 +231,11 @@ export class AsaasGateway {
       const invoiceUrl = readString(data, "invoiceUrl");
       return { chargeId, ...(invoiceUrl ? { invoiceUrl } : {}) };
     } catch (error) {
+      // Um erro de configuração não é uma falha de comunicação. Sem esta linha,
+      // "não há chave" e "recusando produção fora de produção" viravam
+      // "falha ao comunicar", e a rota respondia 502 em vez de 503 — dizendo à
+      // pessoa que o provedor falhou quando o problema é nosso.
+      if (error instanceof PaymentGatewayUnavailableError) throw error;
       if (error instanceof PaymentProviderError) throw error;
       logger.error("Falha ao comunicar com o Asaas.", {
         operation: "postPayment",
@@ -264,6 +292,7 @@ export class AsaasGateway {
         firstProviderError(created) ?? "Não foi possível preparar o cliente no Asaas.",
       );
     } catch (error) {
+      if (error instanceof PaymentGatewayUnavailableError) throw error;
       if (error instanceof PaymentProviderError) throw error;
       logger.error("Falha ao preparar cliente no Asaas.", {
         operation: "ensureCustomer",

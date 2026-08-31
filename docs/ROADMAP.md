@@ -106,6 +106,16 @@ Landing page e sete páginas de conteúdo original, privacidade, termos, SEO com
 metadata por página, sitemap, robots, `ads.txt` gerado, `AdSlot` com
 placeholders locais.
 
+### Fase 13 — Assinatura e pagamentos ✔
+
+Camada de servidor completa em [`BILLING.md`](BILLING.md): gateway Asaas com
+Pix e checkout hospedado, webhook que trata o payload como pista e relê a
+cobrança na API, reconciliação autenticada para quando o webhook se perde,
+catálogo de preços vindo de configuração e tela de assinatura.
+
+Falta apenas a `ASAAS_API_KEY`. Sem ela a venda fica fechada por construção — a
+rota de planos responde `open: false` e o checkout devolve 503.
+
 ## Pendente
 
 ### Fase 12 — Production Readiness (em andamento)
@@ -145,7 +155,6 @@ Preparado pela arquitetura, sem implementação:
 - Importação OFX e CSV
 - Open Finance
 - Notificações push e e-mail
-- Assinatura Premium com cobrança
 - Investimentos
 - OCR de boletos e leitura de faturas
 - Aplicativos móveis nativos

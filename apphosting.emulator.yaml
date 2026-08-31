@@ -28,3 +28,18 @@ env:
     value: "false"
   - variable: NEXT_PUBLIC_SITE_URL
     value: http://127.0.0.1:5002
+
+  # O emulador do App Hosting usa apphosting.yaml como base e aplica este por
+  # cima. Sem esta linha, o endereço herdado seria o de PRODUÇÃO do Asaas — e uma
+  # máquina de desenvolvimento emitiria cobranças de verdade se houvesse chave.
+  # O gateway também recusa produção fora de produção, mas defesa em profundidade
+  # é o ponto: nenhuma das duas barreiras deve ser a única.
+  - variable: ASAAS_API_BASE_URL
+    value: https://api-sandbox.asaas.com/v3
+
+  # Preços iguais aos de produção, para que a tela de planos seja a de verdade.
+  # Sem ASAAS_API_KEY a venda continua fechada: nada é cobrado daqui.
+  - variable: SUBSCRIPTION_PRICE_MONTHLY_CENTS
+    value: "500"
+  - variable: SUBSCRIPTION_PRICE_YEARLY_CENTS
+    value: "5000"

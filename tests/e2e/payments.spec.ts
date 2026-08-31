@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { signIn, USERS } from "./seed-users";
 
 /**
  * Rotas de pagamento.
@@ -40,6 +41,65 @@ test.describe("webhook de pagamento", () => {
   });
 });
 
+test.describe("catálogo de planos", () => {
+  test("publica o preço configurado, em centavos inteiros", async ({ request }) => {
+    const response = await request.get("/api/assinatura/planos");
+
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+
+    // Os preços vêm da configuração do servidor, não do código nem do cliente.
+    expect(body.plans).toEqual([
+      { cycle: "MONTHLY", label: "Mensal", amountCents: 500, currency: "BRL" },
+      { cycle: "YEARLY", label: "Anual", amountCents: 5000, currency: "BRL" },
+    ]);
+  });
+
+  test("declara a venda fechada sem chave de provedor", async ({ request }) => {
+    // Há preço, mas não há como cobrar. Mostrar planos compráveis aqui levaria a
+    // pessoa a um botão que só pode falhar.
+    const body = await (await request.get("/api/assinatura/planos")).json();
+
+    expect(body.open).toBe(false);
+  });
+
+  test("informa a economia do plano anual como fato, não como propaganda", async ({ request }) => {
+    const body = await (await request.get("/api/assinatura/planos")).json();
+
+    // 500/mês contra 5000/ano = 417/mês, logo 83 de diferença.
+    expect(body.yearlySavingPerMonthCents).toBe(83);
+  });
+});
+
+test.describe("abertura de cobrança", () => {
+  test("recusa quem não está autenticado", async ({ request }) => {
+    const response = await request.post("/api/assinatura/checkout", {
+      data: { cycle: "YEARLY", method: "PIX" },
+    });
+
+    expect(response.status()).toBe(401);
+  });
+
+  test("recusa um token inventado", async ({ request }) => {
+    const response = await request.post("/api/assinatura/checkout", {
+      headers: { authorization: "Bearer nao-e-um-token" },
+      data: { cycle: "YEARLY", method: "PIX" },
+    });
+
+    expect(response.status()).toBe(401);
+  });
+
+  test("não aceita um valor vindo do cliente", async ({ request }) => {
+    // O corpo traz um preço de um centavo. A autenticação barra antes, e mesmo
+    // passando por ela o campo não existe no schema: o valor sai do catálogo.
+    const response = await request.post("/api/assinatura/checkout", {
+      data: { cycle: "YEARLY", method: "PIX", amountCents: 1, price: 1 },
+    });
+
+    expect(response.status()).toBe(401);
+  });
+});
+
 test.describe("reconciliação de assinatura", () => {
   test("recusa quem não está autenticado", async ({ request }) => {
     const response = await request.post("/api/assinatura/reconciliar");
@@ -64,5 +124,34 @@ test.describe("reconciliação de assinatura", () => {
     });
 
     expect(response.status()).toBe(401);
+  });
+});
+
+test.describe("tela de assinatura", () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, USERS.indebted.email);
+    await page.goto("/app/assinatura");
+  });
+
+  test("mostra o plano gratuito sem apresentá-lo como defeito", async ({ page }) => {
+    await expect(page.getByRole("heading", { name: "Assinatura" })).toBeVisible();
+    await expect(page.getByText("Gratuito", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Todas as funções de planejamento estão disponíveis no plano gratuito."),
+    ).toBeVisible();
+  });
+
+  test("sem chave de provedor, não oferece o que não pode cobrar", async ({ page }) => {
+    // O ambiente de desenvolvimento tem preço configurado mas nenhuma chave.
+    // Um botão de pagar aqui só poderia falhar.
+    await expect(page.getByText("Ainda não disponível")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Pagar com Pix" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Pagar com cartão" })).toHaveCount(0);
+  });
+
+  test("diz o que o Premium entrega, sem prometer função escondida", async ({ page }) => {
+    await expect(
+      page.getByText("Nenhuma função de planejamento fica atrás do pagamento"),
+    ).toBeVisible();
   });
 });

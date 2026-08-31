@@ -85,6 +85,26 @@ export function daysUntilExpiry(
   return Math.ceil(millis / 86_400_000);
 }
 
+/**
+ * Dias antes do vencimento em que a renovação antecipada abre.
+ *
+ * Existe aqui, e não nas duas pontas, porque a tela e a rota precisam concordar:
+ * se a tela oferecesse renovação antes da rota aceitar, o botão só poderia
+ * devolver 409.
+ */
+export const RENEWAL_WINDOW_DAYS = 10;
+
+/** Verdadeiro quando faz sentido renovar: o plano vale, mas está perto do fim. */
+export function isWithinRenewalWindow(
+  subscription: Subscription | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!isPremium(subscription, now)) return false;
+  const remaining = daysUntilExpiry(subscription, now);
+  // Sem prazo não há o que renovar — e não há como estar perto do fim.
+  return remaining !== null && remaining <= RENEWAL_WINDOW_DAYS;
+}
+
 export function cycleDurationMs(cycle: SubscriptionCycle): number {
   return cycle === "MONTHLY" ? 30 * 86_400_000 : 365 * 86_400_000;
 }
@@ -172,27 +192,73 @@ export interface PlanOption {
 /**
  * Preços definidos no servidor, nunca escolhidos pelo cliente.
  *
- * ATENÇÃO: os valores abaixo são provisórios e ainda não foram decididos para
- * este produto. A rota que abre uma cobrança ainda não existe justamente por
- * isso — ver docs/adr/0009-server-side-payments.md. Confirme os preços antes de
- * expor qualquer checkout.
+ * O valor vem de configuração, não do código: preço muda por decisão de
+ * negócio, e trocá-lo não deveria exigir um commit. Enquanto não houver
+ * configuração válida, o catálogo fica vazio e o checkout permanece fechado —
+ * é melhor não vender do que vender pelo preço errado.
  */
-export const PLAN_CATALOGUE: Readonly<Record<SubscriptionCycle, PlanOption>> = {
-  MONTHLY: {
-    cycle: "MONTHLY",
-    price: { amount: 0, currency: "BRL" },
-    label: "Mensal",
-  },
-  YEARLY: {
-    cycle: "YEARLY",
-    price: { amount: 0, currency: "BRL" },
-    label: "Anual",
-  },
+export type PlanCatalogue = Readonly<Partial<Record<SubscriptionCycle, PlanOption>>>;
+
+export const CYCLE_LABELS: Readonly<Record<SubscriptionCycle, string>> = {
+  MONTHLY: "Mensal",
+  YEARLY: "Anual",
 };
 
-/** Falso enquanto os preços não forem definidos. Mantém o checkout fechado. */
-export function isPlanCatalogueConfigured(): boolean {
-  return Object.values(PLAN_CATALOGUE).every((option) => option.price.amount > 0);
+/**
+ * Lê um preço em centavos inteiros.
+ *
+ * Centavos, e não reais, para não haver dúvida sobre separador decimal: "5.00"
+ * e "5,00" são a mesma intenção e o mesmo tropeço. Devolve null para qualquer
+ * coisa que não seja um inteiro positivo — um preço inválido fecha o checkout
+ * em vez de virar zero.
+ */
+export function parsePlanPrice(raw: string | undefined): Money | null {
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+
+  const parsed = Number(raw.trim());
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) return null;
+
+  return { amount: parsed, currency: "BRL" };
+}
+
+/**
+ * Monta o catálogo com os ciclos que tiverem preço válido.
+ *
+ * Um ciclo sem preço simplesmente não é oferecido. Vender só o anual é uma
+ * situação legítima; vender o mensal por zero não é.
+ */
+export function buildPlanCatalogue(prices: {
+  readonly monthly?: string | undefined;
+  readonly yearly?: string | undefined;
+}): PlanCatalogue {
+  const monthly = parsePlanPrice(prices.monthly);
+  const yearly = parsePlanPrice(prices.yearly);
+
+  return {
+    ...(monthly ? { MONTHLY: { cycle: "MONTHLY", price: monthly, label: CYCLE_LABELS.MONTHLY } } : {}),
+    ...(yearly ? { YEARLY: { cycle: "YEARLY", price: yearly, label: CYCLE_LABELS.YEARLY } } : {}),
+  };
+}
+
+export function isPlanCatalogueConfigured(catalogue: PlanCatalogue): boolean {
+  return Object.keys(catalogue).length > 0;
+}
+
+/**
+ * Quanto o anual economiza por mês em relação ao mensal.
+ *
+ * Um fato, não um argumento de venda: se o anual não for mais barato, devolve
+ * null e a interface não inventa vantagem nenhuma.
+ */
+export function yearlySavingPerMonth(catalogue: PlanCatalogue): Money | null {
+  const monthly = catalogue.MONTHLY?.price;
+  const yearly = catalogue.YEARLY?.price;
+  if (!monthly || !yearly) return null;
+
+  const yearlyPerMonth = Math.round(yearly.amount / 12);
+  const saving = monthly.amount - yearlyPerMonth;
+
+  return saving > 0 ? { amount: saving, currency: "BRL" } : null;
 }
 
 /* ------------------------------------------------------------------ */

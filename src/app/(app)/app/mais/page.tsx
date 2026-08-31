@@ -33,6 +33,7 @@ const SECTIONS = [
       { href: "/app/membros", label: "Membros e permissões", icon: "👥" },
       { href: "/app/configuracoes", label: "Configurações", icon: "⚙️" },
       { href: "/app/meus-dados", label: "Meus dados", icon: "🗂️" },
+      { href: "/app/assinatura", label: "Assinatura", icon: "💳" },
     ],
   },
   {

@@ -7,10 +7,14 @@ import {
   daysUntilExpiry,
   decodeExternalReference,
   encodeExternalReference,
+  buildPlanCatalogue,
   freeSubscription,
   isPlanCatalogueConfigured,
+  isWithinRenewalWindow,
   markPending,
+  parsePlanPrice,
   resolveEffectivePlan,
+  yearlySavingPerMonth,
   type Subscription,
 } from "./subscription";
 
@@ -216,9 +220,93 @@ describe("referência externa", () => {
   });
 });
 
+describe("janela de renovação", () => {
+  const now = new Date("2026-06-01T12:00:00.000Z");
+
+  const premiumUntil = (iso: string): Subscription => ({
+    userId: "u1",
+    plan: "PREMIUM",
+    status: "ACTIVE",
+    expiresAt: iso as Instant,
+    updatedAt: "2026-01-01T00:00:00.000Z" as Instant,
+  });
+
+  it("abre nos últimos dias antes do vencimento", () => {
+    expect(isWithinRenewalWindow(premiumUntil("2026-06-05T12:00:00.000Z"), now)).toBe(true);
+  });
+
+  it("fica fechada enquanto ainda falta muito", () => {
+    // Cobrar de quem acabou de assinar seria cobrar duas vezes pela mesma coisa.
+    expect(isWithinRenewalWindow(premiumUntil("2026-09-01T12:00:00.000Z"), now)).toBe(false);
+  });
+
+  it("é falsa para quem não tem plano", () => {
+    expect(isWithinRenewalWindow(null, now)).toBe(false);
+    expect(isWithinRenewalWindow(freeSubscription("u1", "2026-01-01T00:00:00.000Z" as Instant), now)).toBe(false);
+  });
+
+  it("é falsa quando o plano já venceu — aí é compra, não renovação", () => {
+    expect(isWithinRenewalWindow(premiumUntil("2026-05-01T12:00:00.000Z"), now)).toBe(false);
+  });
+});
+
+describe("preço", () => {
+  it("lê centavos inteiros", () => {
+    expect(parsePlanPrice("990")).toEqual({ amount: 990, currency: "BRL" });
+  });
+
+  it("recusa qualquer coisa que não seja inteiro positivo", () => {
+    // Um preço inválido tem de fechar o checkout, nunca virar zero.
+    for (const invalido of [undefined, "", "  ", "0", "-100", "9,90", "9.90", "abc", "1e3x"]) {
+      expect(parsePlanPrice(invalido)).toBeNull();
+    }
+  });
+
+  it("recusa valores fora da faixa segura de inteiros", () => {
+    expect(parsePlanPrice("9007199254740993")).toBeNull();
+  });
+});
+
 describe("catálogo de planos", () => {
-  it("está fechado enquanto os preços não forem definidos", () => {
-    // Guarda deliberada: sem preço confirmado, nenhum checkout pode abrir.
-    expect(isPlanCatalogueConfigured()).toBe(false);
+  it("fica vazio sem configuração, mantendo o checkout fechado", () => {
+    const catalogue = buildPlanCatalogue({});
+    expect(catalogue).toEqual({});
+    expect(isPlanCatalogueConfigured(catalogue)).toBe(false);
+  });
+
+  it("oferece só os ciclos com preço válido", () => {
+    // Vender apenas o anual é legítimo; vender o mensal por zero não é.
+    const catalogue = buildPlanCatalogue({ monthly: "0", yearly: "9900" });
+
+    expect(catalogue.MONTHLY).toBeUndefined();
+    expect(catalogue.YEARLY?.price).toEqual({ amount: 9900, currency: "BRL" });
+    expect(isPlanCatalogueConfigured(catalogue)).toBe(true);
+  });
+
+  it("monta os dois ciclos quando ambos estão configurados", () => {
+    const catalogue = buildPlanCatalogue({ monthly: "990", yearly: "9900" });
+
+    expect(catalogue.MONTHLY?.label).toBe("Mensal");
+    expect(catalogue.YEARLY?.label).toBe("Anual");
+  });
+});
+
+describe("economia do plano anual", () => {
+  it("calcula quanto o anual poupa por mês", () => {
+    // 990/mês contra 9900/ano = 825/mês.
+    expect(yearlySavingPerMonth(buildPlanCatalogue({ monthly: "990", yearly: "9900" }))).toEqual({
+      amount: 165,
+      currency: "BRL",
+    });
+  });
+
+  it("não inventa vantagem quando o anual não é mais barato", () => {
+    expect(
+      yearlySavingPerMonth(buildPlanCatalogue({ monthly: "100", yearly: "1200" })),
+    ).toBeNull();
+  });
+
+  it("é null quando falta um dos ciclos", () => {
+    expect(yearlySavingPerMonth(buildPlanCatalogue({ yearly: "9900" }))).toBeNull();
   });
 });

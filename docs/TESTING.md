@@ -24,13 +24,16 @@ Duas configurações separadas: `vitest.config.mts` (unitários) e
 `vitest.rules.config.mts` (regras). As regras são mais lentas, precisam de
 emulador e **nunca devem ser silenciosamente puladas** — daí a separação.
 
-## Estado atual
+## O que cada suíte cobre
 
-```
-npm run test         → 234 testes, 11 arquivos
-npm run test:rules   →  46 testes
-npm run test:e2e     →  66 testes por perfil (mobile e desktop)
-```
+| Comando            | Cobre                                                                                                 |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| `npm run test`     | Domínio financeiro, motor de projeção, componentes e as barreiras de ambiente da infraestrutura         |
+| `npm run test:rules` | Cada regra de `firestore.rules`, contra o emulador                                                   |
+| `npm run test:e2e` | Fluxos reais no navegador, em dois perfis (mobile e desktop), incluindo auditoria WCAG 2.1 AA por página |
+
+Números exatos ficam fora daqui de propósito: envelhecem a cada commit e passam
+a mentir. `npm run verify` diz o número de hoje.
 
 ## Casos financeiros obrigatórios
 

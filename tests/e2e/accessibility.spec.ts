@@ -88,6 +88,7 @@ test.describe("aplicação autenticada", () => {
     "/app/recorrentes",
     "/app/mais",
     "/app/meus-dados",
+    "/app/assinatura",
   ]) {
     test(`${path} não tem violações WCAG AA`, async ({ page }) => {
       await page.goto(path);

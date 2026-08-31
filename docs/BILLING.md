@@ -1,17 +1,45 @@
 # Assinatura e pagamentos
 
-Estado: **camada de servidor pronta, checkout ainda fechado.**
+Estado: **fluxo completo implementado; falta a chave do provedor.**
 
-A rota que abre uma cobrança não existe de propósito — os preços e o que o
-plano Premium entrega ainda não foram decididos. `isPlanCatalogueConfigured()`
-devolve `false` enquanto os valores forem zero, e há teste garantindo isso.
+Preços: **R$ 5,00 por mês** ou **R$ 50,00 por ano** (equivale a R$ 4,17/mês).
+
+## Preço é configuração, não código
+
+Decisão registrada na [ADR 0010](adr/0010-price-as-configuration.md). Os valores
+vivem em variáveis de ambiente, em **centavos inteiros**:
+
+```
+SUBSCRIPTION_PRICE_MONTHLY_CENTS=500
+SUBSCRIPTION_PRICE_YEARLY_CENTS=5000
+```
+
+Centavos, e não reais, para não haver dúvida sobre separador decimal: `"5.00"` e
+`"5,00"` são a mesma intenção e o mesmo tropeço. Mudar o preço é editar
+`apphosting.yaml` e reimplantar; não exige alterar código nem abrir um commit.
+
+Um valor ausente ou inválido **fecha a venda daquele ciclo**, em vez de virar
+zero — é melhor não vender do que vender pelo preço errado. Sem nenhum dos dois,
+`isPlanCatalogueConfigured()` devolve `false` e a tela diz que a assinatura
+ainda não está disponível.
+
+O preço fica **só no servidor**, nunca numa variável `NEXT_PUBLIC_`. O navegador
+consulta `GET /api/assinatura/planos`, de modo que existe uma única fonte de
+verdade: a mesma que o checkout usa para cobrar. Dois lugares poderiam divergir,
+e a tela mostraria um valor diferente do debitado.
 
 ## Como funciona
 
 ```
   navegador                    servidor                    Asaas
      │                            │                          │
-     │  (checkout: ainda não existe)                         │
+     │─── GET  /api/assinatura/planos ──▶ (preço do catálogo) │
+     │◀── ciclos, valores, economia do anual                  │
+     │                            │                          │
+     │─── POST /api/assinatura/checkout ─▶                    │
+     │      { cycle, method }     │─── cria a cobrança ─────▶│
+     │◀── Pix copia-e-cola ou invoiceUrl ◀── chargeId ────────│
+     │                       grava status PENDING            │
      │                            │                          │
      │                            │◀── webhook PAYMENT_* ────│
      │                            │                          │
@@ -24,7 +52,7 @@ devolve `false` enquanto os valores forem zero, e há teste garantindo isso.
      │─── POST /api/assinatura/reconciliar ─▶ (se o webhook se perdeu)
 ```
 
-## As três regras que sustentam isso
+## As quatro regras que sustentam isso
 
 **O corpo do webhook é pista, não prova.** O payload diz apenas _qual_ cobrança
 olhar. Status, valor e pagador são relidos da API do Asaas antes de conceder
@@ -34,7 +62,14 @@ vira assinante.
 **Fail-closed em todo ponto.** Sem `PAYMENT_WEBHOOK_SECRET`, o webhook recusa
 todas as requisições — uma variável ausente não desliga a autenticação. Sem
 `ASAAS_API_KEY`, o gateway lança `PaymentGatewayUnavailableError` e nada pode
-ser cobrado.
+ser cobrado. E o gateway recusa falar com `api.asaas.com` fora de produção, para
+que uma chave válida no ambiente errado não crie cobranças de verdade.
+
+**O valor sai do servidor, nunca do cliente.** O corpo do checkout aceita
+apenas `cycle`, `method` e — quando o provedor exigir — `cpfCnpj`. Não existe
+campo de valor no schema: o preço é lido do catálogo do servidor, e a identidade
+de quem paga vem do token verificado. Aceitar um valor do navegador deixaria
+qualquer pessoa assinar por um centavo.
 
 **Quem paga não declara que pagou.** As Security Rules negam escrita em
 `subscriptions` para todo mundo. Só o Admin SDK grava ali, e ele ignora as
@@ -102,11 +137,17 @@ Para exercitar o fluxo de verdade, use o sandbox:
 
 ## O que falta
 
-- [ ] **Preços e ciclos** — `PLAN_CATALOGUE` está zerado
-- [ ] **O que o Premium entrega** além de tirar anúncios
-- [ ] Rota de checkout (depende dos dois itens acima)
-- [ ] Telas de assinatura e de pagamento
+- [ ] **Chave do Asaas** — sem `ASAAS_API_KEY`, `/api/assinatura/planos`
+      responde `open: false` e o checkout devolve 503. É o único item que
+      separa o fluxo atual de uma venda real.
+- [ ] **O que o Premium entrega** além de tirar anúncios. Hoje a tela afirma que
+      nenhuma função de planejamento fica atrás do pagamento; se isso mudar, o
+      texto muda junto.
 - [ ] Cancelamento pela interface
+- [ ] Guardar mais de uma cobrança pendente. Hoje fica só a última: quem abrir um
+      Pix, depois um cartão, e pagar o Pix, não é atendido pelo botão "já paguei"
+      — mas continua sendo ativado pelo webhook, que parte do id enviado pelo
+      provedor.
 - [ ] Cadastro do webhook no painel do Asaas
 - [ ] Decidir a conciliação contábil da conta compartilhada
 - [ ] Revisão de segurança independente deste caminho, junto com a das regras

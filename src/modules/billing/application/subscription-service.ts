@@ -4,13 +4,28 @@ import type { Instant } from "@/core/date/calendar-date";
 import { describeError, logger } from "@/lib/observability/logger";
 import {
   activate,
+  markPending,
   resolveEffectivePlan,
   type Subscription,
   type SubscriptionCycle,
 } from "@/modules/billing/domain/subscription";
-import { AsaasGateway } from "@/modules/billing/infrastructure/asaas-gateway";
+import {
+  AsaasGateway,
+  type HostedCheckout,
+  type PixCharge,
+} from "@/modules/billing/infrastructure/asaas-gateway";
+import { planCatalogue } from "@/modules/billing/infrastructure/plan-config";
 import { SubscriptionRepository } from "@/modules/billing/infrastructure/subscription-repository";
 import type { UserId } from "@/modules/shared/domain/common";
+
+/** O ciclo pedido não está à venda — normalmente porque não tem preço. */
+export class PlanNotAvailableError extends Error {
+  readonly code = "PLAN_NOT_AVAILABLE";
+  constructor(cycle: SubscriptionCycle) {
+    super(`O plano ${cycle} não está disponível para contratação.`);
+    this.name = "PlanNotAvailableError";
+  }
+}
 
 /**
  * Concessão de plano.
@@ -26,6 +41,73 @@ export class SubscriptionService {
 
   async get(userId: UserId): Promise<Subscription> {
     return this.repository.findOrFree(userId, new Date().toISOString() as Instant);
+  }
+
+  /**
+   * Abre uma cobrança e registra que ela está pendente.
+   *
+   * **O preço vem daqui, nunca do cliente.** O navegador escolhe o ciclo e a
+   * forma de pagamento; o valor é lido do catálogo do servidor. Aceitar um
+   * valor vindo do cliente deixaria qualquer pessoa assinar por um centavo.
+   */
+  async openCheckout(input: {
+    readonly userId: UserId;
+    readonly cycle: SubscriptionCycle;
+    readonly method: "PIX" | "CARD";
+    readonly email?: string;
+    readonly name?: string;
+    readonly cpfCnpj?: string;
+  }): Promise<
+    | { readonly kind: "PIX"; readonly charge: PixCharge }
+    | { readonly kind: "CARD"; readonly checkout: HostedCheckout }
+  > {
+    const option = planCatalogue()[input.cycle];
+    if (!option) {
+      throw new PlanNotAvailableError(input.cycle);
+    }
+
+    const request = {
+      userId: input.userId,
+      cycle: input.cycle,
+      amount: option.price,
+      ...(input.email ? { userEmail: input.email } : {}),
+      ...(input.name ? { userName: input.name } : {}),
+      ...(input.cpfCnpj ? { cpfCnpj: input.cpfCnpj } : {}),
+    };
+
+    const result =
+      input.method === "PIX"
+        ? ({ kind: "PIX" as const, charge: await this.gateway.createPixCharge(request) })
+        : ({ kind: "CARD" as const, checkout: await this.gateway.createHostedCheckout(request) });
+
+    const chargeId = result.kind === "PIX" ? result.charge.chargeId : result.checkout.chargeId;
+
+    // Registrar como pendente é o que permite a reconciliação encontrar esta
+    // cobrança depois, caso o webhook não chegue.
+    //
+    // Só uma cobrança fica registrada por vez. Se alguém abrir um Pix, depois um
+    // cartão, e pagar o Pix, a reconciliação olhará a do cartão e não achará
+    // nada — mas o webhook ainda ativa, porque ele parte do id que o provedor
+    // envia, não do que guardamos.
+    const current = await this.repository.find(input.userId);
+    await this.repository.save(
+      markPending(current, {
+        userId: input.userId,
+        cycle: input.cycle,
+        provider: "ASAAS",
+        externalTxId: chargeId,
+        now: new Date(),
+      }),
+    );
+
+    logger.info("Cobrança aberta.", {
+      operation: "openCheckout",
+      cycle: input.cycle,
+      method: input.method,
+      chargeId,
+    });
+
+    return result;
   }
 
   /**

@@ -19,7 +19,14 @@ export default defineConfig({
     passWithNoTests: false,
     projects: [
       {
-        resolve: { alias: { "@": `${root}src` } },
+        resolve: {
+          alias: {
+            "@": `${root}src`,
+            // Fora do bundler do Next, `server-only` lança ao ser importado.
+            // Sem este atalho, as barreiras da infraestrutura ficariam sem teste.
+            "server-only": `${root}tests/setup/server-only-stub.ts`,
+          },
+        },
         test: {
           name: "domain",
           globals: true,
@@ -29,6 +36,7 @@ export default defineConfig({
             "src/lib/**/*.test.ts",
             "src/modules/**/domain/**/*.test.ts",
             "src/modules/**/application/**/*.test.ts",
+            "src/modules/**/infrastructure/**/*.test.ts",
           ],
         },
       },

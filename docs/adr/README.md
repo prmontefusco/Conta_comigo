@@ -15,6 +15,7 @@ motivo para perguntar "por que assim?".
 | [0007](0007-derived-card-statements.md)      | Faturas e parcelas são derivadas, não armazenadas                | aceito |
 | [0008](0008-nextjs-version.md)               | Next.js 15.5, e não a versão mais recente                        | aceito |
 | [0009](0009-server-side-payments.md)         | Uma superfície de servidor, exclusivamente para pagamentos       | aceito |
+| [0010](0010-price-as-configuration.md)       | Preço é configuração, e o servidor é a única fonte dele          | aceito |
 
 ## Formato
 

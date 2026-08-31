@@ -76,6 +76,17 @@ Emulator Suite **recusar** qualquer chamada a serviços reais do Google Cloud.
 Além disso, `assertUsableFirebaseConfig()` recusa iniciar em desenvolvimento
 apontando para um projeto real sem emuladores.
 
+O mesmo vale para pagamentos: o gateway **recusa** falar com `api.asaas.com`
+quando `NODE_ENV` não é `production`. Isso não é redundância. Sob
+`npm run dev:local`, o emulador do App Hosting usa `apphosting.yaml` como base e
+só então aplica `apphosting.emulator.yaml` — o endereço de produção vem junto por
+herança, e foi assim que uma verificação local chegou a emitir uma requisição
+para a API real do Asaas. Para exercitar o fluxo, use o sandbox:
+
+```
+ASAAS_API_BASE_URL=https://api-sandbox.asaas.com/v3
+```
+
 ## Configuração por ambiente
 
 | Arquivo                    | Quando vale         | Versionado                           |
@@ -85,6 +96,11 @@ apontando para um projeto real sem emuladores.
 | `apphosting.yaml`          | Produção            | ✔ (sem segredos; use Secret Manager) |
 | `.env.local`               | Sobrescreve local   | ✖ ignorado                           |
 | `apphosting.local.yaml`    | Sobrescreve local   | ✖ ignorado                           |
+
+`apphosting.emulator.yaml` **complementa** `apphosting.yaml`, não o substitui:
+tudo que não for redeclarado ali vem da configuração de produção. Ao adicionar
+uma variável a `apphosting.yaml`, verifique se o valor herdado é seguro
+localmente — e, se não for, redeclare-a.
 
 ## Comandos
 

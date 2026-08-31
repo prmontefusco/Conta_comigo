@@ -78,3 +78,18 @@ env:
   - variable: ASAAS_API_BASE_URL
     value: https://api.asaas.com/v3
     availability: [RUNTIME]
+
+  # Preços em centavos inteiros. Não são segredo — aparecem na tela de planos —
+  # mas ficam só no servidor: assim existe uma única fonte de verdade, a mesma
+  # que o checkout usa para cobrar. Um preço público e um de cobrança poderiam
+  # divergir, e a tela mostraria um valor diferente do debitado.
+  #
+  # Mudar o preço é editar isto e reimplantar; não exige alterar código.
+  # Um valor inválido ou ausente fecha a venda daquele ciclo, em vez de virar
+  # zero: é melhor não vender do que vender pelo preço errado.
+  - variable: SUBSCRIPTION_PRICE_MONTHLY_CENTS
+    value: "500"   # R$ 5,00 por mês
+    availability: [RUNTIME]
+  - variable: SUBSCRIPTION_PRICE_YEARLY_CENTS
+    value: "5000"  # R$ 50,00 por ano (equivale a R$ 4,17/mês)
+    availability: [RUNTIME]
