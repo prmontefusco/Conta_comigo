@@ -7,6 +7,13 @@ import { ROLE_LABELS } from "@/modules/household/domain/household";
 
 const SECTIONS = [
   {
+    title: "Inteligência & Futuro",
+    items: [
+      { href: "/app/diagnostico-ia", label: "Diagnóstico & Consultor IA", icon: "✨" },
+      { href: "/app/visao-futuro", label: "Visão de Futuro e Quitação", icon: "🚀" },
+    ],
+  },
+  {
     title: "Entender",
     items: [
       { href: "/app/relatorios", label: "Relatórios", icon: "📊" },

@@ -2,6 +2,8 @@
 
 import { AdSlot } from "@/components/ads/ad-slot";
 import { Callout, Spinner } from "@/components/ui/primitives";
+import { HealthScoreCard } from "@/modules/ai-advisor/ui/health-score-card";
+import { FutureTimelineCard } from "@/modules/recovery-timeline/ui/future-timeline-card";
 import { AlertsList } from "@/modules/alerts/ui/alerts-list";
 import { MonthBlock, Next30DaysBlock } from "@/modules/dashboard/ui/month-block";
 import { TodayBlock } from "@/modules/dashboard/ui/today-block";
@@ -13,9 +15,8 @@ import { useSession } from "@/modules/household/ui/session-provider";
  * The home screen.
  *
  * Ordered by the questions people actually arrive with: what do I have now,
- * what does this month look like, what is coming, and which months will not
- * close. Charts appear only where they answer one of those (docs/PRODUCT.md
- * sections 11 and 33).
+ * what is my financial health diagnosis, what does this month look like,
+ * when will I get out of debt / reach stability, and what is coming next.
  */
 export default function DashboardPage() {
   const finance = useFinance();
@@ -31,30 +32,39 @@ export default function DashboardPage() {
     finance.obligations.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <h1 className="sr-only">Resumo das suas finanças</h1>
 
       {finance.error ? <Callout tone="attention">{finance.error}</Callout> : null}
 
       {!hasData ? (
         <Callout tone="info" title="Ainda não há dados suficientes">
-          Cadastre suas contas, sua renda e suas despesas recorrentes para que a projeção comece a
-          fazer sentido. Dá para começar com o básico e completar depois.
+          Cadastre suas contas, sua renda e suas despesas recorrentes para que o diagnóstico com IA e a projeção comecem a fazer sentido. Dá para começar com o básico e completar depois.
         </Callout>
       ) : null}
 
+      {/* 1. Diagnóstico Inteligente & Score de Saúde */}
+      <HealthScoreCard />
+
+      {/* 2. Hoje: Saldos e Contas Vencendo */}
       <TodayBlock />
 
+      {/* 3. Alertas prioritários */}
       <AlertsList alerts={finance.alerts} />
 
+      {/* 4. Visão de Futuro e Linha do Tempo */}
+      <FutureTimelineCard />
+
+      {/* 5. Fechamento do Mês Atual */}
       <MonthBlock />
 
-      {/* Between two informational blocks, never inside a form or next to an
-          action. See docs/ADSENSE.md for the placement rules. */}
+      {/* Between two informational blocks */}
       <AdSlot placement="dashboard-inline" hidden={isPremium} />
 
+      {/* 6. Próximos 30 dias */}
       <Next30DaysBlock />
 
+      {/* 7. Projeção Mês a Mês */}
       <MonthsTable months={finance.forecast.months} limit={12} />
     </div>
   );

@@ -14,11 +14,22 @@ import { useSession } from "@/modules/household/ui/session-provider";
  * link, so the browser's back button and keyboard navigation behave normally.
  */
 
-const NAV = [
+const DESKTOP_NAV = [
   { href: "/app", label: "Início", icon: "🏠" },
-  { href: "/app/contas", label: "Contas", icon: "🧾" },
+  { href: "/app/diagnostico-ia", label: "Diagnóstico IA", icon: "✨" },
+  { href: "/app/visao-futuro", label: "Visão de Futuro", icon: "🚀" },
+  { href: "/app/contas", label: "Contas a Pagar", icon: "🧾" },
   { href: "/app/cartoes", label: "Cartões", icon: "💳" },
-  { href: "/app/projecao", label: "Projeção", icon: "📈" },
+  { href: "/app/dividas", label: "Dívidas & Empréstimos", icon: "🏛️" },
+  { href: "/app/projecao", label: "Projeção & Fluxo", icon: "📈" },
+  { href: "/app/mais", label: "Mais Opções", icon: "⋯" },
+] as const;
+
+const MOBILE_NAV = [
+  { href: "/app", label: "Início", icon: "🏠" },
+  { href: "/app/diagnostico-ia", label: "Diagnóstico", icon: "✨" },
+  { href: "/app/visao-futuro", label: "Futuro", icon: "🚀" },
+  { href: "/app/contas", label: "Contas", icon: "🧾" },
   { href: "/app/mais", label: "Mais", icon: "⋯" },
 ] as const;
 
@@ -56,7 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-20 border-b border-[color:var(--card-border)] bg-[color:var(--card-bg)]/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-[color:var(--card-border)] bg-[color:var(--card-bg)]/95 backdrop-blur shadow-2xs">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{household.name}</p>
@@ -72,7 +83,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <select
                   value={household.id}
                   onChange={(event) => selectHousehold(event.target.value)}
-                  className="min-h-11 rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-2 text-sm"
+                  className="min-h-11 rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-2 text-sm shadow-2xs"
                 >
                   {households.map((item) => (
                     <option key={item.id} value={item.id}>
@@ -90,16 +101,16 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       <div className="mx-auto flex max-w-6xl gap-6 px-4 py-4 md:py-6">
-        <nav aria-label="Navegação principal" className="hidden w-48 shrink-0 md:block">
+        <nav aria-label="Navegação principal" className="hidden w-52 shrink-0 md:block">
           <ul className="sticky top-20 space-y-1">
-            {NAV.map((item) => (
+            {DESKTOP_NAV.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   aria-current={isActive(pathname, item.href) ? "page" : undefined}
                   className={navLinkClass(isActive(pathname, item.href))}
                 >
-                  <span aria-hidden="true">{item.icon}</span>
+                  <span aria-hidden="true" className="text-base">{item.icon}</span>
                   {item.label}
                 </Link>
               </li>
@@ -114,19 +125,19 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <nav
         aria-label="Navegação principal"
-        className="fixed inset-x-0 bottom-0 z-20 border-t border-[color:var(--card-border)] bg-[color:var(--card-bg)]/98 backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-[color:var(--card-border)] bg-[color:var(--card-bg)]/98 backdrop-blur md:hidden shadow-lg"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <ul className="mx-auto flex max-w-lg">
-          {NAV.map((item) => (
+          {MOBILE_NAV.map((item) => (
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
                 aria-current={isActive(pathname, item.href) ? "page" : undefined}
-                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs ${
+                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs transition ${
                   isActive(pathname, item.href)
-                    ? "font-semibold text-[color:var(--color-brand-700)]"
-                    : ""
+                    ? "font-bold text-[color:var(--color-brand-700)] bg-[color:var(--color-brand-50)]"
+                    : "text-[color:var(--page-fg)] hover:text-[color:var(--color-brand-600)]"
                 }`}
               >
                 <span aria-hidden="true" className="text-lg leading-none">
@@ -149,9 +160,9 @@ function isActive(pathname: string, href: string): boolean {
 
 function navLinkClass(active: boolean): string {
   return [
-    "flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm",
+    "flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition",
     active
-      ? "bg-[color:var(--color-brand-100)] font-semibold text-[color:var(--color-brand-700)]"
-      : "hover:bg-[color:var(--color-ink-100)]",
+      ? "bg-[color:var(--color-brand-100)] font-semibold text-[color:var(--color-brand-700)] shadow-2xs border border-[color:var(--color-brand-600)]/20"
+      : "hover:bg-[color:var(--color-ink-100)] text-[color:var(--page-fg)]",
   ].join(" ");
 }
