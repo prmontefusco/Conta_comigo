@@ -36,11 +36,30 @@ env:
     availability: [BUILD, RUNTIME]
 
   # AdSense. Real ad scripts only ever load in production (docs/ADSENSE.md).
+  #
+  # Começa DESLIGADO. Ligar isto sem uma conta AdSense aprovada e sem os ids das
+  # ad units não mostra anúncio nenhum: mostra o espaço vazio do placeholder
+  # para usuário real. É melhor não ter anúncio do que ter buraco.
+  #
+  # Ligue quando a conta estiver aprovada e o publisher id preenchido abaixo.
   - variable: NEXT_PUBLIC_ADS_ENABLED
-    value: "true"
+    value: "false"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_ADSENSE_CLIENT_ID
     value: REPLACE_WITH_ADSENSE_CLIENT_ID
+    availability: [BUILD, RUNTIME]
+
+  # Indexação pelos buscadores. Opt-in explícito, e por isso começa desligada.
+  #
+  # O primeiro deploy vai para o domínio provisório do App Hosting. Deixar o
+  # Google indexar esse endereço obrigaria, depois da migração para o domínio
+  # definitivo, a competir com a própria cópia antiga — e desindexar é lento,
+  # enquanto indexar é rápido. As oito páginas públicas existem para descoberta
+  # orgânica; vale fazer isso uma vez, no endereço certo.
+  #
+  # Ligue quando NEXT_PUBLIC_SITE_URL já for o domínio definitivo.
+  - variable: NEXT_PUBLIC_ALLOW_INDEXING
+    value: "false"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_SITE_URL
     value: REPLACE_WITH_PUBLIC_SITE_URL

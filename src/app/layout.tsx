@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { isIndexable } from "@/lib/seo";
 import "./globals.css";
 
 /**
@@ -53,7 +54,9 @@ export const metadata: Metadata = {
     title: "Conta comigo — planejamento financeiro pessoal e familiar",
     description: "Quanto tenho, quanto já comprometi e para onde minhas finanças estão indo.",
   },
-  robots: { index: true, follow: true },
+  // Alinhada ao robots.txt de propósito: barrar num lugar e convidar no outro
+  // é o tipo de contradição que só aparece depois de indexado.
+  robots: { index: isIndexable(), follow: isIndexable() },
 };
 
 export const viewport: Viewport = {
