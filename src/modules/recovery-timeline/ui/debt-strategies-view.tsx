@@ -80,13 +80,13 @@ export function DebtStrategiesView() {
           </div>
         </div>
 
-        <div className="mt-4 rounded-xl bg-[color:var(--color-surface-sunken)] p-4 border border-[color:var(--card-border)]">
+        <div className="mt-4 rounded-xl border border-[color:var(--card-border)] bg-[color:var(--color-surface-sunken)] p-4">
           <h4 className="text-sm font-bold text-[color:var(--page-fg)]">{plan.strategyName}</h4>
           <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
             {plan.description}
           </p>
 
-          <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4 border-t border-[color:var(--card-border)] pt-4">
+          <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-[color:var(--card-border)] pt-4 sm:grid-cols-4">
             <div>
               <dt className="text-xs font-medium" style={{ color: "var(--muted-fg)" }}>
                 Tempo Estimado
@@ -99,9 +99,7 @@ export function DebtStrategiesView() {
               <dt className="text-xs font-medium" style={{ color: "var(--muted-fg)" }}>
                 Data de Conclusão
               </dt>
-              <dd className="mt-1 text-sm font-semibold">
-                {formatCalendarDate(plan.targetDate)}
-              </dd>
+              <dd className="mt-1 text-sm font-semibold">{formatCalendarDate(plan.targetDate)}</dd>
             </div>
             <Stat label="Total em Juros Estimados" value={plan.totalInterestPaid} tone="outflow" />
             <Stat
@@ -116,7 +114,7 @@ export function DebtStrategiesView() {
         {/* Ordem recomendada de pagamento */}
         {plan.orderOfPayoff.length > 0 ? (
           <div className="mt-5">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-[color:var(--muted-fg)] mb-3">
+            <h4 className="mb-3 text-xs font-semibold tracking-wider text-[color:var(--muted-fg)] uppercase">
               Ordem Prioritária de Quitação Recomendada
             </h4>
             <div className="space-y-2">
@@ -158,8 +156,17 @@ export function DebtStrategiesView() {
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-12 md:items-center">
-          <div className="md:col-span-5 space-y-3">
-            <label className="block text-xs font-semibold text-[color:var(--page-fg)]">
+          <div className="space-y-3 md:col-span-5">
+            {/*
+              O rótulo já estava na tela; faltava ligá-lo ao campo. Sem `htmlFor`
+              ele é texto solto, e quem usa leitor de tela chega a um campo de
+              número sem nome nenhum. Associar os dois resolve sem nenhum ARIA —
+              o rótulo visível e o anunciado passam a ser o mesmo.
+            */}
+            <label
+              htmlFor="aporte-extra-mensal"
+              className="block text-xs font-semibold text-[color:var(--page-fg)]"
+            >
               Aporte Extra Mensal (R$)
             </label>
             <div className="flex gap-2">
@@ -182,26 +189,25 @@ export function DebtStrategiesView() {
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold">R$</span>
               <input
+                id="aporte-extra-mensal"
                 type="number"
                 min="0"
                 step="10"
                 value={extraAmountText}
                 onChange={(e) => setExtraAmountText(e.target.value)}
-                className="w-32 rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[color:var(--color-positive-600)]"
+                className="w-32 rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-3 py-1.5 text-sm font-semibold focus:ring-2 focus:ring-[color:var(--color-positive-600)] focus:outline-none"
               />
               <span className="text-xs text-[color:var(--muted-fg)]">/ mês a mais</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-4 md:col-span-7 shadow-xs">
+          <div className="grid grid-cols-2 gap-4 rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-4 shadow-xs md:col-span-7">
             <div>
-              <p className="text-xs font-medium text-[color:var(--muted-fg)]">
-                Tempo Economizado
-              </p>
+              <p className="text-xs font-medium text-[color:var(--muted-fg)]">Tempo Economizado</p>
               <p className="tabular mt-1 text-2xl font-extrabold text-[color:var(--color-positive-700)]">
                 {monthsSaved > 0 ? `${monthsSaved} meses a menos` : "Mesmo prazo"}
               </p>
-              <p className="mt-0.5 text-2xs text-[color:var(--muted-fg)]">
+              <p className="text-2xs mt-0.5 text-[color:var(--muted-fg)]">
                 Nova meta: {formatCalendarDate(accelerated.debtFreeDate)}
               </p>
             </div>
@@ -213,7 +219,7 @@ export function DebtStrategiesView() {
               <p className="tabular mt-1 text-2xl font-extrabold text-[color:var(--color-brand-700)]">
                 {accelerated.monthsToDebtFree} meses
               </p>
-              <p className="mt-0.5 text-2xs text-[color:var(--muted-fg)]">
+              <p className="text-2xs mt-0.5 text-[color:var(--muted-fg)]">
                 Em vez de {baseline.monthsToDebtFree} meses
               </p>
             </div>
