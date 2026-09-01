@@ -88,8 +88,29 @@ env:
   # Um valor inválido ou ausente fecha a venda daquele ciclo, em vez de virar
   # zero: é melhor não vender do que vender pelo preço errado.
   - variable: SUBSCRIPTION_PRICE_MONTHLY_CENTS
-    value: "500"   # R$ 5,00 por mês
+    value: "500" # R$ 5,00 por mês
     availability: [RUNTIME]
   - variable: SUBSCRIPTION_PRICE_YEARLY_CENTS
-    value: "5000"  # R$ 50,00 por ano (equivale a R$ 4,17/mês)
+    value: "5000" # R$ 50,00 por ano (equivale a R$ 4,17/mês)
+    availability: [RUNTIME]
+
+  # ── Consultoria com IA ─────────────────────────────────────────────────────
+  # RUNTIME apenas. Uma chave de modelo em BUILD acabaria no bundle servido ao
+  # navegador, e quem a tivesse gastaria a cota em seu nome.
+  #
+  # Ausente → a consultoria responde pelo motor determinístico local, sem custo
+  # por token. É degradação silenciosa e intencional: o produto continua de pé.
+  #
+  # Crie o segredo antes de descomentar:
+  #   npx firebase apphosting:secrets:set GEMINI_API_KEY
+  #
+  # - variable: GEMINI_API_KEY
+  #   secret: GEMINI_API_KEY
+  #   availability: [RUNTIME]
+  #
+  # Trocar de modelo não deve exigir reimplantar código — só editar isto.
+  # Confirme o nome na documentação do provedor antes de ligar: um modelo
+  # inexistente cai no motor local e registra o status 404 no log.
+  - variable: GEMINI_MODEL
+    value: gemini-2.5-flash
     availability: [RUNTIME]
