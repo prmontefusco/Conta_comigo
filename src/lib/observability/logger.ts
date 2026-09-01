@@ -93,12 +93,54 @@ export interface LogContext {
   readonly [key: string]: unknown;
 }
 
+/**
+ * Cloud Logging severity, from the level.
+ *
+ * O App Hosting roda sobre Cloud Run: o que a instância escreve em stdout já é
+ * coletado. O que faltava não era o transporte, era a **forma**. Uma linha de
+ * texto vira uma entrada sem severidade, e "taxa de erro" não é consultável
+ * sobre texto solto — não dá para alertar sobre o que não dá para contar.
+ *
+ * Uma linha de JSON com `severity` vira entrada estruturada, e aí `severity >=
+ * ERROR` é uma consulta, e uma consulta é um alerta.
+ */
+const SEVERITY: Record<LogLevel, string> = {
+  debug: "DEBUG",
+  info: "INFO",
+  warn: "WARNING",
+  error: "ERROR",
+};
+
 function write(level: LogLevel, message: string, context?: LogContext): void {
+  if (level === "debug" && process.env.NODE_ENV === "production") return;
+
   const payload = context ? (scrub(context) as Record<string, unknown>) : undefined;
+
+  // `typeof window` separa servidor de navegador. O JSON estruturado só faz
+  // sentido no servidor: é o stdout da instância que o Cloud Logging coleta.
+  // No navegador não há stdout nenhum — `process.stdout` é `undefined` ali, e
+  // escrever nele derrubaria a tela em produção.
+  if (process.env.NODE_ENV === "production" && typeof window === "undefined") {
+    // Uma linha, um evento. Quebrar em várias linhas viraria várias entradas
+    // soltas, e o contexto se perderia justamente no erro que interessa.
+    //
+    // O conteúdo continua passando por `scrub`: estruturar o log não afrouxa o
+    // que ele pode carregar.
+    process.stdout.write(
+      `${JSON.stringify({
+        severity: SEVERITY[level],
+        message,
+        service: "conta-comigo",
+        ...(payload ? { context: payload } : {}),
+      })}\n`,
+    );
+    return;
+  }
+
+  // Em desenvolvimento, legível para gente. JSON numa aba de terminal é pior
+  // para quem está depurando, e ninguém alerta sobre a própria máquina.
   const prefix = "[conta-comigo]";
 
-  // console is the transport for now. When a real aggregator exists, it plugs
-  // in here and inherits the scrubbing for free.
   switch (level) {
     case "error":
       console.error(prefix, message, payload ?? "");
@@ -107,7 +149,6 @@ function write(level: LogLevel, message: string, context?: LogContext): void {
       console.warn(prefix, message, payload ?? "");
       break;
     case "debug":
-      if (process.env.NODE_ENV === "production") return;
       console.debug(prefix, message, payload ?? "");
       break;
     default:

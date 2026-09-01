@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { describeError, scrub } from "./logger";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { describeError, logger, scrub } from "./logger";
 
 /**
  * A log that leaks a balance is a privacy incident, not a bug report. These
@@ -105,5 +105,90 @@ describe("describeError", () => {
   it("reduz o que não reconhece ao tipo", () => {
     expect(describeError("algo")).toEqual({ type: "string" });
     expect(describeError(42)).toEqual({ type: "number" });
+  });
+});
+
+/**
+ * O transporte.
+ *
+ * Em produção o log precisa sair como uma linha de JSON com `severity`: é isso
+ * que o Cloud Logging transforma numa entrada consultável, e é sobre a consulta
+ * que se cria o alerta de taxa de erro. Texto solto não é contável.
+ */
+describe("transporte", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  function asProduction() {
+    vi.stubEnv("NODE_ENV", "production");
+  }
+
+  it("escreve uma linha de JSON com severity no servidor em produção", () => {
+    asProduction();
+    const write = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+
+    logger.error("Falha ao cobrar.", { operation: "checkout", code: "PROVIDER_DOWN" });
+
+    expect(write).toHaveBeenCalledTimes(1);
+    const linha = write.mock.calls[0]?.[0] as string;
+
+    // Uma linha, um evento: várias linhas virariam várias entradas soltas.
+    expect(linha.endsWith("\n")).toBe(true);
+    expect(linha.trimEnd().includes("\n")).toBe(false);
+
+    expect(JSON.parse(linha)).toEqual({
+      severity: "ERROR",
+      message: "Falha ao cobrar.",
+      service: "conta-comigo",
+      context: { operation: "checkout", code: "PROVIDER_DOWN" },
+    });
+  });
+
+  it("continua limpando o contexto ao estruturar", () => {
+    asProduction();
+    const write = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+
+    logger.error("Falhou.", { saldo: { amount: 999, currency: "BRL" }, email: "a@b.test" });
+
+    const entrada = JSON.parse(write.mock.calls[0]?.[0] as string);
+    // Estruturar o log não pode afrouxar o que ele carrega.
+    expect(JSON.stringify(entrada)).not.toContain("999");
+    expect(JSON.stringify(entrada)).not.toContain("a@b.test");
+  });
+
+  it("não escreve em process.stdout no navegador", () => {
+    asProduction();
+    // Em produção o bundle do cliente também roda este logger. `process.stdout`
+    // não existe ali: escrever nele derrubaria a tela.
+    vi.stubGlobal("window", {});
+    const write = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    logger.error("Falhou no cliente.");
+
+    expect(write).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalled();
+  });
+
+  it("silencia debug em produção", () => {
+    asProduction();
+    const write = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+
+    logger.debug("ruído");
+
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it("mantém a saída legível fora de produção", () => {
+    const write = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+
+    logger.info("Subiu.");
+
+    expect(write).not.toHaveBeenCalled();
+    expect(info).toHaveBeenCalled();
   });
 });
