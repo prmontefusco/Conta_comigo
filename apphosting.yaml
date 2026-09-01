@@ -15,19 +15,19 @@ env:
   # Public Firebase Web SDK configuration. These identifiers are not secrets:
   # access control is enforced by Firestore Security Rules, never by hiding them.
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: REPLACE_WITH_PRODUCTION_PROJECT_ID
+    value: conta-comigo-a318a
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: REPLACE_WITH_PRODUCTION_API_KEY
+    value: AIzaSyB83OWFlge5SycOqX92qvsR9RTLRf_AwM4
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: REPLACE_WITH_PRODUCTION_AUTH_DOMAIN
+    value: conta-comigo-a318a.firebaseapp.com
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: REPLACE_WITH_PRODUCTION_APP_ID
+    value: 1:695778240366:web:8cd46fdd5c80a479be037f
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: REPLACE_WITH_PRODUCTION_SENDER_ID
+    value: "695778240366"
     availability: [BUILD, RUNTIME]
 
   # Emulators are never used in production.
@@ -62,7 +62,7 @@ env:
     value: "false"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_SITE_URL
-    value: REPLACE_WITH_PUBLIC_SITE_URL
+    value: https://conta-comigo--conta-comigo-a318a.us-east4.hosted.app
     availability: [BUILD, RUNTIME]
 
   # Firebase App Check. Raises the cost of automated abuse; it never replaces

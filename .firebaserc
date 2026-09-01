@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "demo-conta-comigo"
+    "default": "demo-conta-comigo",
+    "prod": "conta-comigo-a318a"
   }
 }
