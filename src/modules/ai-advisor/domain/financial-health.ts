@@ -367,7 +367,7 @@ function buildActionPlan(params: {
       category: "SAVINGS",
       title: "Montar Reserva de Emergência Inicial",
       description:
-        "Guarde pelo menos o equivalente a 1 mês de gastos essenciais em uma aplicação líquida e segura (CDB 100% CDI ou Tesouro Selic).",
+        "Guarde pelo menos o equivalente a 1 mês de gastos essenciais onde dê para resgatar no mesmo dia e sem risco de sacar menos do que você guardou.",
       impact: "Garante segurança para imprevistos de saúde ou manutenção.",
       estimatedDaysToComplete: 60,
     });
