@@ -69,7 +69,25 @@ test.describe("resumo", () => {
     await expect(tabela).toBeVisible();
 
     const primeiraLinha = tabela.locator("tbody tr").first();
+
+    // A data vem do navegador, não do processo de teste: é ele que roda no fuso
+    // emulado e é a data dele que a aplicação enxerga.
+    const diaDoMes = await page.evaluate(() => new Date().getDate());
+
+    if (diaDoMes === 1) {
+      // No dia 1º o mês inteiro está pela frente. Ele é um mês cheio, e um
+      // déficit ali é um fato sobre o mês — não um artefato da data de início.
+      // Marcá-lo como parcial esconderia um déficit real.
+      await expect(primeiraLinha).not.toContainText("o que resta");
+      return;
+    }
+
+    // Em qualquer outro dia, parte das receitas já entrou e o que sobra do mês é
+    // quase todo saída. Comparar isso com um mês cheio assusta sem informar.
     await expect(primeiraLinha).toContainText("o que resta");
+    // Os dois selos juntos diriam que o mês falhou antes de terminar de ser
+    // contado. `isPartial` precede `isDeficit`, e é isto que garante a ordem.
+    await expect(primeiraLinha).not.toContainText("Déficit");
   });
 
   test("não carrega publicidade real em ambiente local", async ({ page }) => {
