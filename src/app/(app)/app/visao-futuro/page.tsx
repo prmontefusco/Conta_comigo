@@ -16,11 +16,12 @@ export default function VisaoFuturoPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-xl font-semibold">
             <span>🚀</span> Visão de Futuro e Recuperação Financeira
           </h1>
           <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
-            Descubra em quanto tempo você vai se organizar, quitar dívidas e conquistar sua estabilidade financeira com base no histórico e metas.
+            Descubra em quanto tempo você vai se organizar, quitar dívidas e conquistar sua
+            estabilidade financeira com base no histórico e metas.
           </p>
         </div>
       </div>

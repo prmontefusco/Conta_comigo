@@ -308,7 +308,7 @@ export default function SubscriptionPage() {
             />
           ) : null}
           <p
-            className="break-all rounded-lg p-3 font-mono text-xs"
+            className="rounded-lg p-3 font-mono text-xs break-all"
             style={{ background: "var(--muted-bg)" }}
           >
             {pix.pixCopyPaste}
@@ -317,7 +317,11 @@ export default function SubscriptionPage() {
             <Button onClick={() => void copyPix(pix.pixCopyPaste)}>
               {copied ? "Código copiado" : "Copiar código"}
             </Button>
-            <Button variant="secondary" onClick={() => void checkPayment()} disabled={busy !== null}>
+            <Button
+              variant="secondary"
+              onClick={() => void checkPayment()}
+              disabled={busy !== null}
+            >
               {busy === "CHECK" ? "Verificando…" : "Já paguei"}
             </Button>
           </div>
