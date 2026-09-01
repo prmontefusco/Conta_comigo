@@ -153,6 +153,63 @@ caso.
 
 ---
 
+### 15. O consultor recomendava investimento, e os termos proíbem isso
+
+Os termos de uso dizem, literalmente: _"Não oferecemos, intermediamos nem
+recomendamos crédito, investimentos ou seguros."_ O motor determinístico
+respondia, sobre onde guardar a reserva: _"CDB 100% do CDI ou Tesouro Selic,
+nunca na poupança tradicional"_. Isso nomeia produtos e desaconselha outro — é
+recomendação de investimento pela definição do próprio texto legal do serviço, e
+no Brasil essa é atividade regulada.
+
+Agravava dois fatos: esse é o caminho que responde **100% das vezes** enquanto
+não houver chave de modelo; e o prompt enviado ao modelo já instruía a não
+recomendar investimentos, enquanto o fallback logo abaixo fazia exatamente isso.
+
+O texto passou a descrever **critérios** — resgate no mesmo dia, sem risco de
+sacar menos do que guardou, sem taxa que coma o rendimento — e a dizer que a
+escolha é da pessoa. Continua útil sem cruzar a linha.
+
+### 16. O motor determinístico não tinha nenhum teste
+
+Era o único caminho ativo, produzia orientação financeira e tinha cobertura
+zero. Ele morava dentro do arquivo de rota, fora da camada de domínio e fora do
+padrão da casa — a mesma origem dos outros achados.
+
+Foi extraído para `modules/ai-advisor/domain/local-advice.ts` e testado, com um
+caso que verifica cada ramo contra uma lista de nomes de produto. A primeira
+versão desse teste procurava "ação" como trecho e acusava "Plano de Ação" e
+"Redução": o casamento passou a ser por palavra inteira.
+
+### 17. Nenhum limite de erro
+
+Não existia `error.tsx`, `global-error.tsx` nem `not-found.tsx`. Uma exceção em
+componente cliente virava **tela branca** — num produto cujo público já está
+ansioso com dinheiro, e sem nada dizendo se o que foi cadastrado se perdeu.
+
+Os três entraram. A mensagem diz o que importa: que a falha foi ao mostrar a
+tela e não ao guardar os dados. O conteúdo do erro vai para o log, não para a
+tela; o `digest` aparece para ligar o relato de alguém à falha registrada.
+
+### 18. O primeiro deploy convidaria o Google a indexar o domínio provisório
+
+`robots.ts` liberava indexação por "é produção e não é localhost". Sem domínio
+próprio, o primeiro deploy vai para o endereço provisório do App Hosting — e as
+oito páginas públicas existem para descoberta orgânica. Indexá-las ali e migrar
+depois é competir com a própria cópia antiga; indexar é rápido, desindexar é
+lento.
+
+Passou a ser opt-in por `NEXT_PUBLIC_ALLOW_INDEXING`, e a decisão mora em
+`lib/seo.ts` porque o layout raiz precisa da mesma resposta para a metatag
+`robots` — barrar num lugar e convidar no outro é contradição que só aparece
+depois de indexado.
+
+Pela mesma lógica, `NEXT_PUBLIC_ADS_ENABLED` passou a `false` no yaml de
+produção: sem conta AdSense aprovada, ligado ele não mostra anúncio, mostra o
+espaço vazio do placeholder para usuário real.
+
+---
+
 ---
 
 ## Estado dos itens
@@ -304,6 +361,23 @@ e um mecanismo de consentimento se o mercado exigir.
    nosso código estar certo.
 
 ---
+
+## Backup: o que não existe
+
+Não há nada configurado nem documentado sobre backup do Firestore. São dados
+financeiros de família, cadastrados à mão ao longo de meses; perda é
+irrecuperável e não há de quem pedir de volta.
+
+Duas coisas resolvem, e as duas são configuração no console:
+
+1. **Point-in-time recovery (PITR).** Retém uma janela contínua e permite voltar
+   a um instante anterior. É a defesa contra escrita errada — inclusive contra
+   um bug nosso que apague em massa.
+2. **Export agendado para o Cloud Storage.** É a defesa contra perder o projeto
+   inteiro, que o PITR não cobre.
+
+Um backup nunca testado não é backup. A restauração precisa ser exercitada uma
+vez, num projeto separado, antes de valer como garantia.
 
 ## Regra que não muda
 
