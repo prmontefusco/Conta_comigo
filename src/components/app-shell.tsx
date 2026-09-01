@@ -67,7 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-20 border-b border-[color:var(--card-border)] bg-[color:var(--card-bg)]/95 backdrop-blur shadow-2xs">
+      <header className="sticky top-0 z-20 border-b border-[color:var(--card-border)] bg-[color:var(--card-bg)]/95 shadow-2xs backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{household.name}</p>
@@ -110,7 +110,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                   aria-current={isActive(pathname, item.href) ? "page" : undefined}
                   className={navLinkClass(isActive(pathname, item.href))}
                 >
-                  <span aria-hidden="true" className="text-base">{item.icon}</span>
+                  <span aria-hidden="true" className="text-base">
+                    {item.icon}
+                  </span>
                   {item.label}
                 </Link>
               </li>
@@ -125,7 +127,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <nav
         aria-label="Navegação principal"
-        className="fixed inset-x-0 bottom-0 z-20 border-t border-[color:var(--card-border)] bg-[color:var(--card-bg)]/98 backdrop-blur md:hidden shadow-lg"
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-[color:var(--card-border)] bg-[color:var(--card-bg)]/98 shadow-lg backdrop-blur md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <ul className="mx-auto flex max-w-lg">
@@ -136,7 +138,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 aria-current={isActive(pathname, item.href) ? "page" : undefined}
                 className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs transition ${
                   isActive(pathname, item.href)
-                    ? "font-bold text-[color:var(--color-brand-700)] bg-[color:var(--color-brand-50)]"
+                    ? "bg-[color:var(--color-brand-50)] font-bold text-[color:var(--color-brand-700)]"
                     : "text-[color:var(--page-fg)] hover:text-[color:var(--color-brand-600)]"
                 }`}
               >

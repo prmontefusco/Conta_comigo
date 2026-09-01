@@ -86,9 +86,7 @@ export function evaluateFinancialHealth(
   );
 
   // 2. Overdue bills
-  const overdueObligations = input.obligations.filter(
-    (o) => isOpen(o) && o.dueDate < input.asOf,
-  );
+  const overdueObligations = input.obligations.filter((o) => isOpen(o) && o.dueDate < input.asOf);
   const overdueTotalAmount = overdueObligations.reduce(
     (acc, o) => acc + remainingAmount(o).amount,
     0,
@@ -97,10 +95,7 @@ export function evaluateFinancialHealth(
 
   // 3. Debt burden
   const activeDebts = input.debts.filter((d) => d.status !== "SETTLED");
-  const totalDebtPrincipal = activeDebts.reduce(
-    (acc, d) => acc + d.principalContracted.amount,
-    0,
-  );
+  const totalDebtPrincipal = activeDebts.reduce((acc, d) => acc + d.principalContracted.amount, 0);
   const totalDebtOutstanding: Money = { amount: totalDebtPrincipal, currency };
 
   const debtCommitmentAmount = input.forecast.summary.debtCommitment.amount;
@@ -112,9 +107,7 @@ export function evaluateFinancialHealth(
   // 4. Emergency reserve coverage (in months of essential expenses)
   const averageMonthlyExpense = Math.max(1, monthlyOutflows.amount);
   const availableLiquidity = Math.max(0, input.totalCash.amount);
-  const emergencyFundMonths = Number(
-    (availableLiquidity / averageMonthlyExpense).toFixed(1),
-  );
+  const emergencyFundMonths = Number((availableLiquidity / averageMonthlyExpense).toFixed(1));
 
   // -------------------------------------------------------------
   // PILLAR 1: Pontualidade & Ausência de Atrasos (Peso: 25%)
@@ -230,13 +223,16 @@ export function evaluateFinancialHealth(
 
   // Calculate final weighted score (0 to 100)
   const pillars = [onTimePillar, debtPillar, cashFlowPillar, reservePillar];
-  const finalScore = Math.round(
-    pillars.reduce((acc, p) => acc + p.score * p.weight, 0),
-  );
+  const finalScore = Math.round(pillars.reduce((acc, p) => acc + p.score * p.weight, 0));
 
   const status = getHealthStatus(finalScore);
   const statusLabel = getHealthStatusLabel(status);
-  const summary = buildSummaryText(status, finalScore, overdueObligations.length, debtCommitmentRatio);
+  const summary = buildSummaryText(
+    status,
+    finalScore,
+    overdueObligations.length,
+    debtCommitmentRatio,
+  );
 
   // Action plan generation
   const actionPlan = buildActionPlan({
@@ -371,7 +367,7 @@ function buildActionPlan(params: {
       category: "SAVINGS",
       title: "Montar Reserva de Emergência Inicial",
       description:
-        "Guarde pelo menos o equivalente a 1 mês de gastos essenciais em uma aplicação líquida e segura (CDB 100% CDI ou Tesouro Selic).",
+        "Guarde pelo menos o equivalente a 1 mês de gastos essenciais onde dê para resgatar no mesmo dia e sem risco de sacar menos do que você guardou.",
       impact: "Garante segurança para imprevistos de saúde ou manutenção.",
       estimatedDaysToComplete: 60,
     });
@@ -389,10 +385,7 @@ function buildActionPlan(params: {
   return steps;
 }
 
-function buildFinancialTips(
-  debtRatio: number,
-  reserveMonths: number,
-): string[] {
+function buildFinancialTips(debtRatio: number, reserveMonths: number): string[] {
   const tips: string[] = [
     "A regra 50-30-20: Tente direcionar 50% da renda para necessidades básicas, 30% para estilo de vida e 20% para quitação de dívidas e futuro.",
     "Ao usar cartão de crédito, lembre-se: ele é uma forma de pagamento, não uma extensão do salário. Sempre pague a fatura integral.",

@@ -235,7 +235,9 @@ export function buildPlanCatalogue(prices: {
   const yearly = parsePlanPrice(prices.yearly);
 
   return {
-    ...(monthly ? { MONTHLY: { cycle: "MONTHLY", price: monthly, label: CYCLE_LABELS.MONTHLY } } : {}),
+    ...(monthly
+      ? { MONTHLY: { cycle: "MONTHLY", price: monthly, label: CYCLE_LABELS.MONTHLY } }
+      : {}),
     ...(yearly ? { YEARLY: { cycle: "YEARLY", price: yearly, label: CYCLE_LABELS.YEARLY } } : {}),
   };
 }

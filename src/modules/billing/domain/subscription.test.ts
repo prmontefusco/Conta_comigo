@@ -242,7 +242,9 @@ describe("janela de renovação", () => {
 
   it("é falsa para quem não tem plano", () => {
     expect(isWithinRenewalWindow(null, now)).toBe(false);
-    expect(isWithinRenewalWindow(freeSubscription("u1", "2026-01-01T00:00:00.000Z" as Instant), now)).toBe(false);
+    expect(
+      isWithinRenewalWindow(freeSubscription("u1", "2026-01-01T00:00:00.000Z" as Instant), now),
+    ).toBe(false);
   });
 
   it("é falsa quando o plano já venceu — aí é compra, não renovação", () => {
@@ -301,9 +303,7 @@ describe("economia do plano anual", () => {
   });
 
   it("não inventa vantagem quando o anual não é mais barato", () => {
-    expect(
-      yearlySavingPerMonth(buildPlanCatalogue({ monthly: "100", yearly: "1200" })),
-    ).toBeNull();
+    expect(yearlySavingPerMonth(buildPlanCatalogue({ monthly: "100", yearly: "1200" }))).toBeNull();
   });
 
   it("é null quando falta um dos ciclos", () => {

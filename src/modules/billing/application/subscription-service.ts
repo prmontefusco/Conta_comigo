@@ -77,8 +77,8 @@ export class SubscriptionService {
 
     const result =
       input.method === "PIX"
-        ? ({ kind: "PIX" as const, charge: await this.gateway.createPixCharge(request) })
-        : ({ kind: "CARD" as const, checkout: await this.gateway.createHostedCheckout(request) });
+        ? { kind: "PIX" as const, charge: await this.gateway.createPixCharge(request) }
+        : { kind: "CARD" as const, checkout: await this.gateway.createHostedCheckout(request) };
 
     const chargeId = result.kind === "PIX" ? result.charge.chargeId : result.checkout.chargeId;
 

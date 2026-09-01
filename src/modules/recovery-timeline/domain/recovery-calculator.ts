@@ -136,7 +136,13 @@ export function calculateRecoveryTimeline(
 
   // Calculate payoff plans: Snowball (smallest balance first) & Avalanche (highest rate first)
   const snowballPlan = simulateStrategy(debtItems, "SNOWBALL", totalMonthlySurplus, asOf, currency);
-  const avalanchePlan = simulateStrategy(debtItems, "AVALANCHE", totalMonthlySurplus, asOf, currency);
+  const avalanchePlan = simulateStrategy(
+    debtItems,
+    "AVALANCHE",
+    totalMonthlySurplus,
+    asOf,
+    currency,
+  );
 
   const monthsToDebtFree = avalanchePlan.estimatedMonths;
   const debtFreeDate = avalanchePlan.targetDate;
@@ -148,7 +154,10 @@ export function calculateRecoveryTimeline(
   const reserveNeededCents = Math.max(0, emergencyTargetCents - currentReserveCents);
 
   // Time to complete emergency fund (saving after or alongside debt relief)
-  const effectiveSavingCapacity = Math.max(10000, totalMonthlySurplus > 0 ? totalMonthlySurplus : 20000); // at least R$ 100/mo
+  const effectiveSavingCapacity = Math.max(
+    10000,
+    totalMonthlySurplus > 0 ? totalMonthlySurplus : 20000,
+  ); // at least R$ 100/mo
   const monthsToFundAfterDebts = Math.ceil(reserveNeededCents / effectiveSavingCapacity);
   const monthsToEmergencyFund = monthsToDebtFree + monthsToFundAfterDebts;
   const emergencyFundDate = addMonths(asOf, monthsToEmergencyFund);
@@ -197,8 +206,12 @@ export function calculateRecoveryTimeline(
       targetMonth: monthKeyOf(emergencyFundDate),
       monthsFromNow: monthsToEmergencyFund,
       isCompleted: reserveNeededCents === 0,
-      progressPercentage: Math.min(100, Math.round((currentReserveCents / emergencyTargetCents) * 100)),
-      description: "Colchão financeiro seguro para proteger sua família contra qualquer imprevisto.",
+      progressPercentage: Math.min(
+        100,
+        Math.round((currentReserveCents / emergencyTargetCents) * 100),
+      ),
+      description:
+        "Colchão financeiro seguro para proteger sua família contra qualquer imprevisto.",
       valueFormatted: `Meta: ${formatMoney({ amount: emergencyTargetCents, currency })}`,
     },
     {
@@ -210,7 +223,8 @@ export function calculateRecoveryTimeline(
       monthsFromNow: monthsToStability,
       isCompleted: false,
       progressPercentage: 0,
-      description: "Finanças 100% blindadas, com superávit recorrente e capacidade de novos investimentos.",
+      description:
+        "Finanças 100% blindadas, com superávit recorrente e capacidade de novos investimentos.",
       valueFormatted: "Liberdade Financeira Conquistada",
     },
   );

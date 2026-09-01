@@ -39,7 +39,7 @@ export function FutureTimelineCard() {
 
         <Link
           href="/app/visao-futuro"
-          className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-3 text-xs font-semibold hover:border-[color:var(--color-brand-600)] hover:text-[color:var(--color-brand-600)] transition shadow-2xs"
+          className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-3 text-xs font-semibold shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:text-[color:var(--color-brand-600)]"
         >
           Ver Detalhes e Estratégias ➔
         </Link>
@@ -52,12 +52,14 @@ export function FutureTimelineCard() {
               <dt className="text-xs font-medium" style={{ color: "var(--muted-fg)" }}>
                 Tempo para Quitar Dívidas
               </dt>
-              <dd className="tabular mt-1 text-xl font-bold text-[color:var(--color-brand-700)]">
-                {timeline.monthsToDebtFree} {timeline.monthsToDebtFree === 1 ? "mês" : "meses"}
+              <dd className="mt-1">
+                <span className="tabular text-xl font-bold text-[color:var(--color-brand-700)]">
+                  {timeline.monthsToDebtFree} {timeline.monthsToDebtFree === 1 ? "mês" : "meses"}
+                </span>
+                <p className="text-2xs mt-0.5" style={{ color: "var(--muted-fg)" }}>
+                  Previsão: {formatCalendarDate(timeline.debtFreeDate)}
+                </p>
               </dd>
-              <p className="mt-0.5 text-2xs" style={{ color: "var(--muted-fg)" }}>
-                Previsão: {formatCalendarDate(timeline.debtFreeDate)}
-              </p>
             </div>
 
             <Stat
@@ -72,12 +74,14 @@ export function FutureTimelineCard() {
             <dt className="text-xs font-medium" style={{ color: "var(--muted-fg)" }}>
               Dívidas Ativas
             </dt>
-            <dd className="tabular mt-1 text-xl font-bold text-[color:var(--color-positive-700)]">
-              Zeradas! 🎉
+            <dd className="mt-1">
+              <span className="tabular text-xl font-bold text-[color:var(--color-positive-700)]">
+                Zeradas! 🎉
+              </span>
+              <p className="text-2xs mt-0.5" style={{ color: "var(--muted-fg)" }}>
+                Nenhum passivo pendente
+              </p>
             </dd>
-            <p className="mt-0.5 text-2xs" style={{ color: "var(--muted-fg)" }}>
-              Nenhum passivo pendente
-            </p>
           </div>
         )}
 
@@ -85,38 +89,42 @@ export function FutureTimelineCard() {
           <dt className="text-xs font-medium" style={{ color: "var(--muted-fg)" }}>
             Reserva de 3 Meses Pronta
           </dt>
-          <dd className="tabular mt-1 text-xl font-bold text-[color:var(--page-fg)]">
-            {timeline.monthsToEmergencyFund} meses
+          <dd className="mt-1">
+            <span className="tabular text-xl font-bold text-[color:var(--page-fg)]">
+              {timeline.monthsToEmergencyFund} meses
+            </span>
+            <p className="text-2xs mt-0.5" style={{ color: "var(--muted-fg)" }}>
+              Previsão: {formatCalendarDate(timeline.emergencyFundDate)}
+            </p>
           </dd>
-          <p className="mt-0.5 text-2xs" style={{ color: "var(--muted-fg)" }}>
-            Previsão: {formatCalendarDate(timeline.emergencyFundDate)}
-          </p>
         </div>
 
         <div>
           <dt className="text-xs font-medium" style={{ color: "var(--muted-fg)" }}>
             Estabilidade Consolidada
           </dt>
-          <dd className="tabular mt-1 text-xl font-bold text-[color:var(--color-positive-700)]">
-            {timeline.monthsToStability} meses
+          <dd className="mt-1">
+            <span className="tabular text-xl font-bold text-[color:var(--color-positive-700)]">
+              {timeline.monthsToStability} meses
+            </span>
+            <p className="text-2xs mt-0.5" style={{ color: "var(--muted-fg)" }}>
+              Previsão: {formatCalendarDate(timeline.stabilityDate)}
+            </p>
           </dd>
-          <p className="mt-0.5 text-2xs" style={{ color: "var(--muted-fg)" }}>
-            Previsão: {formatCalendarDate(timeline.stabilityDate)}
-          </p>
         </div>
       </dl>
 
       {/* Timeline visual de marcos */}
       <div className="mt-6 border-t border-[color:var(--card-border)] pt-4">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-[color:var(--muted-fg)] mb-3">
+        <h4 className="mb-3 text-xs font-semibold tracking-wider text-[color:var(--muted-fg)] uppercase">
           Linha do Tempo da Sua Recuperação
         </h4>
 
-        <div className="relative border-l-2 border-[color:var(--color-brand-600)]/40 ml-3 space-y-4 pl-4">
+        <div className="relative ml-3 space-y-4 border-l-2 border-[color:var(--color-brand-600)]/40 pl-4">
           {timeline.milestones.map((milestone, idx) => (
-            <div key={milestone.id} className="relative group">
+            <div key={milestone.id} className="group relative">
               <span
-                className={`absolute -left-[1.35rem] top-1 size-3.5 rounded-full border-2 border-[color:var(--card-bg)] shadow-xs ${
+                className={`absolute top-1 -left-[1.35rem] size-3.5 rounded-full border-2 border-[color:var(--card-bg)] shadow-xs ${
                   milestone.isCompleted
                     ? "bg-[color:var(--color-positive-600)]"
                     : idx === 1
@@ -141,7 +149,7 @@ export function FutureTimelineCard() {
               </p>
 
               {milestone.valueFormatted ? (
-                <p className="text-2xs font-medium text-[color:var(--page-fg)] mt-0.5">
+                <p className="text-2xs mt-0.5 font-medium text-[color:var(--page-fg)]">
                   {milestone.valueFormatted}
                 </p>
               ) : null}

@@ -39,7 +39,8 @@ export default function DashboardPage() {
 
       {!hasData ? (
         <Callout tone="info" title="Ainda não há dados suficientes">
-          Cadastre suas contas, sua renda e suas despesas recorrentes para que o diagnóstico com IA e a projeção comecem a fazer sentido. Dá para começar com o básico e completar depois.
+          Cadastre suas contas, sua renda e suas despesas recorrentes para que o diagnóstico com IA
+          e a projeção comecem a fazer sentido. Dá para começar com o básico e completar depois.
         </Callout>
       ) : null}
 

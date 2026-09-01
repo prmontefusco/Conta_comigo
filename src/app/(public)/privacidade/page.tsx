@@ -100,6 +100,24 @@ export default function Page() {
         <p>Não vendemos, alugamos nem cedemos dados pessoais a terceiros.</p>
       </Section>
 
+      <Section heading="Onde seus dados ficam">
+        <p>
+          Seus dados são armazenados e processados em servidores do Google localizados nos{" "}
+          <strong>Estados Unidos</strong>. Isso significa que existe transferência internacional de
+          dados, prevista nos artigos 33 e seguintes da Lei Geral de Proteção de Dados.
+        </p>
+        <p>
+          A transferência é necessária para a execução do contrato entre você e o Conta comigo — é o
+          que permite o serviço funcionar. O Google Cloud, como operador, adota cláusulas
+          contratuais padrão e mantém certificações de segurança reconhecidas internacionalmente.
+        </p>
+        <p>
+          Independentemente de onde os dados estejam, seus direitos previstos na LGPD continuam
+          valendo integralmente, e podem ser exercidos a qualquer momento em{" "}
+          <strong>Meus dados</strong>, dentro do aplicativo.
+        </p>
+      </Section>
+
       <Section heading="Segurança">
         <Bullets
           items={[

@@ -26,11 +26,11 @@ emulador e **nunca devem ser silenciosamente puladas** — daí a separação.
 
 ## O que cada suíte cobre
 
-| Comando            | Cobre                                                                                                 |
-| ------------------ | ----------------------------------------------------------------------------------------------------- |
-| `npm run test`     | Domínio financeiro, motor de projeção, componentes e as barreiras de ambiente da infraestrutura         |
-| `npm run test:rules` | Cada regra de `firestore.rules`, contra o emulador                                                   |
-| `npm run test:e2e` | Fluxos reais no navegador, em dois perfis (mobile e desktop), incluindo auditoria WCAG 2.1 AA por página |
+| Comando              | Cobre                                                                                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| `npm run test`       | Domínio financeiro, motor de projeção, componentes e as barreiras de ambiente da infraestrutura          |
+| `npm run test:rules` | Cada regra de `firestore.rules`, contra o emulador                                                       |
+| `npm run test:e2e`   | Fluxos reais no navegador, em dois perfis (mobile e desktop), incluindo auditoria WCAG 2.1 AA por página |
 
 Números exatos ficam fora daqui de propósito: envelhecem a cada commit e passam
 a mentir. `npm run verify` diz o número de hoje.
@@ -102,9 +102,24 @@ resumo, encontrar o mês com déficit, navegar entre as telas, simular uma compr
 parcelada, e verificar que o site público não carrega publicidade real
 localmente.
 
+### Rotas de API
+
+`payments.spec.ts` e `ai-advisor.spec.ts` afirmam a mesma coisa por caminhos
+diferentes: que a ausência de configuração **fecha** o caminho em vez de deixá-lo
+aberto.
+
+Não precisam de chave de provedor nem de segredo de webhook — a recusa acontece
+antes de qualquer chamada externa, e é justamente isso que se está verificando.
+Cada teste corresponde a uma forma de o custo ou o direito vazar: token ausente,
+token inventado, corpo enorme, método não previsto.
+
+A consultoria de IA nasceu sem nenhuma dessas barreiras (achado nº 6 em
+[`PRODUCTION_READINESS.md`](PRODUCTION_READINESS.md)). Os testes existem para que
+ela não volte a nascer assim.
+
 ### Acessibilidade
 
-`accessibility.spec.ts` audita **24 páginas** contra WCAG 2.1 A e AA com
+`accessibility.spec.ts` audita **29 páginas** contra WCAG 2.1 A e AA com
 axe-core, em mobile e desktop, mais navegação por teclado e comportamento de
 diálogo.
 

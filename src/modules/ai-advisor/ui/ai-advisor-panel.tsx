@@ -7,6 +7,7 @@ import { Button, Card, CardTitle, Spinner } from "@/components/ui/primitives";
 import { evaluateFinancialHealth } from "@/modules/ai-advisor/domain/financial-health";
 import { calculateRecoveryTimeline } from "@/modules/recovery-timeline/domain/recovery-calculator";
 import { useFinance } from "@/modules/household/ui/finance-provider";
+import { useSession } from "@/modules/household/ui/session-provider";
 
 const QUICK_QUESTIONS = [
   "Como sair do vermelho e estancar os juros?",
@@ -18,6 +19,7 @@ const QUICK_QUESTIONS = [
 
 export function AIAdvisorPanel() {
   const finance = useFinance();
+  const { user } = useSession();
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<
     Array<{ sender: "user" | "ai"; text: string; source?: string }>
@@ -58,15 +60,27 @@ export function AIAdvisorPanel() {
     setLoading(true);
 
     try {
+      // A rota é autenticada: ela chama um modelo cobrado por token e não pode
+      // ficar aberta. Sem sessão não há o que enviar.
+      if (!user) throw new Error("Sessão ausente.");
+      const token = await user.getIdToken();
+
       const response = await fetch("/api/ai/diagnostico", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           message: userMsg,
           context: {
             score: report.score,
             statusLabel: report.statusLabel,
-            totalCashFormatted: formatMoney(report.monthlyNet),
+            // O saldo em conta é `finance.totalCash`. O relatório de saúde não
+            // carrega esse campo, e usar `monthlyNet` aqui fazia o consultor
+            // anunciar a sobra do mês como se fosse o saldo — dois números que
+            // levam a decisões opostas quando a sobra é negativa.
+            totalCashFormatted: formatMoney(finance.totalCash),
             monthlyIncomeFormatted: formatMoney(report.monthlyIncome),
             monthlyExpensesFormatted: formatMoney(report.monthlyExpenses),
             monthlyNetFormatted: formatMoney(report.monthlyNet),
@@ -81,11 +95,19 @@ export function AIAdvisorPanel() {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Erro na resposta");
+        // O 429 tem conserto do lado de quem lê: esperar. Dizer isso é mais
+        // útil que "instabilidade momentânea", que sugere tentar de novo já.
+        const message =
+          typeof data === "object" && data !== null && "message" in data
+            ? String((data as { message: unknown }).message)
+            : "Não foi possível gerar a consultoria agora. Tente novamente.";
+        setMessages((prev) => [...prev, { sender: "ai", text: message }]);
+        return;
       }
 
-      const data = await response.json();
       setMessages((prev) => [
         ...prev,
         {
@@ -94,8 +116,7 @@ export function AIAdvisorPanel() {
           source: data.source,
         },
       ]);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
@@ -125,13 +146,13 @@ export function AIAdvisorPanel() {
               <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[color:var(--color-brand-600)] text-xs font-bold text-white shadow-xs">
                 {step.priority}
               </span>
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h4 className="text-sm font-semibold text-[color:var(--page-fg)]">
                     {step.title}
                   </h4>
                   {step.estimatedDaysToComplete ? (
-                    <span className="rounded-md bg-[color:var(--color-ink-100)] px-2 py-0.5 text-2xs font-medium text-[color:var(--page-fg)]">
+                    <span className="text-2xs rounded-md bg-[color:var(--color-ink-100)] px-2 py-0.5 font-medium text-[color:var(--page-fg)]">
                       Meta: {step.estimatedDaysToComplete} dias
                     </span>
                   ) : null}
@@ -159,14 +180,14 @@ export function AIAdvisorPanel() {
               </CardTitle>
             </div>
           </div>
-          <span className="rounded-full bg-[color:var(--color-brand-100)] px-2.5 py-0.5 text-2xs font-semibold text-[color:var(--color-brand-700)]">
+          <span className="text-2xs rounded-full bg-[color:var(--color-brand-100)] px-2.5 py-0.5 font-semibold text-[color:var(--color-brand-700)]">
             IA Ativa
           </span>
         </div>
 
         {/* Quick questions suggestions */}
         <div className="mt-4">
-          <p className="text-xs font-medium text-[color:var(--muted-fg)] mb-2">
+          <p className="mb-2 text-xs font-medium text-[color:var(--muted-fg)]">
             Perguntas sugeridas para sua situação:
           </p>
           <div className="flex flex-wrap gap-2">
@@ -175,7 +196,7 @@ export function AIAdvisorPanel() {
                 key={q}
                 type="button"
                 onClick={() => handleAsk(q)}
-                className="rounded-full border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-3 py-1.5 text-xs font-medium text-[color:var(--page-fg)] shadow-2xs hover:border-[color:var(--color-brand-600)] hover:text-[color:var(--color-brand-600)] transition text-left"
+                className="rounded-full border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-3 py-1.5 text-left text-xs font-medium text-[color:var(--page-fg)] shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:text-[color:var(--color-brand-600)]"
               >
                 {q}
               </button>
@@ -185,7 +206,7 @@ export function AIAdvisorPanel() {
 
         {/* Message feed */}
         {messages.length > 0 ? (
-          <div className="mt-6 space-y-4 max-h-[32rem] overflow-y-auto pr-1">
+          <div className="mt-6 max-h-[32rem] space-y-4 overflow-y-auto pr-1">
             {messages.map((msg, idx) => (
               <div
                 key={idx}
@@ -199,7 +220,7 @@ export function AIAdvisorPanel() {
                 <div
                   className={`max-w-[85%] rounded-2xl p-4 text-xs leading-relaxed ${
                     msg.sender === "user"
-                      ? "bg-[color:var(--color-brand-600)] text-white font-medium"
+                      ? "bg-[color:var(--color-brand-600)] font-medium text-white"
                       : "border border-[color:var(--card-border)] bg-[color:var(--card-bg)] shadow-xs"
                   }`}
                 >
@@ -235,7 +256,7 @@ export function AIAdvisorPanel() {
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Faça uma pergunta sobre suas finanças ou peça ajuda para se organizar..."
-            className="flex-1 rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-4 py-2.5 text-xs text-[color:var(--page-fg)] placeholder:text-[color:var(--muted-fg)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-600)] shadow-xs"
+            className="flex-1 rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-4 py-2.5 text-xs text-[color:var(--page-fg)] shadow-xs placeholder:text-[color:var(--muted-fg)] focus:ring-2 focus:ring-[color:var(--color-brand-600)] focus:outline-none"
           />
           <Button type="submit" disabled={loading || !question.trim()}>
             Enviar

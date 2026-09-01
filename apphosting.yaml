@@ -15,19 +15,19 @@ env:
   # Public Firebase Web SDK configuration. These identifiers are not secrets:
   # access control is enforced by Firestore Security Rules, never by hiding them.
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: REPLACE_WITH_PRODUCTION_PROJECT_ID
+    value: conta-comigo-a318a
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: REPLACE_WITH_PRODUCTION_API_KEY
+    value: AIzaSyB83OWFlge5SycOqX92qvsR9RTLRf_AwM4
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: REPLACE_WITH_PRODUCTION_AUTH_DOMAIN
+    value: conta-comigo-a318a.firebaseapp.com
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: REPLACE_WITH_PRODUCTION_APP_ID
+    value: 1:695778240366:web:8cd46fdd5c80a479be037f
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: REPLACE_WITH_PRODUCTION_SENDER_ID
+    value: "695778240366"
     availability: [BUILD, RUNTIME]
 
   # Emulators are never used in production.
@@ -36,14 +36,33 @@ env:
     availability: [BUILD, RUNTIME]
 
   # AdSense. Real ad scripts only ever load in production (docs/ADSENSE.md).
+  #
+  # Começa DESLIGADO. Ligar isto sem uma conta AdSense aprovada e sem os ids das
+  # ad units não mostra anúncio nenhum: mostra o espaço vazio do placeholder
+  # para usuário real. É melhor não ter anúncio do que ter buraco.
+  #
+  # Ligue quando a conta estiver aprovada e o publisher id preenchido abaixo.
   - variable: NEXT_PUBLIC_ADS_ENABLED
-    value: "true"
+    value: "false"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_ADSENSE_CLIENT_ID
     value: REPLACE_WITH_ADSENSE_CLIENT_ID
     availability: [BUILD, RUNTIME]
+
+  # Indexação pelos buscadores. Opt-in explícito, e por isso começa desligada.
+  #
+  # O primeiro deploy vai para o domínio provisório do App Hosting. Deixar o
+  # Google indexar esse endereço obrigaria, depois da migração para o domínio
+  # definitivo, a competir com a própria cópia antiga — e desindexar é lento,
+  # enquanto indexar é rápido. As oito páginas públicas existem para descoberta
+  # orgânica; vale fazer isso uma vez, no endereço certo.
+  #
+  # Ligue quando NEXT_PUBLIC_SITE_URL já for o domínio definitivo.
+  - variable: NEXT_PUBLIC_ALLOW_INDEXING
+    value: "false"
+    availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_SITE_URL
-    value: REPLACE_WITH_PUBLIC_SITE_URL
+    value: https://conta-comigo--conta-comigo-a318a.us-east4.hosted.app
     availability: [BUILD, RUNTIME]
 
   # Firebase App Check. Raises the cost of automated abuse; it never replaces
@@ -88,8 +107,29 @@ env:
   # Um valor inválido ou ausente fecha a venda daquele ciclo, em vez de virar
   # zero: é melhor não vender do que vender pelo preço errado.
   - variable: SUBSCRIPTION_PRICE_MONTHLY_CENTS
-    value: "500"   # R$ 5,00 por mês
+    value: "500" # R$ 5,00 por mês
     availability: [RUNTIME]
   - variable: SUBSCRIPTION_PRICE_YEARLY_CENTS
-    value: "5000"  # R$ 50,00 por ano (equivale a R$ 4,17/mês)
+    value: "5000" # R$ 50,00 por ano (equivale a R$ 4,17/mês)
+    availability: [RUNTIME]
+
+  # ── Consultoria com IA ─────────────────────────────────────────────────────
+  # RUNTIME apenas. Uma chave de modelo em BUILD acabaria no bundle servido ao
+  # navegador, e quem a tivesse gastaria a cota em seu nome.
+  #
+  # Ausente → a consultoria responde pelo motor determinístico local, sem custo
+  # por token. É degradação silenciosa e intencional: o produto continua de pé.
+  #
+  # Crie o segredo antes de descomentar:
+  #   npx firebase apphosting:secrets:set GEMINI_API_KEY
+  #
+  # - variable: GEMINI_API_KEY
+  #   secret: GEMINI_API_KEY
+  #   availability: [RUNTIME]
+  #
+  # Trocar de modelo não deve exigir reimplantar código — só editar isto.
+  # Confirme o nome na documentação do provedor antes de ligar: um modelo
+  # inexistente cai no motor local e registra o status 404 no log.
+  - variable: GEMINI_MODEL
+    value: gemini-2.5-flash
     availability: [RUNTIME]

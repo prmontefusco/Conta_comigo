@@ -121,8 +121,12 @@ rota de planos responde `open: false` e o checkout devolve 503.
 ### Fase 12 — Production Readiness (em andamento)
 
 A revisão está registrada em
-[`PRODUCTION_READINESS.md`](PRODUCTION_READINESS.md), com os cinco problemas
-que ela encontrou e o que ainda impede um deploy.
+[`PRODUCTION_READINESS.md`](PRODUCTION_READINESS.md), com os problemas que ela
+encontrou e o que ainda impede um deploy.
+
+A segunda passagem cobriu as rotas de API, que são posteriores à primeira. O
+achado que importa: a consultoria de IA estava exposta sem autenticação, sem
+cota e sem validação — um proxy aberto para um modelo cobrado por token.
 
 Concluído:
 
@@ -130,11 +134,14 @@ Concluído:
       declarados não eram usados por consulta nenhuma e foram removidos
 - [x] Estimativa de custo do Firestore, com o limiar em que a arquitetura de
       "carregar tudo e derivar" deixa de valer
-- [x] Auditoria de acessibilidade — 24 páginas contra WCAG 2.1 AA, automatizada
+- [x] Auditoria de acessibilidade — 29 páginas contra WCAG 2.1 AA, automatizada
 - [x] Exportação e exclusão de dados pela interface (LGPD)
 - [x] Observabilidade que estruturalmente não registra valores financeiros
 - [x] App Check implementado e desligado localmente
 - [x] Revisão do posicionamento de anúncios
+- [x] Rotas de API autenticadas, validadas e com cota — inclusive a de IA
+- [x] Cabeçalhos de segurança (HSTS, nosniff, referrer, frame-ancestors)
+- [x] `format:check` no `npm run verify`, para o estilo não voltar a divergir
 
 Pendente:
 
@@ -144,6 +151,8 @@ Pendente:
 - [ ] Chave reCAPTCHA e exigência de App Check no console
 - [ ] Lighthouse e Core Web Vitals contra um ambiente real
 - [ ] Mecanismo de consentimento (CMP), se o mercado exigir
+- [ ] CSP completa, medida antes em `Report-Only` contra tráfego real
+- [ ] Alerta de orçamento na chave do modelo de IA
 
 **Nenhum deploy sem autorização explícita.**
 

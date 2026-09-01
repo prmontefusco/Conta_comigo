@@ -16,11 +16,12 @@ export default function DiagnosticoIAPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-xl font-semibold">
             <span>✨</span> Diagnóstico & Consultor Financeiro IA
           </h1>
           <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
-            Inteligência artificial e diagnóstico contínuo para guiar você rumo à estabilidade e ao controle das contas.
+            Inteligência artificial e diagnóstico contínuo para guiar você rumo à estabilidade e ao
+            controle das contas.
           </p>
         </div>
       </div>

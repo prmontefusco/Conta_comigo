@@ -34,6 +34,7 @@ export default defineConfig({
           include: [
             "src/core/**/*.test.ts",
             "src/lib/**/*.test.ts",
+            "src/server/**/*.test.ts",
             "src/modules/**/domain/**/*.test.ts",
             "src/modules/**/application/**/*.test.ts",
             "src/modules/**/infrastructure/**/*.test.ts",

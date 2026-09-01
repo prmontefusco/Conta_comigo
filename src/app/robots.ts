@@ -1,17 +1,17 @@
 import type { MetadataRoute } from "next";
+import { isIndexable } from "@/lib/seo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:5002";
 
 /**
  * Crawling rules.
  *
- * Local and preview environments are excluded entirely: a development URL must
- * never end up in an index.
+ * A decisão de indexar mora em `lib/seo.ts`, porque o layout raiz precisa da
+ * mesma resposta para a metatag `robots`. Duas fontes de verdade aqui dariam
+ * um robots.txt que barra e uma metatag que convida.
  */
 export default function robots(): MetadataRoute.Robots {
-  const isProduction = process.env.NODE_ENV === "production" && !SITE_URL.includes("127.0.0.1");
-
-  if (!isProduction) {
+  if (!isIndexable()) {
     return { rules: [{ userAgent: "*", disallow: "/" }] };
   }
 
