@@ -76,7 +76,11 @@ export function AIAdvisorPanel() {
           context: {
             score: report.score,
             statusLabel: report.statusLabel,
-            totalCashFormatted: formatMoney(report.monthlyNet),
+            // O saldo em conta é `finance.totalCash`. O relatório de saúde não
+            // carrega esse campo, e usar `monthlyNet` aqui fazia o consultor
+            // anunciar a sobra do mês como se fosse o saldo — dois números que
+            // levam a decisões opostas quando a sobra é negativa.
+            totalCashFormatted: formatMoney(finance.totalCash),
             monthlyIncomeFormatted: formatMoney(report.monthlyIncome),
             monthlyExpensesFormatted: formatMoney(report.monthlyExpenses),
             monthlyNetFormatted: formatMoney(report.monthlyNet),
