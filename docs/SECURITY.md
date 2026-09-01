@@ -201,12 +201,117 @@ política.
 A regra passou a permitir que qualquer pessoa saia, inclusive o responsável, e a
 proibir apenas que **outra** pessoa o remova. Há teste para os dois lados.
 
+## Rotas de servidor
+
+As regras do Firestore protegem os dados. Elas não protegem as rotas de API, que
+falam com terceiros pagos em nome do projeto — e é aí que mora o custo.
+
+Toda rota que gasta dinheiro ou concede direito é autenticada por
+`server/auth-guard.ts`: o token do Firebase é verificado pelo Admin SDK, com
+`checkRevoked`. Um uid vindo no corpo é só uma alegação de quem chama sobre si
+mesmo, e nunca é usado.
+
+| Rota                          | Quem entra              | Por quê                                                     |
+| ----------------------------- | ----------------------- | ----------------------------------------------------------- |
+| `/api/assinatura/planos`      | Qualquer um             | Preço é público; exigir login afastaria quem está decidindo |
+| `/api/assinatura/checkout`    | Token verificado        | Abre cobrança em nome de alguém                             |
+| `/api/assinatura/reconciliar` | Token verificado        | Concede plano pago                                          |
+| `/api/webhook/pagamento`      | Segredo compartilhado   | Chamado pelo provedor, não por um navegador                 |
+| `/api/ai/diagnostico`         | Token verificado + cota | Chama um modelo cobrado por token                           |
+
+### O caso da consultoria de IA
+
+Uma rota que chama um modelo pago e não exige nada é uma fatura aberta ao
+público: qualquer pessoa com o endereço gasta a chave do projeto num laço. Por
+isso ela tem três camadas, e nenhuma delas sozinha basta:
+
+1. **Token verificado**, o mesmo das rotas de pagamento — barra o anônimo.
+2. **Cota por uid** (`server/rate-limit.ts`) — barra a conta autenticada num
+   laço, que o token sozinho não impede.
+3. **Teto de tamanho na entrada** (Zod) — o tamanho da pergunta é o teto de
+   custo de cada chamada.
+
+A cota vive na memória do processo. Com `maxInstances: 2`, o teto real é o dobro
+do configurado e um deploy zera as janelas. É suficiente para conter custo e
+abuso acidental; não seria suficiente para proteger algo irreversível. Um limite
+exato exige estado compartilhado, e essa troca se faz quando houver mais de uma
+instância importando.
+
+A chave do modelo vai no cabeçalho `x-goog-api-key`, nunca na query string: a
+URL aparece em log de acesso, em `referer` e dentro da mensagem de erro do
+próprio `fetch`. Pelo mesmo motivo, o corpo da resposta do provedor não entra no
+log — só o status.
+
+Sem chave configurada, a rota responde pelo motor determinístico local. Isso é
+degradação intencional: o produto continua respondendo, sem custo. O que **não**
+pode ser silencioso é a chamada que falha _tendo_ chave — daí o status ir para o
+log, para distinguir chave inválida (401/403) de modelo inexistente (404).
+
+## Observabilidade: do console ao alerta
+
+O `logger` sempre protegeu o **conteúdo**. O que faltava era a **forma**.
+
+O App Hosting roda sobre Cloud Run: o que a instância escreve em stdout já é
+coletado. Só que uma linha de texto vira uma entrada sem severidade, e "taxa de
+erro" não é consultável sobre texto solto — não se alerta sobre o que não se
+consegue contar.
+
+Em produção, no servidor, cada log sai como **uma linha de JSON** com `severity`,
+`message` e o contexto já limpo. Isso vira entrada estruturada no Cloud Logging,
+e aí `severity >= ERROR` é uma consulta — e uma consulta é um alerta.
+
+Fora de produção a saída continua legível para gente: JSON num terminal é pior
+para quem depura, e ninguém alerta sobre a própria máquina.
+
+O JSON só vale no **servidor**. O mesmo logger roda no bundle do cliente, onde
+`process.stdout` não existe; escrever nele derrubaria a tela. Há teste para isso.
+
+O que ainda falta é fora do código: criar a métrica baseada em log e o alerta no
+console do Google Cloud. O formato agora permite.
+
+## Cabeçalhos de segurança
+
+Definidos em `next.config.ts`, aplicados a todas as rotas: HSTS, `nosniff`,
+`Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` negando
+câmera, microfone, geolocalização e pagamento, e `frame-ancestors 'none'` com
+`X-Frame-Options: DENY` — clickjacking sobre uma tela que movimenta dinheiro.
+
+`poweredByHeader` está desligado.
+
+### A CSP está em observação, não em vigor
+
+Existe uma política completa, servida como `Content-Security-Policy-Report-Only`:
+o navegador **relata** o que ela bloquearia e não bloqueia nada. É a única forma
+honesta de escrever a primeira versão de uma CSP para uma página que carrega
+Firebase, reCAPTCHA e AdSense — terceiros cujos domínios mudam sem aviso. Uma CSP
+errada não degrada: quebra o login ou a monetização, em produção, e em silêncio
+para quem já estava com a página aberta.
+
+`tests/e2e/csp.spec.ts` navega pelo site público e pelo fluxo autenticado e falha
+se alguma violação for relatada. Sem esse teste, `Report-Only` seria um cabeçalho
+que ninguém consulta.
+
+**Para torná-la obrigatória** basta trocar o nome do cabeçalho em
+`next.config.ts`. Antes disso, duas coisas precisam ser verdade:
+
+1. O teste acima passando — já é o caso.
+2. As diretivas de anúncio exercitadas contra tráfego real. O ambiente local não
+   carrega AdSense de propósito, então elas **não** são validadas hoje. Esta é a
+   razão pela qual a política ainda não vale.
+
+Duas frouxidões conhecidas e por quê: `'unsafe-inline'` em `script-src`, porque o
+App Router injeta scripts de hidratação e o nonce por requisição obrigaria toda
+página a ser dinâmica; e em `style-src`, por causa dos `style={{...}}` nas telas.
+
 ## O que ainda não foi feito
 
 - **Revisão de segurança independente.** Escrevi as regras e escrevi os testes
   delas; isso não substitui outra pessoa tentando quebrá-las. É o item mais
   importante que falta.
 - Rate limiting em criação de conta — não é possível só no cliente.
+- Tornar a CSP obrigatória, depois de medir as diretivas de anúncio em tráfego real.
+- Métrica e alerta de taxa de erro no console do Google Cloud (o formato já permite).
+- Cota de IA compartilhada entre instâncias, quando houver mais de uma que importe.
 - Auditoria de alterações sensíveis (mudança de papel, exclusão).
 - Destino para os logs e alertas sobre taxa de erro.
 
