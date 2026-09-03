@@ -20,11 +20,14 @@ import {
   splitStatements,
   type CardStatement,
 } from "@/modules/cards/domain/credit-card";
+import { BillingCalendarCard } from "@/modules/cards/ui/billing-calendar-card";
+import { InstallmentPlansCard } from "@/modules/cards/ui/installment-plans-card";
 import { NewCardDialog } from "@/modules/cards/ui/new-card-dialog";
 import { NewPurchaseDialog } from "@/modules/cards/ui/new-purchase-dialog";
 import { PayStatementDialog } from "@/modules/cards/ui/pay-statement-dialog";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { useMembers } from "@/modules/household/ui/use-members";
 
 /**
  * Cards and statements.
@@ -64,14 +67,19 @@ export default function CardsPage() {
           />
         </Card>
       ) : (
-        cards.map((card) => (
-          <CardSummary
-            key={card.id}
-            cardId={card.id}
-            onAddPurchase={() => setPurchaseCardId(card.id)}
-            onPayStatement={setPayingStatement}
-          />
-        ))
+        <>
+          {cards.map((card) => (
+            <CardSummary
+              key={card.id}
+              cardId={card.id}
+              onAddPurchase={() => setPurchaseCardId(card.id)}
+              onPayStatement={setPayingStatement}
+            />
+          ))}
+
+          <InstallmentPlansCard />
+          <BillingCalendarCard />
+        </>
       )}
 
       <NewCardDialog open={creatingCard} onClose={() => setCreatingCard(false)} />
@@ -92,6 +100,7 @@ function CardSummary({
 }) {
   const finance = useFinance();
   const { canWrite } = useSession();
+  const { nameOf } = useMembers();
 
   const card = finance.cards.find((item) => item.id === cardId);
 
@@ -118,6 +127,12 @@ function CardSummary({
           <CardTitle hint={`Fecha dia ${card.closingDay} · vence dia ${card.dueDay}`}>
             {card.name}
           </CardTitle>
+          {card.holderMemberId || card.visibility === "PERSONAL" ? (
+            <div className="-mt-2 mb-3 flex flex-wrap gap-1.5">
+              {card.holderMemberId ? <Badge>{nameOf(card.holderMemberId)}</Badge> : null}
+              {card.visibility === "PERSONAL" ? <Badge tone="neutral">Pessoal</Badge> : null}
+            </div>
+          ) : null}
         </div>
         {canWrite ? (
           <Button variant="secondary" onClick={onAddPurchase}>

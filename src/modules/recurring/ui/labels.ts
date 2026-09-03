@@ -1,5 +1,9 @@
 import { formatCalendarDate as formatDate, type CalendarDate } from "@/core/date/calendar-date";
-import { nextOccurrence, type RecurringRule } from "@/modules/recurring/domain/recurring-rule";
+import {
+  FREQUENCY_LABELS,
+  nextOccurrence,
+  type RecurringRule,
+} from "@/modules/recurring/domain/recurring-rule";
 
 export const formatCalendarDate = formatDate;
 
@@ -9,4 +13,16 @@ export function nextOccurrenceLabel(rule: RecurringRule, asOf: CalendarDate): st
   const next = nextOccurrence(rule, asOf);
   if (!next) return "sem próximas ocorrências";
   return `próxima em ${formatDate(next.dueDate)}`;
+}
+
+/**
+ * How often the rule fires, in words.
+ *
+ * EVERY_N_DAYS is the only frequency whose label depends on the interval:
+ * "a cada N dias" with N = 1 is a daily wage read as a formula. Someone paid
+ * by the day should see "todo dia".
+ */
+export function frequencyLabel(rule: RecurringRule): string {
+  if (rule.frequency !== "EVERY_N_DAYS") return FREQUENCY_LABELS[rule.frequency];
+  return rule.interval <= 1 ? "Todo dia" : `A cada ${rule.interval} dias`;
 }

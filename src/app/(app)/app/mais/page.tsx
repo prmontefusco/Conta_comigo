@@ -23,6 +23,7 @@ const SECTIONS = [
   {
     title: "Dinheiro",
     items: [
+      { href: "/app/dia-a-dia", label: "Gastos e recebimentos do dia a dia", icon: "🧾" },
       { href: "/app/contas-bancarias", label: "Contas e saldos", icon: "🏦" },
       { href: "/app/reservas", label: "Reservas e metas", icon: "🛟" },
     ],
@@ -31,6 +32,7 @@ const SECTIONS = [
     title: "Compromissos",
     items: [
       { href: "/app/dividas", label: "Empréstimos e financiamentos", icon: "🏛️" },
+      { href: "/app/negociar", label: "Negociar e renegociar dívidas", icon: "🤝" },
       { href: "/app/recorrentes", label: "Contas que se repetem", icon: "🔁" },
     ],
   },

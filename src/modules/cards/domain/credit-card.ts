@@ -371,6 +371,173 @@ export function totalCardDebt(statements: readonly CardStatement[]): Money {
   return sum(statements.map((statement) => statement.remainingAmount));
 }
 
+/* ------------------------------------------------------------------ */
+/* Installment plans                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A purchase split in instalments, seen as a commitment that runs out.
+ *
+ * The question this answers is the one people actually ask in front of a
+ * shop counter: how many of these do I still have coming, and for how long.
+ * A parcelamento is invisible in a monthly total - it looks like a small
+ * amount every month - and only stops being invisible when the count and the
+ * end date are stated.
+ */
+export interface InstallmentPlan {
+  readonly purchaseId: CardPurchaseId;
+  readonly creditCardId: CreditCardId;
+  /** The purchase description, without the "(3/10)" suffix. */
+  readonly description: string;
+  readonly totalAmount: Money;
+  readonly installmentCount: number;
+  readonly purchaseDate: CalendarDate;
+  readonly categoryId: CategoryId;
+  readonly visibility: Visibility;
+  readonly responsibleMemberId?: MemberId;
+  /** Instalments already on a closed statement. */
+  readonly chargedCount: number;
+  readonly remainingCount: number;
+  /** What is still to be billed, from the open statement onwards. */
+  readonly remainingAmount: Money;
+  /** The next instalment to hit a statement, when there is one. */
+  readonly next?: CardInstallment;
+  readonly firstMonth: MonthKey;
+  readonly lastMonth: MonthKey;
+}
+
+/**
+ * Every instalment plan that has not finished yet, soonest first.
+ *
+ * A single-instalment purchase is not a plan and is left out: it commits
+ * nothing beyond the fatura it already belongs to.
+ */
+export function openInstallmentPlans(
+  cards: readonly CreditCard[],
+  purchases: readonly CardPurchase[],
+  today: CalendarDate,
+): InstallmentPlan[] {
+  const cardsById = new Map(cards.map((card) => [card.id, card]));
+  const plans: InstallmentPlan[] = [];
+
+  for (const purchase of purchases) {
+    if (purchase.installmentCount < 2 || purchase.refunded) continue;
+
+    const card = cardsById.get(purchase.creditCardId);
+    if (!card) continue;
+
+    const installments = buildInstallments(purchase, card);
+    if (installments.length === 0) continue;
+
+    // An instalment counts as charged once its statement has closed: from that
+    // moment the amount is on a fatura and no longer a future commitment.
+    const charged = installments.filter(
+      (installment) => closingDateFor(card, installment.statementMonth) < today,
+    );
+    const remaining = installments.filter(
+      (installment) => closingDateFor(card, installment.statementMonth) >= today,
+    );
+    if (remaining.length === 0) continue;
+
+    plans.push({
+      purchaseId: purchase.id,
+      creditCardId: purchase.creditCardId,
+      description: purchase.description,
+      totalAmount: purchase.totalAmount,
+      installmentCount: purchase.installmentCount,
+      purchaseDate: purchase.purchaseDate,
+      categoryId: purchase.categoryId,
+      visibility: purchase.visibility,
+      ...(purchase.responsibleMemberId
+        ? { responsibleMemberId: purchase.responsibleMemberId }
+        : {}),
+      chargedCount: charged.length,
+      remainingCount: remaining.length,
+      remainingAmount: sum(
+        remaining.map((installment) => installment.amount),
+        purchase.totalAmount.currency,
+      ),
+      next: remaining[0],
+      firstMonth: installments[0]!.statementMonth,
+      lastMonth: installments[installments.length - 1]!.statementMonth,
+    });
+  }
+
+  return plans.sort((a, b) => {
+    if (a.lastMonth !== b.lastMonth) return a.lastMonth < b.lastMonth ? -1 : 1;
+    return b.remainingAmount.amount - a.remainingAmount.amount;
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Billing calendar                                                    */
+/* ------------------------------------------------------------------ */
+
+export interface CardBillingLine {
+  readonly creditCardId: CreditCardId;
+  readonly cardName: string;
+  readonly total: Money;
+  readonly remainingAmount: Money;
+  readonly dueDate: CalendarDate;
+  /** How many entries make up this fatura. */
+  readonly entryCount: number;
+  readonly settled: boolean;
+}
+
+export interface MonthlyBilling {
+  readonly month: MonthKey;
+  readonly total: Money;
+  readonly remainingTotal: Money;
+  readonly cards: readonly CardBillingLine[];
+}
+
+/**
+ * What every card will bill, month by month.
+ *
+ * Per card *and* summed, because a household with three cards has three
+ * closing dates and no single fatura ever tells it what April costs.
+ * Months with nothing to bill are omitted rather than shown as zero: an empty
+ * row says "nothing known", which is a different claim from "nothing due".
+ */
+export function billingSchedule(
+  cards: readonly CreditCard[],
+  statements: readonly CardStatement[],
+  fromMonth: MonthKey,
+  monthCount: number,
+): MonthlyBilling[] {
+  const cardsById = new Map(cards.map((card) => [card.id, card]));
+  const months: MonthlyBilling[] = [];
+
+  for (let index = 0; index < Math.max(monthCount, 0); index += 1) {
+    const month = addMonthsToKey(fromMonth, index);
+
+    const lines = statements
+      .filter((statement) => statement.referenceMonth === month)
+      .filter((statement) => cardsById.has(statement.creditCardId))
+      .map((statement) => ({
+        creditCardId: statement.creditCardId,
+        cardName: cardsById.get(statement.creditCardId)!.name,
+        total: statement.total,
+        remainingAmount: statement.remainingAmount,
+        dueDate: statement.dueDate,
+        entryCount: statement.installments.length,
+        settled: statement.remainingAmount.amount <= 0 && statement.total.amount > 0,
+      }))
+      .sort((a, b) => (a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0));
+
+    if (lines.length === 0) continue;
+
+    months.push({
+      month,
+      total: sum(lines.map((line) => line.total)),
+      remainingTotal: sum(lines.map((line) => line.remainingAmount)),
+      cards: lines,
+    });
+  }
+
+  return months;
+}
+
 /** Installments that have not reached a statement yet, per month. */
 export function futureCommitmentsByMonth(
   statements: readonly CardStatement[],
