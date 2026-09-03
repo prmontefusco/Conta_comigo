@@ -1,6 +1,7 @@
 "use client";
 
 import { Spinner } from "@/components/ui/primitives";
+import { AchievementsCard } from "@/modules/achievements/ui/achievements-card";
 import { FutureTimelineCard } from "@/modules/recovery-timeline/ui/future-timeline-card";
 import { DebtStrategiesView } from "@/modules/recovery-timeline/ui/debt-strategies-view";
 import { useFinance } from "@/modules/household/ui/finance-provider";
@@ -27,6 +28,8 @@ export default function VisaoFuturoPage() {
       </div>
 
       <FutureTimelineCard />
+
+      <AchievementsCard />
 
       <DebtStrategiesView />
     </div>
