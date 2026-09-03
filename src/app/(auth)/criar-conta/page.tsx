@@ -11,6 +11,7 @@ import { Button, Card } from "@/components/ui/primitives";
 import { FormError, TextField } from "@/components/ui/form";
 import { getAuthClient } from "@/lib/firebase/client";
 import { authErrorMessage } from "@/modules/auth/ui/auth-errors";
+import { AuthDivider, GoogleSignInButton } from "@/modules/auth/ui/google-sign-in-button";
 import { createHousehold, ensureUserProfile } from "@/modules/household/application/onboarding";
 
 const schema = z
@@ -76,7 +77,24 @@ export default function SignUpPage() {
         Leva menos de um minuto. Você pode cadastrar suas contas e despesas aos poucos.
       </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4" noValidate>
+      <div className="mt-6 space-y-2">
+        <GoogleSignInButton label="Criar conta com o Google" />
+        <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+          Ao continuar com o Google você aceita os{" "}
+          <Link href="/termos" className="underline underline-offset-2">
+            Termos de Uso
+          </Link>{" "}
+          e a{" "}
+          <Link href="/privacidade" className="underline underline-offset-2">
+            Política de Privacidade
+          </Link>
+          . Seu grupo é criado com um nome que você pode trocar depois.
+        </p>
+      </div>
+
+      <AuthDivider>ou crie com e-mail e senha</AuthDivider>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {formError ? <FormError>{formError}</FormError> : null}
 
         <TextField
