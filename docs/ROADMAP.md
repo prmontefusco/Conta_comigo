@@ -116,6 +116,65 @@ catálogo de preços vindo de configuração e tela de assinatura.
 Falta apenas a `ASAAS_API_KEY`. Sem ela a venda fica fechada por construção — a
 rota de planos responde `open: false` e o checkout devolve 503.
 
+### Fase 14 — Dia a dia, família e comprovante ✔
+
+O que faltava para o produto acompanhar a rotina, e não só os compromissos:
+
+- Tela **Dia a dia**: registrar gasto pago (conta ou cartão, à vista ou
+  parcelado) e provento recebido, com totais do mês, para onde o dinheiro foi e
+  quanto cada pessoa recebeu e gastou
+- Provento recebido pode virar recorrência — diária, semanal, quinzenal, mensal
+  ou anual — e a regra começa na **próxima** ocorrência, para o dinheiro que já
+  entrou não ser projetado duas vezes
+- Cartões: **compras parceladas em andamento** (quantas faltam, até quando,
+  quanto ainda vai ser cobrado) e **o que vai ser faturado mês a mês**, somando
+  todos os cartões
+- Família: administrador adiciona quem já tem conta pelo identificador, muda
+  papéis e remove acesso; cartão, conta, dívida, compra e conta a pagar podem
+  ser atribuídos a uma pessoa do grupo
+- Leitura de comprovante por foto (OCR pelo modelo multimodal), que **sugere** o
+  preenchimento e não grava nada sozinha; a foto não é armazenada
+
+### Fase 15 — Diagnóstico correto e saída da dívida ✔
+
+Três correções primeiro, porque tudo o mais se apoia nelas:
+
+- **Saldo devedor descontava nada.** As telas chamavam `outstandingPrincipal`
+  e `summariseDebts` sem a lista de parcelas pagas — que já era calculada para
+  a projeção. O saldo ficava congelado no valor contratado para sempre.
+- **A sobra mensal vinha do horizonte inteiro.** `recovery-calculator` e
+  `financial-health` liam `forecast.summary`, que soma treze meses, e a
+  tratavam como mensal: a capacidade de pagamento saía multiplicada por treze e
+  a data de quitação era impossível.
+- **A "economia em juros" era 20% fixos.** Agora é medida: o mesmo plano
+  rodado sem aporte extra é o custo de pagar só o mínimo, e a diferença é a
+  economia.
+
+Além disso, o simulador de quitação passou a usar o motor de amortização real
+(saldo, parcela e prazo vindos do cronograma) em vez de dividir o principal
+pelo número de parcelas com taxa média inventada.
+
+Sobre essa base:
+
+- **Taxa comparável**: campo de CET no cadastro, e `effectiveMonthlyRate` com
+  quatro fontes — contrato, CET, taxa resolvida a partir da parcela, ou
+  desconhecida — sempre dizendo qual é qual
+- **Classificação por risco**: dívida com garantia real, consignado, sem
+  garantia; alerta quando um bem pode ser retomado e quando uma conta de
+  serviço essencial vence
+- **Negociação**: calculadora de proposta viável (dois tetos, o menor vale) e
+  cinco roteiros de conversa com o credor, preenchidos com os dados da casa
+- **Reserva de partida**: R$ 500 a R$ 1.000 guardados _antes_ da quitação
+  total, com marco próprio na linha do tempo, à frente do "dívida zero"
+- **Pílulas contextuais**: orientação curta escolhida pela situação atual da
+  família, dentro do aplicativo
+- **Orçamento por envelopes completo**: tetos sugeridos a partir do histórico
+  dos três meses anteriores, com média e mês mais alto por categoria, e alerta
+  quando uma categoria passa do teto
+- **Conquistas do grupo**: marcos derivados dos registros — dívida zerada, cada
+  quarto amortizado, fatura sem atraso, reserva formada, mês no azul
+- **Entrar com o Google**, com criação de perfil e de grupo no primeiro acesso
+
 ## Pendente
 
 ### Fase 12 — Production Readiness (em andamento)
@@ -146,6 +205,8 @@ Concluído:
 Pendente:
 
 - [ ] **Revisão de segurança independente** — o item mais importante
+- [ ] Habilitar o provedor Google no console e liberar o domínio em _Authorized
+      domains_ (sem isso o botão responde `auth/operation-not-allowed`)
 - [ ] Destino para os logs e alertas sobre taxa de erro
 - [ ] Rate limiting na criação de conta (exige Cloud Functions)
 - [ ] Chave reCAPTCHA e exigência de App Check no console
@@ -160,12 +221,12 @@ Pendente:
 
 Preparado pela arquitetura, sem implementação:
 
-- Convites por e-mail
+- Convites por e-mail (hoje a entrada no grupo é pelo identificador da pessoa)
 - Importação OFX e CSV
 - Open Finance
 - Notificações push e e-mail
 - Investimentos
-- OCR de boletos e leitura de faturas
+- Leitura de boleto e de fatura fechada (o comprovante de compra já é lido)
 - Aplicativos móveis nativos
 - Múltiplas moedas
 - Feriados nacionais no cálculo de dias úteis
