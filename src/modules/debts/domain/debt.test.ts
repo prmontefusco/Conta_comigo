@@ -4,6 +4,8 @@ import { aDebt, brl, on } from "@/modules/shared/testing/builders";
 import {
   buildSchedule,
   disbursementCost,
+  effectiveMonthlyRate,
+  impliedMonthlyRate,
   outstandingPrincipal,
   priceInstallment,
   summariseDebts,
@@ -186,5 +188,73 @@ describe("household debt summary", () => {
     const summary = summariseDebts([aDebt({ status: "SETTLED" })], on("2026-08-28"));
     expect(summary.activeDebts).toBe(0);
     expect(summary.totalOutstanding).toEqual(brl(0));
+  });
+});
+
+describe("the rate hidden in the instalment", () => {
+  it("solves the monthly rate from principal, instalment and term", () => {
+    // R$ 10.000 in 24 x R$ 500 is very close to 1,51% a month.
+    const rate = impliedMonthlyRate(brl(10000), brl(500), 24);
+
+    expect(rate).not.toBeNull();
+    expect(rate!).toBeGreaterThan(1.4);
+    expect(rate!).toBeLessThan(1.6);
+  });
+
+  it("reproduces the instalment it was solved from", () => {
+    const rate = impliedMonthlyRate(brl(10000), brl(500), 24)!;
+    const installment = priceInstallment(brl(10000), rate / 100, 24);
+
+    expect(Math.abs(installment.amount - brl(500).amount)).toBeLessThanOrEqual(50);
+  });
+
+  it("refuses when the instalments only give back what was taken", () => {
+    expect(impliedMonthlyRate(brl(1200), brl(100), 12)).toBeNull();
+  });
+
+  it("refuses a single instalment: that is a fee, not a rate", () => {
+    expect(impliedMonthlyRate(brl(1000), brl(1100), 1)).toBeNull();
+  });
+
+  it("refuses when there is no instalment to work from", () => {
+    expect(impliedMonthlyRate(brl(1000), undefined, 12)).toBeNull();
+  });
+});
+
+describe("which rate to compare debts by", () => {
+  it("prefers the contract rate", () => {
+    const debt = aDebt({ interestRateMonthly: 1.99, cetAnnual: 40 });
+    expect(effectiveMonthlyRate(debt)).toEqual({ monthly: 1.99, source: "CONTRACT" });
+  });
+
+  it("falls back to the CET, compounded down to a month", () => {
+    const debt = aDebt({ cetAnnual: 26.82 });
+    const rate = effectiveMonthlyRate(debt);
+
+    expect(rate.source).toBe("CET");
+    // 26,82% a year is about 2% a month.
+    expect(rate.monthly).toBeCloseTo(2, 1);
+  });
+
+  it("solves the rate when only the instalment is known", () => {
+    const debt = aDebt({
+      principalContracted: brl(10000),
+      installmentAmount: brl(500),
+      installmentCount: 24,
+    });
+    const rate = effectiveMonthlyRate(debt);
+
+    expect(rate.source).toBe("IMPLIED");
+    expect(rate.monthly).toBeGreaterThan(1.4);
+  });
+
+  it("says it does not know rather than inventing an average", () => {
+    const debt = aDebt({
+      principalContracted: brl(1200),
+      installmentAmount: brl(100),
+      installmentCount: 12,
+    });
+
+    expect(effectiveMonthlyRate(debt)).toEqual({ monthly: 0, source: "UNKNOWN" });
   });
 });

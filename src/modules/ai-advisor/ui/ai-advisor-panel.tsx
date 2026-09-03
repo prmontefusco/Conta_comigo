@@ -49,6 +49,7 @@ export function AIAdvisorPanel() {
     debts: finance.debts,
     cardStatements: finance.cardStatements,
     reserves: finance.reserves,
+    paidDebtInstallments: finance.paidDebtInstallments,
   });
 
   async function handleAsk(promptText: string) {

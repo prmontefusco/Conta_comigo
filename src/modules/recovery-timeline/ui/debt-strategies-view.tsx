@@ -26,6 +26,7 @@ export function DebtStrategiesView() {
     debts: finance.debts,
     cardStatements: finance.cardStatements,
     reserves: finance.reserves,
+    paidDebtInstallments: finance.paidDebtInstallments,
   });
 
   const accelerated = calculateRecoveryTimeline({
@@ -37,6 +38,7 @@ export function DebtStrategiesView() {
     debts: finance.debts,
     cardStatements: finance.cardStatements,
     reserves: finance.reserves,
+    paidDebtInstallments: finance.paidDebtInstallments,
     extraMonthlyContribution: extraMoney ?? undefined,
   });
 
@@ -106,9 +108,19 @@ export function DebtStrategiesView() {
               label="Economia em Juros"
               value={plan.interestSavedVsMinimum}
               tone="positive"
-              hint="Vs pagar só o mínimo"
+              hint="Comparado a pagar só as parcelas mínimas"
             />
           </dl>
+
+          {plan.estimatedRateItems > 0 ? (
+            <p className="mt-3 text-xs" style={{ color: "var(--muted-fg)" }}>
+              {plan.estimatedRateItems === 1
+                ? "Um destes compromissos entra com taxa estimada"
+                : `${plan.estimatedRateItems} destes compromissos entram com taxa estimada`}{" "}
+              — calculada a partir da parcela, ou a média do rotativo para fatura vencida. Informe a
+              taxa ou o CET do contrato em Dívidas para a ordem ficar exata.
+            </p>
+          ) : null}
         </div>
 
         {/* Ordem recomendada de pagamento */}

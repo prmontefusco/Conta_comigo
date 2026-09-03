@@ -18,6 +18,7 @@ export function FutureTimelineCard() {
     debts: finance.debts,
     cardStatements: finance.cardStatements,
     reserves: finance.reserves,
+    paidDebtInstallments: finance.paidDebtInstallments,
   });
 
   const hasDebts = timeline.totalDebtAmount.amount > 0;

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { formatCalendarDate } from "@/core/date/calendar-date";
 import { fromDecimalString } from "@/core/money/money";
@@ -21,11 +22,19 @@ import {
   buildSchedule,
   DEBT_KIND_LABELS,
   disbursementCost,
+  effectiveMonthlyRate,
   outstandingPrincipal,
   summariseDebts,
   type DebtKind,
 } from "@/modules/debts/domain/debt";
+import {
+  classifyDebt,
+  RISK_LEVEL_LABELS,
+  sortByRisk,
+  type DebtRiskLevel,
+} from "@/modules/debts/domain/debt-risk";
 import { useFinance } from "@/modules/household/ui/finance-provider";
+import { MemberField } from "@/modules/household/ui/member-field";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 
@@ -43,14 +52,22 @@ export default function DebtsPage() {
 
   if (finance.loading) return <Spinner label="Carregando suas dívidas" />;
 
-  const summary = summariseDebts(finance.debts, finance.asOf);
-  const active = finance.debts.filter((debt) => debt.status !== "SETTLED");
+  // Without the instalments already paid, every number below would report the
+  // contracted amount for ever, as if nothing had been paid off.
+  const paidByDebt = finance.paidDebtInstallments;
+  const summary = summariseDebts(finance.debts, finance.asOf, paidByDebt);
+  const active = sortByRisk(finance.debts.filter((debt) => debt.status !== "SETTLED"));
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Empréstimos e financiamentos</h1>
-        {canWrite ? <Button onClick={() => setCreating(true)}>Nova dívida</Button> : null}
+        <div className="flex flex-wrap gap-2">
+          <Link href="/app/negociar">
+            <Button variant="secondary">Negociar</Button>
+          </Link>
+          {canWrite ? <Button onClick={() => setCreating(true)}>Nova dívida</Button> : null}
+        </div>
       </div>
 
       <Card>
@@ -94,12 +111,17 @@ export default function DebtsPage() {
       ) : (
         active.map((debt) => {
           const schedule = buildSchedule(debt);
-          const outstanding = outstandingPrincipal(debt, []);
+          const paidNumbers = paidByDebt.get(debt.id) ?? [];
+          const paidSet = new Set(paidNumbers);
+          const outstanding = outstandingPrincipal(debt, paidNumbers);
           const paidRatio =
             debt.principalContracted.amount === 0
               ? 0
               : 1 - outstanding.amount / debt.principalContracted.amount;
           const upfrontCost = disbursementCost(debt);
+          const risk = classifyDebt(debt);
+          const rate = effectiveMonthlyRate(debt);
+          const nextInstallments = schedule.filter((item) => !paidSet.has(item.number));
 
           return (
             <Card key={debt.id}>
@@ -109,10 +131,17 @@ export default function DebtsPage() {
                 >
                   {debt.description}
                 </CardTitle>
-                {!schedule[0]?.breakdownKnown ? (
-                  <Badge tone="neutral">Sem taxa informada</Badge>
-                ) : null}
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge tone={riskTone(risk.level)}>{RISK_LEVEL_LABELS[risk.level]}</Badge>
+                  {rate.source === "UNKNOWN" ? (
+                    <Badge tone="neutral">Sem taxa informada</Badge>
+                  ) : null}
+                </div>
               </div>
+
+              <p className="mb-4 text-sm" style={{ color: "var(--muted-fg)" }}>
+                {risk.consequence}
+              </p>
 
               <dl className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <Stat
@@ -144,7 +173,13 @@ export default function DebtsPage() {
                   tone="positive"
                 />
                 <p className="mt-1.5 text-xs" style={{ color: "var(--muted-fg)" }}>
-                  {Math.round(paidRatio * 100)}% do valor contratado já amortizado.
+                  {Math.round(paidRatio * 100)}% do valor contratado já amortizado ·{" "}
+                  {paidNumbers.length} de {debt.installmentCount}{" "}
+                  {debt.installmentCount === 1 ? "parcela paga" : "parcelas pagas"}.
+                </p>
+
+                <p className="mt-1.5 text-xs" style={{ color: "var(--muted-fg)" }}>
+                  {rateSentence(rate, debt.cetAnnual)}
                 </p>
               </div>
 
@@ -159,11 +194,11 @@ export default function DebtsPage() {
 
               {schedule[0]?.breakdownKnown ? (
                 <ScrollableX
-                  label={`Próximas parcelas de ${debt.description}`}
+                  label={`Parcelas em aberto de ${debt.description}`}
                   className="-mx-4 mt-4 px-4 sm:mx-0 sm:px-0"
                 >
                   <table className="w-full min-w-[28rem] border-collapse text-sm">
-                    <caption className="sr-only">Próximas parcelas de {debt.description}</caption>
+                    <caption className="sr-only">Parcelas em aberto de {debt.description}</caption>
                     <thead>
                       <tr className="border-b border-[color:var(--card-border)] text-left">
                         <th scope="col" className="py-2 pr-3 font-medium">
@@ -181,28 +216,25 @@ export default function DebtsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {schedule
-                        .filter((item) => item.dueDate >= finance.asOf)
-                        .slice(0, 6)
-                        .map((item) => (
-                          <tr
-                            key={item.number}
-                            className="border-b border-[color:var(--card-border)]"
-                          >
-                            <th scope="row" className="py-2 pr-3 text-left font-normal">
-                              {item.number}/{item.of} · {formatCalendarDate(item.dueDate)}
-                            </th>
-                            <td className="py-2 pr-3 text-right">
-                              <MoneyText value={item.total} size="sm" />
-                            </td>
-                            <td className="py-2 pr-3 text-right">
-                              <MoneyText value={item.principal} size="sm" />
-                            </td>
-                            <td className="py-2 text-right">
-                              <MoneyText value={item.interest} size="sm" tone="outflow" />
-                            </td>
-                          </tr>
-                        ))}
+                      {nextInstallments.slice(0, 6).map((item) => (
+                        <tr
+                          key={item.number}
+                          className="border-b border-[color:var(--card-border)]"
+                        >
+                          <th scope="row" className="py-2 pr-3 text-left font-normal">
+                            {item.number}/{item.of} · {formatCalendarDate(item.dueDate)}
+                          </th>
+                          <td className="py-2 pr-3 text-right">
+                            <MoneyText value={item.total} size="sm" />
+                          </td>
+                          <td className="py-2 pr-3 text-right">
+                            <MoneyText value={item.principal} size="sm" />
+                          </td>
+                          <td className="py-2 text-right">
+                            <MoneyText value={item.interest} size="sm" tone="outflow" />
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                   <p className="mt-3 text-xs" style={{ color: "var(--muted-fg)" }}>
@@ -226,6 +258,39 @@ export default function DebtsPage() {
   );
 }
 
+/**
+ * How the rate is described, and where it came from.
+ *
+ * A rate solved from the instalments is useful and is not the same thing as a
+ * rate the bank stated. Saying which is which is the difference between
+ * informing someone and quietly making a number up for them.
+ */
+function rateSentence(
+  rate: ReturnType<typeof effectiveMonthlyRate>,
+  cetAnnual: number | undefined,
+): string {
+  const cet = cetAnnual ? ` · CET de ${formatPercent(cetAnnual)} ao ano` : "";
+
+  switch (rate.source) {
+    case "CONTRACT":
+      return `Juros de ${formatPercent(rate.monthly)} ao mês, conforme o contrato${cet}.`;
+    case "CET":
+      return `Juros de cerca de ${formatPercent(rate.monthly)} ao mês, calculados a partir do CET de ${formatPercent(cetAnnual ?? 0)} ao ano.`;
+    case "IMPLIED":
+      return `Juros estimados em ${formatPercent(rate.monthly)} ao mês, calculados a partir do valor da parcela${cet}. Confirme no contrato.`;
+    case "UNKNOWN":
+      return `Sem taxa informada${cet ? cet.replace(" · ", ", mas com ") : ""}. Informe a taxa ou o CET para comparar esta dívida com as outras.`;
+  }
+}
+
+function formatPercent(value: number): string {
+  return `${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+}
+
+function riskTone(level: DebtRiskLevel): "critical" | "attention" | "neutral" {
+  return level === "CRITICAL" ? "critical" : level === "HIGH" ? "attention" : "neutral";
+}
+
 function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { household } = useSession();
   const { asOf } = useFinance();
@@ -239,7 +304,9 @@ function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }
   const [installments, setInstallments] = useState("12");
   const [installmentText, setInstallmentText] = useState("");
   const [rateText, setRateText] = useState("");
+  const [cetText, setCetText] = useState("");
   const [firstDueDate, setFirstDueDate] = useState<string>(asOf);
+  const [memberId, setMemberId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -264,6 +331,12 @@ function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }
     }
 
     const rate = rateText ? Number(rateText.replace(",", ".")) : undefined;
+    const cet = cetText ? Number(cetText.replace(",", ".")) : undefined;
+
+    if (cet !== undefined && (!Number.isFinite(cet) || cet < 0 || cet > 1000)) {
+      setError("O CET anual precisa ser um percentual entre 0 e 1000.");
+      return;
+    }
     const installmentAmount = installmentText ? fromDecimalString(installmentText) : null;
 
     setSaving(true);
@@ -278,11 +351,13 @@ function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }
         disbursementDate: asOf,
         amortisationSystem: rate && rate > 0 ? "PRICE" : "SIMPLE",
         interestRateMonthly: rate && rate > 0 ? rate : undefined,
+        cetAnnual: cet && cet > 0 ? cet : undefined,
         installmentCount: count,
         installmentAmount: installmentAmount ?? undefined,
         firstDueDate: firstDueDate as never,
         status: "ACTIVE",
         visibility: "HOUSEHOLD",
+        ...(memberId ? { responsibleMemberId: memberId } : {}),
       } as never);
       onClose();
     } catch (saveError) {
@@ -356,20 +431,38 @@ function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }
           />
         </div>
 
-        <TextField
-          label="Juros ao mês (%)"
-          inputMode="decimal"
-          value={rateText}
-          onChange={(event) => setRateText(event.target.value)}
-          placeholder="2,79"
-          hint="Opcional. Com a taxa, o sistema separa juros de amortização."
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <TextField
+            label="Juros ao mês (%)"
+            inputMode="decimal"
+            value={rateText}
+            onChange={(event) => setRateText(event.target.value)}
+            placeholder="2,79"
+            hint="Opcional. Com a taxa, o sistema separa juros de amortização."
+          />
+          <TextField
+            label="CET ao ano (%)"
+            inputMode="decimal"
+            value={cetText}
+            onChange={(event) => setCetText(event.target.value)}
+            placeholder="38,90"
+            hint="O Custo Efetivo Total é o número que compara propostas de verdade: inclui juros, tarifas e seguros."
+          />
+        </div>
 
         <DateField
           label="Primeiro vencimento"
           required
           value={firstDueDate}
           onChange={(event) => setFirstDueDate(event.target.value)}
+        />
+
+        <MemberField
+          label="De quem é esta dívida"
+          hint="Quem assinou o contrato. A dívida continua sendo do grupo nos totais."
+          value={memberId}
+          onChange={setMemberId}
+          emptyLabel="Do grupo"
         />
 
         <div className="flex gap-2 pt-2">
