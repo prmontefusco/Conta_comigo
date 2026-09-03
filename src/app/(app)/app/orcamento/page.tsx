@@ -23,6 +23,7 @@ import { categoryName, buildCategoryIndex } from "@/modules/categories/domain/ca
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
+import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
 
 /**
  * The monthly budget.
@@ -57,6 +58,18 @@ export default function BudgetPage() {
           </Button>
         ) : null}
       </div>
+
+      <FinancialInsightCard
+        tag="A Regra 50 / 30 / 20 Adaptada"
+        title="Como Dividir o Dinheiro para Sair do Sufoco"
+        description="Para quem está endividado, a regra clássica de finanças precisa ser ajustada para focar na liberdade financeira da família."
+        tips={[
+          "50% para Necessidades Essenciais: moradia, comida básica, água, luz, gás e transporte indispensável.",
+          "30% para Dívidas e Reserva: use essa fatia para alimentar a Reserva de Respiro e acelerar o pagamento dos boletos mais caros.",
+          "20% para Despesas Variáveis e Imprevistos: pequenos prazeres com moderação e gastos do dia a dia para o plano não ficar insustentável.",
+        ]}
+        helpTopic="Defina um teto mensal para cada categoria. O sistema monitora as compras em tempo real e avisa antes que o limite da categoria seja ultrapassado."
+      />
 
       {!budget || !status ? (
         <Card>

@@ -54,8 +54,11 @@ export const metadata: Metadata = {
     title: "Conta comigo — planejamento financeiro pessoal e familiar",
     description: "Quanto tenho, quanto já comprometi e para onde minhas finanças estão indo.",
   },
-  // Alinhada ao robots.txt de propósito: barrar num lugar e convidar no outro
-  // é o tipo de contradição que só aparece depois de indexado.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Conta comigo",
+  },
   robots: { index: isIndexable(), follow: isIndexable() },
 };
 

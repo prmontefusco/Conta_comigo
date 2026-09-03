@@ -27,6 +27,7 @@ import {
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { StarterReserveCard } from "@/modules/reserves/ui/starter-reserve-card";
+import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 
 /**
@@ -62,6 +63,18 @@ export default function ReservesPage() {
         <h1 className="text-xl font-semibold">Reservas e metas</h1>
         {canWrite ? <Button onClick={() => setCreating(true)}>Nova reserva</Button> : null}
       </div>
+
+      <FinancialInsightCard
+        tag="O Colchão de Segurança"
+        title="Por Que Juntar os Primeiros R$ 500 a R$ 1.000 Antes de Quitar Dívidas?"
+        description="O instinto natural de quem se endivida é jogar todo o dinheiro que sobra nas dívidas. Isso falha porque o primeiro imprevisto (remédio, gás, pneu furado) obriga a pessoa a recorrer ao cartão rotativo de novo."
+        tips={[
+          "Construa a Reserva de Respiro primeiro: ter R$ 1.000 guardados é o que impede seu plano de reiniciar do zero no primeiro imprevisto.",
+          "Reserva não é gasto: guardar dinheiro não diminui seu patrimônio, apenas separa o dinheiro do dia a dia do dinheiro protegido.",
+          "Reserva de Emergência Plena: depois que eliminar as dívidas de juros altos, a meta da família será acumular de 3 a 6 meses do custo de vida básico.",
+        ]}
+        helpTopic="Crie 'potes' de reservas para emergências ou metas familiares. O app desconta o valor reservado do seu 'saldo livre' para você não gastar por engano."
+      />
 
       <StarterReserveCard />
 

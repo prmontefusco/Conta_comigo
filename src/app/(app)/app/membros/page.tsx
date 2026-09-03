@@ -13,6 +13,7 @@ import {
 import { ROLE_DESCRIPTIONS, ROLE_LABELS } from "@/modules/household/domain/household";
 import { useMembers } from "@/modules/household/ui/use-members";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { InviteFamilyModal } from "@/modules/household/ui/invite-family-modal";
 import type { HouseholdRole } from "@/modules/shared/domain/common";
 
 /**
@@ -29,6 +30,7 @@ export default function MembersPage() {
   const { household, user, canAdminister } = useSession();
   const { active, loading } = useMembers();
   const [adding, setAdding] = useState(false);
+  const [invitingFamily, setInvitingFamily] = useState(false);
   const [copied, setCopied] = useState(false);
 
   if (loading) return <Spinner label="Carregando membros" />;
@@ -36,8 +38,22 @@ export default function MembersPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Membros</h1>
-        {canAdminister ? <Button onClick={() => setAdding(true)}>Adicionar pessoa</Button> : null}
+        <div>
+          <h1 className="text-xl font-semibold">Membros da Família</h1>
+          <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+            Compartilhe o planejamento da casa com seu cônjuge ou filhos
+          </p>
+        </div>
+        {canAdminister ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={() => setInvitingFamily(true)}>
+              👨‍👩‍👧‍👦 Cadastrar Familiar (Cônjuge / Filhos)
+            </Button>
+            <Button variant="secondary" onClick={() => setAdding(true)}>
+              Adicionar por código
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <Card>
@@ -87,20 +103,70 @@ export default function MembersPage() {
       </Card>
 
       <Card>
-        <CardTitle>Como incluir seu marido, sua esposa ou um filho</CardTitle>
-        <ol className="ml-4 list-decimal space-y-1.5 text-sm">
-          <li>A pessoa cria a própria conta no Conta comigo, com o e-mail dela.</li>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[color:var(--card-border)] pb-3">
+          <CardTitle hint="Convide seu cônjuge ou familiar para organizar as finanças juntos">
+            👨‍👩‍👧‍👦 Compartilhamento Familiar
+          </CardTitle>
+          <span className="rounded-md bg-[color:var(--color-surface-sunken)] px-2 py-0.5 text-xs font-semibold text-[color:var(--color-brand-600)]">
+            Acesso Conjunto
+          </span>
+        </div>
+
+        <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
+          Sair das dívidas e conquistar metas em família é muito mais rápido quando os dois acompanham os mesmos números.
+          Envie um convite direto pelo WhatsApp com as orientações de entrada.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            onClick={() => {
+              const text = encodeURIComponent(
+                `Oi! Criei nosso painel de planejamento e metas da família no Conta comigo.\n\n` +
+                  `1. Acesse https://contacomigo.app/entrar e crie sua conta com seu e-mail.\n` +
+                  `2. Depois, vá em Menu > Membros, copie o código do seu identificador e me mande por aqui.\n` +
+                  `3. Eu vou te adicionar ao grupo da nossa casa para acompanharmos nossos gastos e metas juntos!`
+              );
+              window.open(`https://wa.me/?text=${text}`, "_blank");
+            }}
+          >
+            💬 Convidar pelo WhatsApp
+          </Button>
+
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={async () => {
+              const text =
+                `Oi! Criei nosso painel de planejamento e metas da família no Conta comigo.\n\n` +
+                `1. Acesse https://contacomigo.app/entrar e crie sua conta com seu e-mail.\n` +
+                `2. Depois, vá em Menu > Membros, copie o código do seu identificador e me mande por aqui.\n` +
+                `3. Eu vou te adicionar ao grupo da nossa casa para acompanharmos nossos gastos e metas juntos!`;
+              try {
+                await navigator.clipboard.writeText(text);
+                setCopied(true);
+              } catch {
+                setCopied(false);
+              }
+            }}
+          >
+            {copied ? "Copiado!" : "Copiar texto do convite"}
+          </Button>
+        </div>
+
+        <ol className="mt-5 ml-4 list-decimal space-y-1.5 border-t border-[color:var(--card-border)] pt-4 text-sm">
+          <li>A outra pessoa cria a própria conta no Conta comigo com o e-mail dela.</li>
           <li>
             Ela abre <strong>Mais &rarr; Membros</strong> e copia o código que aparece em &ldquo;Seu
             identificador&rdquo;.
           </li>
           <li>
-            Você usa <strong>Adicionar pessoa</strong> aqui e cola esse código.
+            Você clica em <strong>Adicionar pessoa</strong> acima e cola o código dela.
           </li>
         </ol>
-        <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
-          A partir daí vocês veem os mesmos números. Cada cartão, conta, dívida e gasto pode ser
-          marcado como de uma pessoa ou do grupo, e as telas mostram os dois recortes.
+        <p className="mt-3 text-xs" style={{ color: "var(--muted-fg)" }}>
+          A partir daí vocês veem os mesmos números com total transparência. Cada cartão, conta, dívida e gasto pode ser
+          atribuído a uma pessoa específica ou à casa toda.
         </p>
       </Card>
 
@@ -117,6 +183,7 @@ export default function MembersPage() {
       </Card>
 
       <AddMemberDialog open={adding} onClose={() => setAdding(false)} />
+      <InviteFamilyModal open={invitingFamily} onClose={() => setInvitingFamily(false)} />
     </div>
   );
 }
