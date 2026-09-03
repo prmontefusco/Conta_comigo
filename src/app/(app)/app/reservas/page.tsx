@@ -26,6 +26,7 @@ import {
 } from "@/modules/reserves/domain/reserve";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { StarterReserveCard } from "@/modules/reserves/ui/starter-reserve-card";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 
 /**
@@ -61,6 +62,8 @@ export default function ReservesPage() {
         <h1 className="text-xl font-semibold">Reservas e metas</h1>
         {canWrite ? <Button onClick={() => setCreating(true)}>Nova reserva</Button> : null}
       </div>
+
+      <StarterReserveCard />
 
       <Card>
         <CardTitle>Como isso afeta o seu saldo</CardTitle>
