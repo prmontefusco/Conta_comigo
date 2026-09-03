@@ -90,9 +90,7 @@ export function evaluateFeiraoOffer(input: FeiraoOfferInput): FeiraoOfferAnalysi
       );
     }
 
-    const usableCash = clampToZero(
-      subtract(input.availableCash, input.minimumReserveCushion),
-    );
+    const usableCash = clampToZero(subtract(input.availableCash, input.minimumReserveCushion));
     isCashAffordableWithoutTouchingReserve = greaterOrEqual(usableCash, input.cashOfferAmount);
 
     remainingCashAfterLumpSum = subtract(input.availableCash, input.cashOfferAmount);
@@ -117,7 +115,10 @@ export function evaluateFeiraoOffer(input: FeiraoOfferInput): FeiraoOfferAnalysi
     const savings = subtract(input.originalBalance, installmentTotalCost);
     installmentSavingsVsOriginal = savings.amount > 0 ? savings : zeroMoney;
 
-    if (input.originalBalance.amount > 0 && installmentTotalCost.amount < input.originalBalance.amount) {
+    if (
+      input.originalBalance.amount > 0 &&
+      installmentTotalCost.amount < input.originalBalance.amount
+    ) {
       installmentDiscountPercentage = Math.round(
         ((input.originalBalance.amount - installmentTotalCost.amount) /
           input.originalBalance.amount) *

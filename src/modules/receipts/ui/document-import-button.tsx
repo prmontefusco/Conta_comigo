@@ -57,12 +57,7 @@ export function DocumentImportButton({
     setAnalyzing(true);
 
     try {
-      const allowedTypes = [
-        "application/pdf",
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-      ];
+      const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
       if (!allowedTypes.includes(file.type)) {
         throw new Error("Formato não suportado. Envie um arquivo PDF, JPG ou PNG.");
       }
@@ -227,7 +222,9 @@ export function DocumentImportButton({
       >
         <div className="space-y-4">
           <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
-            Envie o arquivo <strong>PDF</strong> recebido por e-mail ou tire uma <strong>foto</strong> de uma conta de luz, água, internet, gás, condomínio ou fatura de cartão. A IA preenche os dados para você.
+            Envie o arquivo <strong>PDF</strong> recebido por e-mail ou tire uma{" "}
+            <strong>foto</strong> de uma conta de luz, água, internet, gás, condomínio ou fatura de
+            cartão. A IA preenche os dados para você.
           </p>
 
           <FormError>{error}</FormError>
@@ -262,7 +259,10 @@ export function DocumentImportButton({
           )}
 
           {reading && !analyzing && (
-            <form onSubmit={handleConfirmSave} className="space-y-4 animate-in fade-in duration-200">
+            <form
+              onSubmit={handleConfirmSave}
+              className="animate-in fade-in space-y-4 duration-200"
+            >
               <div className="flex items-center justify-between rounded-lg bg-[color:var(--color-surface-sunken)] p-3">
                 <div>
                   <span className="text-xs font-bold text-[color:var(--color-positive-600)] uppercase">
@@ -333,11 +333,7 @@ export function DocumentImportButton({
               </label>
 
               <div className="mt-4 flex justify-end gap-2 border-t border-[color:var(--card-border)] pt-4">
-                <Button
-                  variant="secondary"
-                  onClick={() => reset()}
-                  disabled={saving}
-                >
+                <Button variant="secondary" onClick={() => reset()} disabled={saving}>
                   Ler outro arquivo
                 </Button>
                 <Button type="submit" disabled={saving}>

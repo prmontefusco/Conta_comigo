@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 3000",
+    "dev:all": "concurrently -k -n \"emulators,seed,next\" -c \"cyan,yellow,green\" \"npm run emulators\" \"npm run seed:when-ready\" \"npm run dev\"",
+    "testar": "npm run dev:all",
     "dev:next": "next dev --turbopack",
     "dev:local": "concurrently -n emulators,seed -c blue,green \"npm:emulators:all\" \"npm:seed:when-ready\"",
     "emulators": "firebase emulators:start --project demo-conta-comigo --only auth,firestore",

@@ -53,8 +53,9 @@ export function FeiraoCalculatorCard({
       </div>
 
       <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
-        Em feirões de renegociação é comum oferecerem 70% a 90% de desconto à vista ou parcelamento longo.
-        Use esta ferramenta para descobrir se vale a pena descapitalizar agora ou se o parcelamento protege melhor sua família.
+        Em feirões de renegociação é comum oferecerem 70% a 90% de desconto à vista ou parcelamento
+        longo. Use esta ferramenta para descobrir se vale a pena descapitalizar agora ou se o
+        parcelamento protege melhor sua família.
       </p>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -98,7 +99,8 @@ export function FeiraoCalculatorCard({
             </h4>
             <Badge
               tone={
-                analysis.recommendation === "PAY_CASH" || analysis.recommendation === "PAY_INSTALLMENT"
+                analysis.recommendation === "PAY_CASH" ||
+                analysis.recommendation === "PAY_INSTALLMENT"
                   ? "positive"
                   : analysis.recommendation === "CASH_RISKY_CONSIDER_INSTALLMENT"
                     ? "attention"
@@ -117,7 +119,8 @@ export function FeiraoCalculatorCard({
 
           <Callout
             tone={
-              analysis.recommendation === "PAY_CASH" || analysis.recommendation === "PAY_INSTALLMENT"
+              analysis.recommendation === "PAY_CASH" ||
+              analysis.recommendation === "PAY_INSTALLMENT"
                 ? "info"
                 : "attention"
             }
@@ -132,8 +135,10 @@ export function FeiraoCalculatorCard({
                 <span className="text-xs font-semibold text-[color:var(--color-brand-600)] uppercase">
                   Opção À Vista
                 </span>
-                <p className="tabular mt-1 text-xl font-bold">{formatMoney(analysis.cashOfferAmount)}</p>
-                <p className="mt-1 text-xs text-[color:var(--color-positive-fg)] font-medium">
+                <p className="tabular mt-1 text-xl font-bold">
+                  {formatMoney(analysis.cashOfferAmount)}
+                </p>
+                <p className="mt-1 text-xs font-medium text-[color:var(--color-positive-fg)]">
                   {analysis.cashDiscountPercentage}% de desconto (Economia de{" "}
                   {analysis.cashSavingsAmount ? formatMoney(analysis.cashSavingsAmount) : "—"})
                 </p>
@@ -154,7 +159,7 @@ export function FeiraoCalculatorCard({
                 <p className="tabular mt-1 text-xl font-bold">
                   {formatMoney(analysis.installmentTotalCost)}
                 </p>
-                <p className="mt-1 text-xs text-[color:var(--color-positive-fg)] font-medium">
+                <p className="mt-1 text-xs font-medium text-[color:var(--color-positive-fg)]">
                   {analysis.installmentDiscountPercentage}% de desconto (Economia de{" "}
                   {analysis.installmentSavingsVsOriginal
                     ? formatMoney(analysis.installmentSavingsVsOriginal)
@@ -186,7 +191,8 @@ export function FeiraoCalculatorCard({
         </div>
       ) : (
         <p className="mt-4 text-xs" style={{ color: "var(--muted-fg)" }}>
-          💡 Digite o saldo original e ao menos uma das opções (à vista ou parcelada) para comparar o impacto.
+          💡 Digite o saldo original e ao menos uma das opções (à vista ou parcelada) para comparar
+          o impacto.
         </p>
       )}
     </Card>

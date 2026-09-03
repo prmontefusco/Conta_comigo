@@ -34,19 +34,20 @@ export function DashboardTabs() {
   const monthlySurplus = subtract(monthlyInflows, monthlyOutflows);
 
   // Entradas recorrentes
-  const recurringInflows = finance.recurringRules.filter((r) => r.direction === "INFLOW" && r.active);
+  const recurringInflows = finance.recurringRules.filter(
+    (r) => r.direction === "INFLOW" && r.active,
+  );
 
   // Obrigações de saída do mês
   const openObligations = finance.obligations.filter(
-    (o) => o.direction === "OUTFLOW" && (o.status === "SCHEDULED" || o.status === "PARTIALLY_SETTLED"),
+    (o) =>
+      o.direction === "OUTFLOW" && (o.status === "SCHEDULED" || o.status === "PARTIALLY_SETTLED"),
   );
 
   // Total de Dívidas
   const activeDebts = finance.debts.filter((d) => d.status !== "SETTLED");
   const totalDebtBalance = sum(
-    activeDebts.map((d) =>
-      outstandingPrincipal(d, finance.paidDebtInstallments.get(d.id) ?? []),
-    ),
+    activeDebts.map((d) => outstandingPrincipal(d, finance.paidDebtInstallments.get(d.id) ?? [])),
     currency,
   );
 
@@ -127,7 +128,7 @@ export function DashboardTabs() {
 
       {/* 1. VISÃO GERAL */}
       {activeTab === "GERAL" && (
-        <div className="space-y-5 animate-in fade-in duration-200">
+        <div className="animate-in fade-in space-y-5 duration-200">
           <HealthScoreCard />
           <TodayBlock />
           <AlertsList alerts={finance.alerts} />
@@ -140,7 +141,7 @@ export function DashboardTabs() {
 
       {/* 2. ENTRADAS */}
       {activeTab === "ENTRADAS" && (
-        <div className="space-y-5 animate-in fade-in duration-200">
+        <div className="animate-in fade-in space-y-5 duration-200">
           <Card className="border-l-4 border-l-[color:var(--color-positive-600)]">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--card-border)] pb-4">
               <div>
@@ -159,14 +160,23 @@ export function DashboardTabs() {
             </div>
 
             <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Stat label="Total Previsto no Mês" value={monthlyInflows} tone="positive" size="lg" />
+              <Stat
+                label="Total Previsto no Mês"
+                value={monthlyInflows}
+                tone="positive"
+                size="lg"
+              />
               <Stat
                 label="Saldo Livre para o Mês"
                 value={monthlySurplus}
                 tone={isNegative(monthlySurplus) ? "critical" : "positive"}
                 hint="Diferença entre entradas e despesas previstas"
               />
-              <Stat label="Disponibilidade em Caixa Hoje" value={finance.totalCash} tone="neutral" />
+              <Stat
+                label="Disponibilidade em Caixa Hoje"
+                value={finance.totalCash}
+                tone="neutral"
+              />
             </dl>
           </Card>
 
@@ -178,7 +188,10 @@ export function DashboardTabs() {
             {recurringInflows.length === 0 ? (
               <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
                 Nenhuma receita fixa cadastrada. Adicione os salários e rendas da casa em{" "}
-                <Link href="/app/recorrentes" className="underline text-[color:var(--color-brand-600)]">
+                <Link
+                  href="/app/recorrentes"
+                  className="text-[color:var(--color-brand-600)] underline"
+                >
                   Recorrentes
                 </Link>
                 .
@@ -206,7 +219,7 @@ export function DashboardTabs() {
 
       {/* 3. DESPESAS */}
       {activeTab === "DESPESAS" && (
-        <div className="space-y-5 animate-in fade-in duration-200">
+        <div className="animate-in fade-in space-y-5 duration-200">
           <Card className="border-l-4 border-l-[color:var(--color-attention-600)]">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--card-border)] pb-4">
               <div>
@@ -228,10 +241,18 @@ export function DashboardTabs() {
             </div>
 
             <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Stat label="Total de Saídas no Mês" value={monthlyOutflows} tone="outflow" size="lg" />
+              <Stat
+                label="Total de Saídas no Mês"
+                value={monthlyOutflows}
+                tone="outflow"
+                size="lg"
+              />
               <Stat
                 label="Contas Pendentes"
-                value={money(openObligations.reduce((acc, o) => acc + o.amount.amount, 0), currency)}
+                value={money(
+                  openObligations.reduce((acc, o) => acc + o.amount.amount, 0),
+                  currency,
+                )}
                 tone="attention"
                 hint={`${openObligations.length} conta(s) a pagar neste mês`}
               />
@@ -284,7 +305,7 @@ export function DashboardTabs() {
 
       {/* 4. RESERVAS & INVESTIMENTOS */}
       {activeTab === "RESERVAS" && (
-        <div className="space-y-5 animate-in fade-in duration-200">
+        <div className="animate-in fade-in space-y-5 duration-200">
           <StarterReserveCard />
 
           <Card className="border-l-4 border-l-[color:var(--color-brand-600)]">
@@ -310,7 +331,8 @@ export function DashboardTabs() {
                   Passo 1: Reserva de Respiro
                 </p>
                 <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
-                  Meta de R$ 500 a R$ 1.000 antes de quitar dívidas para não recorrer ao cartão quando furar um pneu ou faltar remédio.
+                  Meta de R$ 500 a R$ 1.000 antes de quitar dívidas para não recorrer ao cartão
+                  quando furar um pneu ou faltar remédio.
                 </p>
               </div>
 
@@ -319,7 +341,8 @@ export function DashboardTabs() {
                   Passo 2: Reserva de Emergência Plena
                 </p>
                 <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
-                  De 3 a 6 meses do custo de vida essencial da família, construída logo após zerar os empréstimos e cartões caros.
+                  De 3 a 6 meses do custo de vida essencial da família, construída logo após zerar
+                  os empréstimos e cartões caros.
                 </p>
               </div>
             </div>
@@ -329,7 +352,7 @@ export function DashboardTabs() {
 
       {/* 5. DÍVIDAS & RECUPERAÇÃO */}
       {activeTab === "DIVIDAS" && (
-        <div className="space-y-5 animate-in fade-in duration-200">
+        <div className="animate-in fade-in space-y-5 duration-200">
           <Card className="border-l-4 border-l-[color:var(--color-critical-600)]">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--card-border)] pb-4">
               <div>
@@ -342,9 +365,7 @@ export function DashboardTabs() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link href="/app/negociar">
-                  <Button className="px-3 py-1.5 text-xs">
-                    Simular Acordo / Feirão &rarr;
-                  </Button>
+                  <Button className="px-3 py-1.5 text-xs">Simular Acordo / Feirão &rarr;</Button>
                 </Link>
                 <Link href="/app/dividas">
                   <Button variant="secondary" className="px-3 py-1.5 text-xs">
@@ -355,7 +376,12 @@ export function DashboardTabs() {
             </div>
 
             <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Stat label="Saldo Devedor Total" value={totalDebtBalance} tone="critical" size="lg" />
+              <Stat
+                label="Saldo Devedor Total"
+                value={totalDebtBalance}
+                tone="critical"
+                size="lg"
+              />
               <Stat
                 label="Contratos Ativos"
                 value={money(activeDebts.length, currency)}

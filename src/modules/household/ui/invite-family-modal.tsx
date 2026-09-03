@@ -105,7 +105,8 @@ export function InviteFamilyModal({
       {step === "FORM" ? (
         <form onSubmit={handleSubmit} className="space-y-4">
           <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
-            Adicione as pessoas da sua casa para que todos possam lançar despesas, cupons de mercado e acompanhar as metas da família diretamente pelo smartphone.
+            Adicione as pessoas da sua casa para que todos possam lançar despesas, cupons de mercado
+            e acompanhar as metas da família diretamente pelo smartphone.
           </p>
 
           <FormError>{error}</FormError>
@@ -160,12 +161,16 @@ export function InviteFamilyModal({
               Cancelar
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? "Salvando..." : identifier.trim() ? "Adicionar Agora" : "Continuar para Convite &rarr;"}
+              {saving
+                ? "Salvando..."
+                : identifier.trim()
+                  ? "Adicionar Agora"
+                  : "Continuar para Convite &rarr;"}
             </Button>
           </div>
         </form>
       ) : (
-        <div className="space-y-4 animate-in fade-in duration-200">
+        <div className="animate-in fade-in space-y-4 duration-200">
           <div className="rounded-xl border border-[color:var(--card-border)] bg-[color:var(--color-surface-sunken)] p-4 text-center">
             <span className="text-3xl">💬</span>
             <h4 className="mt-2 text-sm font-bold text-[color:var(--page-fg)]">
@@ -206,8 +211,9 @@ export function InviteFamilyModal({
             </Button>
           </div>
 
-          <p className="text-xs text-center" style={{ color: "var(--muted-fg)" }}>
-            Assim que {name} te passar o código do perfil, basta clicar em &ldquo;Adicionar pessoa&rdquo; e colar aqui.
+          <p className="text-center text-xs" style={{ color: "var(--muted-fg)" }}>
+            Assim que {name} te passar o código do perfil, basta clicar em &ldquo;Adicionar
+            pessoa&rdquo; e colar aqui.
           </p>
 
           <div className="mt-4 flex justify-end border-t border-[color:var(--card-border)] pt-4">

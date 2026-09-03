@@ -113,8 +113,9 @@ export default function MembersPage() {
         </div>
 
         <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
-          Sair das dívidas e conquistar metas em família é muito mais rápido quando os dois acompanham os mesmos números.
-          Envie um convite direto pelo WhatsApp com as orientações de entrada.
+          Sair das dívidas e conquistar metas em família é muito mais rápido quando os dois
+          acompanham os mesmos números. Envie um convite direto pelo WhatsApp com as orientações de
+          entrada.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -125,7 +126,7 @@ export default function MembersPage() {
                 `Oi! Criei nosso painel de planejamento e metas da família no Conta comigo.\n\n` +
                   `1. Acesse https://contacomigo.app/entrar e crie sua conta com seu e-mail.\n` +
                   `2. Depois, vá em Menu > Membros, copie o código do seu identificador e me mande por aqui.\n` +
-                  `3. Eu vou te adicionar ao grupo da nossa casa para acompanharmos nossos gastos e metas juntos!`
+                  `3. Eu vou te adicionar ao grupo da nossa casa para acompanharmos nossos gastos e metas juntos!`,
               );
               window.open(`https://wa.me/?text=${text}`, "_blank");
             }}
@@ -165,8 +166,8 @@ export default function MembersPage() {
           </li>
         </ol>
         <p className="mt-3 text-xs" style={{ color: "var(--muted-fg)" }}>
-          A partir daí vocês veem os mesmos números com total transparência. Cada cartão, conta, dívida e gasto pode ser
-          atribuído a uma pessoa específica ou à casa toda.
+          A partir daí vocês veem os mesmos números com total transparência. Cada cartão, conta,
+          dívida e gasto pode ser atribuído a uma pessoa específica ou à casa toda.
         </p>
       </Card>
 

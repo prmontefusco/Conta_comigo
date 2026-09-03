@@ -17,9 +17,7 @@ import { fromDecimal, type Money } from "@/core/money/money";
  */
 
 export const documentModelSchema = z.object({
-  tipoDocumento: z
-    .enum(["CONTA_CONSUMO", "FATURA_CARTAO", "BOLETO_GERAL", "OUTRO"])
-    .nullish(),
+  tipoDocumento: z.enum(["CONTA_CONSUMO", "FATURA_CARTAO", "BOLETO_GERAL", "OUTRO"]).nullish(),
   emissor: z.string().trim().max(120).nullish(),
   descricao: z.string().trim().max(120).nullish(),
   valorTotal: z.number().nullish(),
@@ -44,12 +42,7 @@ export interface DocumentReading {
 
 export const documentRequestSchema = z.object({
   fileBase64: z.string().min(20).max(15_000_000), // Suporta até ~10MB codificado
-  mimeType: z.enum([
-    "application/pdf",
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-  ]),
+  mimeType: z.enum(["application/pdf", "image/jpeg", "image/png", "image/webp"]),
 });
 
 export function buildDocumentPrompt(): string {
@@ -90,12 +83,12 @@ export function parseDocumentReading(text: string): DocumentReading | null {
       ? fromDecimal(Math.round(raw.valorMinimo * 100) / 100)
       : undefined;
 
-  const dueDate = raw.dataVencimento ? tryCalendarDate(raw.dataVencimento) ?? undefined : undefined;
+  const dueDate = raw.dataVencimento
+    ? (tryCalendarDate(raw.dataVencimento) ?? undefined)
+    : undefined;
 
   const issuer = raw.emissor?.trim() || undefined;
-  const description =
-    raw.descricao?.trim() ||
-    (issuer ? `Conta - ${issuer}` : "Conta importada");
+  const description = raw.descricao?.trim() || (issuer ? `Conta - ${issuer}` : "Conta importada");
 
   if (!totalAmount && !dueDate && !issuer) return null;
 

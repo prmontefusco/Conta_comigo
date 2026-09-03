@@ -46,12 +46,10 @@ export function FinancialInsightCard({
         </button>
       </div>
 
-      <p className="mt-2 text-xs text-[color:var(--page-fg)]">
-        {description}
-      </p>
+      <p className="mt-2 text-xs text-[color:var(--page-fg)]">{description}</p>
 
       {open && (
-        <div className="mt-3 space-y-3 border-t border-[color:var(--card-border)] pt-3 animate-in fade-in duration-200">
+        <div className="animate-in fade-in mt-3 space-y-3 border-t border-[color:var(--card-border)] pt-3 duration-200">
           <div>
             <h4 className="text-xs font-semibold text-[color:var(--page-fg)]">
               📌 Dicas de Ouro para sua Família:
@@ -59,7 +57,7 @@ export function FinancialInsightCard({
             <ul className="mt-1.5 space-y-1 text-xs" style={{ color: "var(--muted-fg)" }}>
               {tips.map((tip, idx) => (
                 <li key={idx} className="flex items-start gap-1.5">
-                  <span className="text-[color:var(--color-brand-600)] font-bold">•</span>
+                  <span className="font-bold text-[color:var(--color-brand-600)]">•</span>
                   <span>{tip}</span>
                 </li>
               ))}
@@ -67,7 +65,7 @@ export function FinancialInsightCard({
           </div>
 
           {helpTopic && (
-            <div className="rounded-lg bg-[color:var(--card-bg)] p-2.5 border border-[color:var(--card-border)]">
+            <div className="rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-2.5">
               <span className="text-xs font-semibold text-[color:var(--color-positive-600)] uppercase">
                 Como usar esta tela:
               </span>

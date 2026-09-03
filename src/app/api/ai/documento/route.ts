@@ -26,7 +26,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: "RATE_LIMITED",
-        message: "Você enviou muitos documentos seguidos. Aguarde alguns instantes e tente novamente.",
+        message:
+          "Você enviou muitos documentos seguidos. Aguarde alguns instantes e tente novamente.",
       },
       { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } },
     );
@@ -50,7 +51,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: "UNAVAILABLE",
-        message: "A leitura automática de contas não está disponível no momento. Você pode cadastrar manualmente.",
+        message:
+          "A leitura automática de contas não está disponível no momento. Você pode cadastrar manualmente.",
       },
       { status: 503 },
     );
@@ -65,7 +67,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: "UNREADABLE",
-          message: "Não foi possível extrair as informações deste documento. Tente outro arquivo ou digite os dados.",
+          message:
+            "Não foi possível extrair as informações deste documento. Tente outro arquivo ou digite os dados.",
         },
         { status: 422 },
       );
@@ -103,7 +106,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: "INTERNAL",
-        message: "Não foi possível ler o documento no momento. Tente novamente ou cadastre manualmente.",
+        message:
+          "Não foi possível ler o documento no momento. Tente novamente ou cadastre manualmente.",
       },
       { status: 500 },
     );

@@ -25,8 +25,7 @@ export function CurrentGoalHeroCard() {
   });
 
   // Identifica a próxima milestone não concluída
-  const nextMilestone =
-    timeline.milestones.find((m) => !m.isCompleted) ?? timeline.milestones[0];
+  const nextMilestone = timeline.milestones.find((m) => !m.isCompleted) ?? timeline.milestones[0];
 
   const hasDebts = timeline.totalDebtAmount.amount > 0;
   const isStarterFunded = timeline.starterReserve.isComplete;
@@ -64,9 +63,7 @@ export function CurrentGoalHeroCard() {
         </div>
       </div>
 
-      <p className="mt-3 text-sm text-[color:var(--page-fg)]">
-        {nextMilestone?.description}
-      </p>
+      <p className="mt-3 text-sm text-[color:var(--page-fg)]">{nextMilestone?.description}</p>
 
       {/* Barra de Progresso com Métricas */}
       <div className="mt-4 rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-4">
@@ -96,7 +93,7 @@ export function CurrentGoalHeroCard() {
                 </strong>{" "}
                 de {formatMoney(timeline.starterReserve.target)}
               </span>
-              <span className="text-[color:var(--color-brand-700)] font-semibold">
+              <span className="font-semibold text-[color:var(--color-brand-700)]">
                 Faltam {formatMoney(timeline.starterReserve.missing)} para ter seu primeiro colchão!
               </span>
             </>
@@ -108,7 +105,7 @@ export function CurrentGoalHeroCard() {
                   {formatMoney(timeline.totalDebtAmount)}
                 </strong>
               </span>
-              <span className="text-[color:var(--color-brand-700)] font-semibold">
+              <span className="font-semibold text-[color:var(--color-brand-700)]">
                 Previsão de liberdade financeira: {formatCalendarDate(timeline.debtFreeDate)} (em{" "}
                 {timeline.monthsToDebtFree} meses)
               </span>
@@ -118,7 +115,7 @@ export function CurrentGoalHeroCard() {
               <span style={{ color: "var(--muted-fg)" }}>
                 Reserva acumulada para tranquilidade da família.
               </span>
-              <span className="text-[color:var(--color-positive-fg)] font-semibold">
+              <span className="font-semibold text-[color:var(--color-positive-fg)]">
                 Previsão da reserva plena: {formatCalendarDate(timeline.emergencyFundDate)}
               </span>
             </>

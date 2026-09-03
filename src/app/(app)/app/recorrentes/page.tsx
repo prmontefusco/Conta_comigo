@@ -46,9 +46,7 @@ export default function RecurringPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Recorrências</h1>
-        {canWrite ? (
-          <Button onClick={() => setCreating(true)}>Nova regra recorrente</Button>
-        ) : null}
+        {canWrite ? <Button onClick={() => setCreating(true)}>Nova regra recorrente</Button> : null}
       </div>
 
       <FinancialInsightCard
