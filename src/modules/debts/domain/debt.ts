@@ -177,6 +177,105 @@ export function buildSchedule(debt: Debt): ScheduledInstallment[] {
   return schedule;
 }
 
+/* ------------------------------------------------------------------ */
+/* What the money actually costs                                       */
+/* ------------------------------------------------------------------ */
+
+export type RateSource =
+  /** The monthly rate written in the contract. */
+  | "CONTRACT"
+  /** Derived from the CET the contract states. */
+  | "CET"
+  /** Solved from principal, installment and term. Close, never exact. */
+  | "IMPLIED"
+  /** Nothing to go on. Reported as unknown, never guessed. */
+  | "UNKNOWN";
+
+export interface EffectiveRate {
+  /** Monthly percentage, e.g. 1.99. Zero when the source is UNKNOWN. */
+  readonly monthly: number;
+  readonly source: RateSource;
+}
+
+/**
+ * The monthly rate to use when comparing this debt with others.
+ *
+ * Four sources in order of authority, and the source travels with the number
+ * so a screen can say "taxa estimada" instead of presenting a solved rate as
+ * if the bank had stated it. What this deliberately does not do is invent an
+ * average when nothing is known: an ordering built on a made-up rate would
+ * send someone to attack the wrong debt first.
+ */
+export function effectiveMonthlyRate(debt: Debt): EffectiveRate {
+  if (debt.interestRateMonthly && debt.interestRateMonthly > 0) {
+    return { monthly: debt.interestRateMonthly, source: "CONTRACT" };
+  }
+
+  if (debt.cetAnnual && debt.cetAnnual > 0) {
+    return { monthly: monthlyFromAnnual(debt.cetAnnual), source: "CET" };
+  }
+
+  const implied = impliedMonthlyRate(
+    debt.principalContracted,
+    debt.installmentAmount,
+    debt.installmentCount,
+  );
+  if (implied !== null) return { monthly: implied, source: "IMPLIED" };
+
+  return { monthly: 0, source: "UNKNOWN" };
+}
+
+/** The monthly rate equivalent to an annual one, compounded. */
+export function monthlyFromAnnual(annualPercent: number): number {
+  return (Math.pow(1 + annualPercent / 100, 1 / 12) - 1) * 100;
+}
+
+/**
+ * The rate hidden in "48 x R$ 830,00".
+ *
+ * Most people know the installment and the term and have never been told the
+ * rate. Solving the Price equation for it turns that into a comparable number
+ * - which is the whole point of the Avalanche method, and impossible without
+ * it.
+ *
+ * Bisection rather than Newton: the function is monotonic in the range that
+ * matters, and bisection cannot diverge on a badly typed input. Returns null
+ * when the numbers cannot describe a loan at all (nothing paid in interest, or
+ * instalments that do not even cover the principal).
+ */
+export function impliedMonthlyRate(
+  principal: Money,
+  installment: Money | undefined,
+  months: number,
+): number | null {
+  if (!installment || months <= 0) return null;
+  if (principal.amount <= 0 || installment.amount <= 0) return null;
+
+  const total = installment.amount * months;
+  // Paying back no more than what was taken: no interest to find.
+  if (total <= principal.amount) return null;
+  // A single instalment is not a rate anyone can compare; it is a fee.
+  if (months === 1) return null;
+
+  const presentValue = (rate: number): number =>
+    installment.amount * ((1 - Math.pow(1 + rate, -months)) / rate);
+
+  let low = 0.000001; // 0.0001% a month
+  let high = 1; // 100% a month, well past any consumer contract
+
+  // No rate in range reproduces this instalment: refuse rather than clamp.
+  if (presentValue(high) > principal.amount) return null;
+
+  for (let step = 0; step < 80; step += 1) {
+    const middle = (low + high) / 2;
+    if (presentValue(middle) > principal.amount) low = middle;
+    else high = middle;
+  }
+
+  const rate = ((low + high) / 2) * 100;
+  return Number.isFinite(rate) && rate > 0.01 ? Number(rate.toFixed(4)) : null;
+}
+
 /** Tabela Price: the constant installment that amortises `principal` in `n` months. */
 export function priceInstallment(principal: Money, monthlyRate: number, months: number): Money {
   if (months <= 0) throw new Error("A debt must have at least one installment.");

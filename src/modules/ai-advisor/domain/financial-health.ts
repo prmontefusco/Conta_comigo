@@ -1,7 +1,7 @@
 import type { CalendarDate } from "@/core/date/calendar-date";
 import { type Money, subtract } from "@/core/money/money";
 import type { CreditCard, CardStatement } from "@/modules/cards/domain/credit-card";
-import type { Debt } from "@/modules/debts/domain/debt";
+import { outstandingPrincipal, type Debt } from "@/modules/debts/domain/debt";
 import type { ForecastResult } from "@/modules/forecast/domain/forecast-types";
 import { isOpen, remainingAmount, type Obligation } from "@/modules/obligations/domain/obligation";
 import type { RecurringRule } from "@/modules/recurring/domain/recurring-rule";
@@ -58,6 +58,8 @@ export interface EvaluateFinancialHealthInput {
   readonly obligations: readonly Obligation[];
   readonly recurringRules: readonly RecurringRule[];
   readonly reserves: readonly Reserve[];
+  /** Instalments already paid, per debt. Without it every debt looks untouched. */
+  readonly paidDebtInstallments?: ReadonlyMap<string, readonly number[]>;
 }
 
 /**
@@ -69,9 +71,21 @@ export function evaluateFinancialHealth(
 ): FinancialHealthReport {
   const currency = input.totalCash.currency;
 
-  // 1. Monthly income and committed expenses (from the forecast summary)
-  const monthlyInflows = input.forecast.summary.expectedInflows;
-  const monthlyOutflows = input.forecast.summary.committedOutflows;
+  // 1. Monthly income and committed expenses.
+  //
+  // Averaged over the whole months of the projection, never taken from
+  // `forecast.summary`: those totals cover the entire horizon, and reporting
+  // thirteen months of salary as "renda mensal" flatters every ratio below and
+  // reaches the person as advice.
+  const wholeMonths = input.forecast.months.filter((month) => !month.isPartial);
+  const monthlyInflows: Money = {
+    amount: averageOf(wholeMonths.map((month) => month.expectedInflows.amount)),
+    currency,
+  };
+  const monthlyOutflows: Money = {
+    amount: averageOf(wholeMonths.map((month) => month.committedOutflows.amount)),
+    currency,
+  };
   const monthlyNet = subtract(monthlyInflows, monthlyOutflows);
 
   // Fallback monthly base income from recurring rules if forecast has few events
@@ -95,10 +109,16 @@ export function evaluateFinancialHealth(
 
   // 3. Debt burden
   const activeDebts = input.debts.filter((d) => d.status !== "SETTLED");
-  const totalDebtPrincipal = activeDebts.reduce((acc, d) => acc + d.principalContracted.amount, 0);
+  // What is still owed, not what was contracted: a debt half repaid must not
+  // count twice over in the score that tells someone how they are doing.
+  const totalDebtPrincipal = activeDebts.reduce(
+    (acc, debt) =>
+      acc + outstandingPrincipal(debt, input.paidDebtInstallments?.get(debt.id) ?? []).amount,
+    0,
+  );
   const totalDebtOutstanding: Money = { amount: totalDebtPrincipal, currency };
 
-  const debtCommitmentAmount = input.forecast.summary.debtCommitment.amount;
+  const debtCommitmentAmount = averageOf(wholeMonths.map((month) => month.debtCommitment.amount));
   const debtCommitmentRatio =
     baseMonthlyIncomeAmount > 0
       ? Math.min(100, Math.round((debtCommitmentAmount / baseMonthlyIncomeAmount) * 100))
@@ -412,4 +432,10 @@ function formatMoneyRaw(money: Money): string {
   const reais = Math.floor(abs / 100);
   const centavos = abs % 100;
   return `${isNeg ? "- " : ""}R$ ${reais.toLocaleString("pt-BR")},${String(centavos).padStart(2, "0")}`;
+}
+
+/** Mean of a list of cent amounts, rounded. Zero for an empty list. */
+function averageOf(values: readonly number[]): number {
+  if (values.length === 0) return 0;
+  return Math.round(values.reduce((total, value) => total + value, 0) / values.length);
 }

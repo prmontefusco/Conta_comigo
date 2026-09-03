@@ -16,20 +16,23 @@ import { useSession } from "@/modules/household/ui/session-provider";
 
 const DESKTOP_NAV = [
   { href: "/app", label: "Início", icon: "🏠" },
+  { href: "/app/dia-a-dia", label: "Dia a dia", icon: "🧾" },
   { href: "/app/diagnostico-ia", label: "Diagnóstico IA", icon: "✨" },
   { href: "/app/visao-futuro", label: "Visão de Futuro", icon: "🚀" },
-  { href: "/app/contas", label: "Contas a Pagar", icon: "🧾" },
+  { href: "/app/contas", label: "Contas a Pagar", icon: "📄" },
   { href: "/app/cartoes", label: "Cartões", icon: "💳" },
   { href: "/app/dividas", label: "Dívidas & Empréstimos", icon: "🏛️" },
   { href: "/app/projecao", label: "Projeção & Fluxo", icon: "📈" },
   { href: "/app/mais", label: "Mais Opções", icon: "⋯" },
 ] as const;
 
+// The bottom bar holds what someone opens standing in a queue. Registering a
+// gasto is the most frequent of those; Diagnóstico is one tap further, in Mais.
 const MOBILE_NAV = [
   { href: "/app", label: "Início", icon: "🏠" },
-  { href: "/app/diagnostico-ia", label: "Diagnóstico", icon: "✨" },
+  { href: "/app/dia-a-dia", label: "Dia a dia", icon: "🧾" },
   { href: "/app/visao-futuro", label: "Futuro", icon: "🚀" },
-  { href: "/app/contas", label: "Contas", icon: "🧾" },
+  { href: "/app/contas", label: "Contas", icon: "📄" },
   { href: "/app/mais", label: "Mais", icon: "⋯" },
 ] as const;
 

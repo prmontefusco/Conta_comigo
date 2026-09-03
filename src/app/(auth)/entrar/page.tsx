@@ -11,6 +11,7 @@ import { Button, Card } from "@/components/ui/primitives";
 import { FormError, TextField } from "@/components/ui/form";
 import { getAuthClient } from "@/lib/firebase/client";
 import { authErrorMessage } from "@/modules/auth/ui/auth-errors";
+import { AuthDivider, GoogleSignInButton } from "@/modules/auth/ui/google-sign-in-button";
 import { useSession } from "@/modules/household/ui/session-provider";
 
 const schema = z.object({
@@ -70,7 +71,13 @@ export default function SignInPage() {
         Acesse suas contas, cartões e projeções.
       </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4" noValidate>
+      <div className="mt-6">
+        <GoogleSignInButton label="Entrar com o Google" />
+      </div>
+
+      <AuthDivider>ou entre com e-mail e senha</AuthDivider>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {formError ? <FormError>{formError}</FormError> : null}
 
         {resetSent ? (

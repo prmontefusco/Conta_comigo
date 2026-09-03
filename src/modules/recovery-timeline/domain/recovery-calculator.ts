@@ -1,11 +1,41 @@
-import { addMonths, monthKeyOf, type CalendarDate, type MonthKey } from "@/core/date/calendar-date";
-import { type Money, clampToZero, subtract, zero } from "@/core/money/money";
+import {
+  addMonths,
+  formatMonthKey,
+  monthKeyOf,
+  type CalendarDate,
+  type MonthKey,
+} from "@/core/date/calendar-date";
+import { type Money, clampToZero, money, subtract, zero } from "@/core/money/money";
 import type { CardStatement } from "@/modules/cards/domain/credit-card";
-import type { Debt } from "@/modules/debts/domain/debt";
+import {
+  effectiveMonthlyRate,
+  outstandingPrincipal,
+  upcomingInstallments,
+  type Debt,
+  type RateSource,
+} from "@/modules/debts/domain/debt";
 import type { ForecastResult } from "@/modules/forecast/domain/forecast-types";
 import type { Reserve } from "@/modules/reserves/domain/reserve";
+import {
+  monthsToStarterReserve,
+  starterReserveStatus,
+  type StarterReserveStatus,
+} from "@/modules/reserves/domain/starter-reserve";
 
 export type PayoffStrategy = "SNOWBALL" | "AVALANCHE";
+
+/** Where an item's rate came from. See `effectiveMonthlyRate`. */
+export type PayoffRateSource = RateSource | "MARKET_ESTIMATE";
+
+/**
+ * Estimated monthly cost of carrying an overdue card statement.
+ *
+ * The real rate is printed on a fatura this app never sees, and rotativo in
+ * Brazil sits around this figure. It is flagged as an estimate everywhere it
+ * shows up, because a household deciding what to attack first deserves to know
+ * which numbers came from their contracts and which came from an average.
+ */
+export const REVOLVING_MONTHLY_RATE_ESTIMATE = 14.5;
 
 export interface DebtItemForPayoff {
   readonly id: string;
@@ -14,6 +44,7 @@ export interface DebtItemForPayoff {
   readonly totalBalance: Money;
   readonly monthlyPayment: Money;
   readonly monthlyRate: number; // % monthly interest rate
+  readonly rateSource: PayoffRateSource;
   readonly remainingInstallments: number;
 }
 
@@ -24,7 +55,10 @@ export interface DebtPayoffPlan {
   readonly estimatedMonths: number;
   readonly targetDate: CalendarDate;
   readonly totalInterestPaid: Money;
+  /** How much less interest this plan pays than paying only the minimums. */
   readonly interestSavedVsMinimum: Money;
+  /** Items whose rate is a solved or market estimate, not a contract figure. */
+  readonly estimatedRateItems: number;
   readonly orderOfPayoff: readonly {
     readonly debtId: string;
     readonly name: string;
@@ -36,7 +70,8 @@ export interface DebtPayoffPlan {
 export interface Milestone {
   readonly id: string;
   readonly title: string;
-  readonly category: "CURRENT" | "DEBT_FREE" | "EMERGENCY_RESERVE" | "STABILITY";
+  readonly category:
+    "CURRENT" | "STARTER_RESERVE" | "DEBT_FREE" | "EMERGENCY_RESERVE" | "STABILITY";
   readonly targetDate: CalendarDate;
   readonly targetMonth: MonthKey;
   readonly monthsFromNow: number;
@@ -52,6 +87,14 @@ export interface RecoveryTimelineResult {
   readonly totalDebtAmount: Money;
   readonly monthsToDebtFree: number;
   readonly debtFreeDate: CalendarDate;
+  /**
+   * The first step: a small cushion, built *before* the debt is gone.
+   *
+   * Placed ahead of the payoff on purpose - a household with nothing put aside
+   * meets one emergency and goes straight back to the card.
+   */
+  readonly starterReserve: StarterReserveStatus;
+  readonly monthsToStarterReserve: number | null;
   readonly monthsToEmergencyFund: number;
   readonly emergencyFundDate: CalendarDate;
   readonly monthsToStability: number;
@@ -76,6 +119,13 @@ export interface CalculateRecoveryTimelineInput {
   readonly cardStatements: readonly CardStatement[];
   readonly reserves: readonly Reserve[];
   readonly extraMonthlyContribution?: Money;
+  /**
+   * Instalments already paid, per debt.
+   *
+   * Without it every plan starts from the contracted amount, which turns a
+   * debt half repaid into a debt untouched.
+   */
+  readonly paidDebtInstallments?: ReadonlyMap<string, readonly number[]>;
 }
 
 /**
@@ -90,9 +140,16 @@ export function calculateRecoveryTimeline(
   const currency = input.totalCash.currency;
   const asOf = input.asOf;
 
-  // Average monthly surplus from forecast
-  const monthlyInflows = input.forecast.summary.expectedInflows.amount;
-  const monthlyOutflows = input.forecast.summary.committedOutflows.amount;
+  // What a month actually leaves over.
+  //
+  // Deliberately *not* `forecast.summary`: those totals cover the whole
+  // horizon - thirteen months - so using them here multiplied the household's
+  // monthly capacity by thirteen and promised a payoff date that could never
+  // arrive. Partial months are skipped for the reason the forecast states:
+  // income already received is not in them, so their "deficit" is an artefact.
+  const wholeMonths = input.forecast.months.filter((month) => !month.isPartial);
+  const monthlyInflows = averageOf(wholeMonths.map((month) => month.expectedInflows.amount));
+  const monthlyOutflows = averageOf(wholeMonths.map((month) => month.committedOutflows.amount));
   const rawSurplus = Math.max(0, monthlyInflows - monthlyOutflows);
   const extraAmount = input.extraMonthlyContribution?.amount ?? 0;
   const totalMonthlySurplus = rawSurplus + extraAmount;
@@ -100,33 +157,56 @@ export function calculateRecoveryTimeline(
   // Build debt items list
   const debtItems: DebtItemForPayoff[] = [];
 
+  const paidByDebt = input.paidDebtInstallments ?? new Map<string, readonly number[]>();
+
   for (const debt of input.debts) {
     if (debt.status === "SETTLED") continue;
-    const rate = debt.interestRateMonthly ?? 2.5; // fallback average rate if unknown
-    const remaining = debt.principalContracted.amount;
-    const installments = Math.max(1, debt.installmentCount);
-    const installmentAmount = Math.round(remaining / installments);
+
+    // The same functions the debts screen uses, so the two never disagree
+    // about what is still owed or what the next instalment costs.
+    const paid = paidByDebt.get(debt.id) ?? [];
+    const balance = outstandingPrincipal(debt, paid);
+    if (balance.amount <= 0) continue;
+
+    const upcoming = upcomingInstallments(debt, asOf, paid);
+    const rate = effectiveMonthlyRate(debt);
+
+    // Everything overdue leaves `upcoming` empty; the contract instalment, or
+    // the balance spread over what is left, still describes the monthly bite.
+    const remainingCount = Math.max(1, debt.installmentCount - paid.length);
+    const monthlyPayment =
+      upcoming[0]?.total ??
+      debt.installmentAmount ??
+      money(Math.round(balance.amount / remainingCount), currency);
 
     debtItems.push({
       id: debt.id,
       name: debt.description,
       kind: "DEBT",
-      totalBalance: { amount: remaining, currency },
-      monthlyPayment: { amount: installmentAmount, currency },
-      monthlyRate: rate,
-      remainingInstallments: installments,
+      totalBalance: balance,
+      monthlyPayment,
+      monthlyRate: rate.monthly,
+      rateSource: rate.source,
+      remainingInstallments: Math.max(upcoming.length, remainingCount),
     });
   }
 
   for (const statement of input.cardStatements) {
     if (statement.remainingAmount.amount <= 0) continue;
+
+    // A fatura still to close is a scheduled payment and costs nothing extra.
+    // One already past due is being carried on rotativo, which is the most
+    // expensive money in the country - and an estimate, so it is labelled one.
+    const overdue = statement.dueDate < asOf;
+
     debtItems.push({
       id: statement.id,
-      name: `Fatura ${statement.referenceMonth}`,
+      name: `Fatura de ${formatMonthKey(statement.referenceMonth)}`,
       kind: "CARD",
       totalBalance: statement.remainingAmount,
       monthlyPayment: statement.remainingAmount,
-      monthlyRate: 14.5, // Brazilian revolving credit average ~14% a month
+      monthlyRate: overdue ? REVOLVING_MONTHLY_RATE_ESTIMATE : 0,
+      rateSource: overdue ? "MARKET_ESTIMATE" : "CONTRACT",
       remainingInstallments: 1,
     });
   }
@@ -181,6 +261,26 @@ export function calculateRecoveryTimeline(
       valueFormatted: `Saldo inicial: ${formatMoney(input.totalCash)}`,
     },
   ];
+
+  const starter = starterReserveStatus(input.reserves, { amount: monthlyOutflows, currency });
+  const starterMonths = monthsToStarterReserve(starter, {
+    amount: Math.max(totalMonthlySurplus, 0),
+    currency,
+  });
+
+  milestones.push({
+    id: "m0b",
+    title: "Reserva de partida (antes de quitar tudo)",
+    category: "STARTER_RESERVE",
+    targetDate: addMonths(asOf, starterMonths ?? 0),
+    targetMonth: monthKeyOf(addMonths(asOf, starterMonths ?? 0)),
+    monthsFromNow: starterMonths ?? 0,
+    isCompleted: starter.isComplete,
+    progressPercentage: Math.round(starter.ratio * 100),
+    description:
+      "Um colchão pequeno guardado antes da quitação total. É ele que impede um imprevisto de jogar a família de volta no cartão.",
+    valueFormatted: `${formatMoney(starter.current)} de ${formatMoney(starter.target)}`,
+  });
 
   if (totalDebtCents > 0) {
     milestones.push({
@@ -242,6 +342,8 @@ export function calculateRecoveryTimeline(
     totalDebtAmount,
     monthsToDebtFree,
     debtFreeDate,
+    starterReserve: starter,
+    monthsToStarterReserve: starterMonths,
     monthsToEmergencyFund,
     emergencyFundDate,
     monthsToStability,
@@ -259,6 +361,8 @@ function simulateStrategy(
   monthlySurplus: number,
   asOf: CalendarDate,
   currency: Money["currency"],
+  /** False on the inner run that measures "paying only the minimums". */
+  withBaseline = true,
 ): DebtPayoffPlan {
   if (items.length === 0) {
     return {
@@ -269,6 +373,7 @@ function simulateStrategy(
       targetDate: asOf,
       totalInterestPaid: zero(currency),
       interestSavedVsMinimum: zero(currency),
+      estimatedRateItems: 0,
       orderOfPayoff: [],
     };
   }
@@ -354,10 +459,19 @@ function simulateStrategy(
     estimatedMonths: months,
     targetDate,
     totalInterestPaid: { amount: totalInterest, currency },
-    interestSavedVsMinimum: {
-      amount: strategy === "AVALANCHE" ? Math.round(totalInterest * 0.2) : 0,
-      currency,
-    },
+    // Measured, not assumed: the same plan run with no extra money is what
+    // "paying only the minimums" costs, and the difference is the saving.
+    interestSavedVsMinimum: withBaseline
+      ? clampToZero(
+          subtract(simulateStrategy(items, strategy, 0, asOf, currency, false).totalInterestPaid, {
+            amount: totalInterest,
+            currency,
+          }),
+        )
+      : zero(currency),
+    estimatedRateItems: items.filter(
+      (item) => item.rateSource === "IMPLIED" || item.rateSource === "MARKET_ESTIMATE",
+    ).length,
     orderOfPayoff: payoffOrder,
   };
 }
@@ -370,8 +484,15 @@ function computeAccelerationSavings(
 ): { monthsReduced: number; interestSaved: Money } {
   if (items.length === 0) return { monthsReduced: 0, interestSaved: zero(currency) };
 
-  const baseline = simulateStrategy(items, "AVALANCHE", 0, asOf, currency);
-  const accelerated = simulateStrategy(items, "AVALANCHE", extraMonthlyCents, asOf, currency);
+  const baseline = simulateStrategy(items, "AVALANCHE", 0, asOf, currency, false);
+  const accelerated = simulateStrategy(
+    items,
+    "AVALANCHE",
+    extraMonthlyCents,
+    asOf,
+    currency,
+    false,
+  );
 
   const monthsReduced = Math.max(0, baseline.estimatedMonths - accelerated.estimatedMonths);
   const interestSaved = clampToZero(
@@ -379,6 +500,11 @@ function computeAccelerationSavings(
   );
 
   return { monthsReduced, interestSaved };
+}
+
+function averageOf(values: readonly number[]): number {
+  if (values.length === 0) return 0;
+  return Math.round(values.reduce((total, value) => total + value, 0) / values.length);
 }
 
 function formatMoney(money: Money): string {

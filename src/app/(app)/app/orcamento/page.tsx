@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/primitives";
 import { FormError, MoneyField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
-import { computeBudgetStatus, type Budget } from "@/modules/budget/domain/budget";
+import type { Budget } from "@/modules/budget/domain/budget";
+import { suggestBudgetLines, totalSuggested } from "@/modules/budget/domain/budget-suggestions";
 import { categoryName, buildCategoryIndex } from "@/modules/categories/domain/category";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
@@ -38,10 +39,9 @@ export default function BudgetPage() {
   const month = monthKeyOf(finance.asOf);
   const budget = finance.budgets.find((item) => item.month === month) ?? null;
 
-  const status = useMemo(
-    () => (budget ? computeBudgetStatus(budget, finance.transactions, finance.obligations) : null),
-    [budget, finance.transactions, finance.obligations],
-  );
+  // Computed once in the finance provider, so this screen, the alerts and the
+  // guidance can never disagree about whether a category is over its ceiling.
+  const status = finance.budgetStatus;
 
   const categoryIndex = buildCategoryIndex(finance.categories);
 
@@ -171,13 +171,27 @@ function BudgetDialog({
   month: string;
   budget: Budget | null;
 }) {
-  const { categories } = useFinance();
+  const finance = useFinance();
+  const { categories } = finance;
   const { household } = useSession();
   const collections = useCollections();
 
   const expenseCategories = categories.filter(
     (category) => category.kind === "EXPENSE" && !category.archived,
   );
+
+  // What the household actually spent in the months before this one. A ceiling
+  // guessed from nothing is the reason most budgets are abandoned in week two.
+  const suggestions = useMemo(
+    () =>
+      suggestBudgetLines({
+        transactions: finance.transactions,
+        cardPurchases: finance.cardPurchases,
+        month: month as never,
+      }),
+    [finance.transactions, finance.cardPurchases, month],
+  );
+  const suggestionByCategory = new Map(suggestions.map((line) => [line.categoryId, line]));
 
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -239,17 +253,57 @@ function BudgetDialog({
       <form onSubmit={onSubmit} className="space-y-3" noValidate>
         {error ? <FormError>{error}</FormError> : null}
 
-        {expenseCategories.map((category) => (
-          <MoneyField
-            key={category.id}
-            label={`${category.icon ?? ""} ${category.name}`.trim()}
-            value={values[category.id] ?? ""}
-            onChange={(event) =>
-              setValues((current) => ({ ...current, [category.id]: event.target.value }))
-            }
-            placeholder="0,00"
-          />
-        ))}
+        {suggestions.length > 0 ? (
+          <div className="rounded-xl border border-[color:var(--card-border)] p-3">
+            <p className="text-sm">
+              Nos três meses anteriores, os gastos somaram{" "}
+              <strong className="tabular">{formatMoney(totalSuggested(suggestions))}</strong> por
+              mês, em média.
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              className="mt-2"
+              onClick={() =>
+                setValues((current) => ({
+                  ...current,
+                  ...Object.fromEntries(
+                    suggestions.map((line) => [
+                      line.categoryId,
+                      (line.suggested.amount / 100).toFixed(2).replace(".", ","),
+                    ]),
+                  ),
+                }))
+              }
+            >
+              Preencher com o histórico
+            </Button>
+            <p className="mt-2 text-xs" style={{ color: "var(--muted-fg)" }}>
+              É um ponto de partida, não uma meta. Ajuste o que você pretende mudar.
+            </p>
+          </div>
+        ) : null}
+
+        {expenseCategories.map((category) => {
+          const suggestion = suggestionByCategory.get(category.id);
+
+          return (
+            <MoneyField
+              key={category.id}
+              label={`${category.icon ?? ""} ${category.name}`.trim()}
+              value={values[category.id] ?? ""}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, [category.id]: event.target.value }))
+              }
+              placeholder="0,00"
+              hint={
+                suggestion
+                  ? `Média ${formatMoney(suggestion.average)} · mês mais alto ${formatMoney(suggestion.highest)}`
+                  : undefined
+              }
+            />
+          );
+        })}
 
         <div className="flex gap-2 pt-2">
           <Button type="submit" className="flex-1" disabled={saving}>

@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { formatCalendarDate, nextOccurrenceLabel } from "@/modules/recurring/ui/labels";
+import {
+  formatCalendarDate,
+  frequencyLabel,
+  nextOccurrenceLabel,
+} from "@/modules/recurring/ui/labels";
 import {
   Badge,
   Button,
@@ -12,7 +16,6 @@ import {
   Spinner,
 } from "@/components/ui/primitives";
 import { NewObligationDialog } from "@/modules/obligations/ui/new-obligation-dialog";
-import { FREQUENCY_LABELS } from "@/modules/recurring/domain/recurring-rule";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
@@ -105,7 +108,7 @@ function RuleGroup({
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{rule.description}</p>
               <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
-                {FREQUENCY_LABELS[rule.frequency]}
+                {frequencyLabel(rule)}
                 {rule.dayOfMonth ? ` · dia ${rule.dayOfMonth}` : ""} ·{" "}
                 {nextOccurrenceLabel(rule, asOf)}
               </p>

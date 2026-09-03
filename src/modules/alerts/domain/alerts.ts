@@ -6,13 +6,16 @@ import {
   formatMonthKey,
 } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
-import type { Money } from "@/core/money/money";
+import { sum, type Money } from "@/core/money/money";
 import {
   computeLimitStatus,
   type CardStatement,
   type CreditCard,
 } from "@/modules/cards/domain/credit-card";
+import type { BudgetStatus } from "@/modules/budget/domain/budget";
 import type { DashboardOverview } from "@/modules/dashboard/domain/overview";
+import { buildSchedule, type Debt } from "@/modules/debts/domain/debt";
+import { classifyDebt, essentialServiceConsequence } from "@/modules/debts/domain/debt-risk";
 import type { ForecastResult } from "@/modules/forecast/domain/forecast-types";
 import { progressOf, type Reserve } from "@/modules/reserves/domain/reserve";
 
@@ -39,7 +42,13 @@ export type AlertKind =
   | "CARD_LIMIT_HIGH"
   | "RESERVE_BELOW_TARGET"
   | "INSTALLMENTS_ENDING"
-  | "LOW_UNCOMMITTED_CASH";
+  | "LOW_UNCOMMITTED_CASH"
+  /** A debt whose collateral - car, home, equipment - can be taken. */
+  | "COLLATERAL_AT_RISK"
+  /** An overdue bill whose non-payment removes something the household lives on. */
+  | "ESSENTIAL_SERVICE_AT_RISK"
+  /** A category has gone past the ceiling the household set for it. */
+  | "BUDGET_OVERSPENT";
 
 export interface Alert {
   readonly id: string;
@@ -60,6 +69,11 @@ export interface AlertInput {
   readonly cards: readonly CreditCard[];
   readonly cardStatements: readonly CardStatement[];
   readonly reserves: readonly Reserve[];
+  readonly debts?: readonly Debt[];
+  /** This month's budget standing, when there is a budget. */
+  readonly budgetStatus?: BudgetStatus | null;
+  /** Instalments already paid, per debt. Absent means none recorded. */
+  readonly paidDebtInstallments?: ReadonlyMap<string, readonly number[]>;
 }
 
 export function buildAlerts(input: AlertInput): Alert[] {
@@ -80,6 +94,60 @@ export function buildAlerts(input: AlertInput): Alert[] {
           : `Há ${count} contas vencidas, somando ${formatMoney(overview.today.payables.overdue)}.`,
       href: "/contas?filtro=vencidas",
       amount: overview.today.payables.overdue,
+    });
+  }
+
+  /* --- What a late payment actually costs --------------------------- */
+
+  // Ordered before "due soon" on purpose: an amount is not the only thing that
+  // makes a bill urgent. Losing the car that takes someone to work, or the
+  // electricity, outranks a larger bill with no such consequence.
+
+  const essential = overview.today.overdue
+    .map((obligation) => ({
+      obligation,
+      consequence: essentialServiceConsequence(obligation.categoryId),
+    }))
+    .filter((item): item is { obligation: (typeof item)["obligation"]; consequence: string } =>
+      Boolean(item.consequence),
+    );
+
+  if (essential.length > 0) {
+    const first = essential[0]!;
+    alerts.push({
+      id: "essential-service",
+      kind: "ESSENTIAL_SERVICE_AT_RISK",
+      severity: "URGENT",
+      message:
+        essential.length === 1
+          ? `${first.obligation.description} está em atraso: o risco aqui é ${first.consequence}.`
+          : `${essential.length} contas de serviço essencial estão em atraso, entre elas ${first.obligation.description} — risco de ${first.consequence}.`,
+      href: "/contas?filtro=vencidas",
+      date: first.obligation.dueDate,
+    });
+  }
+
+  for (const debt of input.debts ?? []) {
+    if (debt.status === "SETTLED") continue;
+    const risk = classifyDebt(debt);
+    if (risk.guarantee !== "COLLATERAL") continue;
+
+    const paidCount = (input.paidDebtInstallments?.get(debt.id) ?? []).length;
+    const dueByNow = buildSchedule(debt).filter((item) => item.dueDate <= input.asOf).length;
+    const late = dueByNow - paidCount;
+
+    // A debt marked in default is late whatever the payment records say.
+    if (late <= 0 && debt.status !== "IN_DEFAULT") continue;
+
+    alerts.push({
+      id: `collateral-${debt.id}`,
+      kind: "COLLATERAL_AT_RISK",
+      severity: "URGENT",
+      message:
+        late > 0
+          ? `${debt.description} está com ${late} ${late === 1 ? "parcela" : "parcelas"} em atraso. ${risk.consequence}`
+          : `${debt.description} está marcada como em atraso. ${risk.consequence}`,
+      href: "/dividas",
     });
   }
 
@@ -159,6 +227,32 @@ export function buildAlerts(input: AlertInput): Alert[] {
       message: `Pela projeção atual, o saldo livre fica negativo ${when}.`,
       href: "/projecao",
       date: projection.summary.firstNegativeDate,
+    });
+  }
+
+  /* --- Ceilings the household set for itself ------------------------ */
+
+  // Said while the month can still be changed, and phrased as information:
+  // a ceiling that turns out to be unrealistic is a number to revise, not a
+  // failure to announce.
+  const overspent = (input.budgetStatus?.lines ?? [])
+    .filter((line) => line.overspend.amount > 0)
+    .sort((a, b) => b.overspend.amount - a.overspend.amount);
+
+  if (overspent.length > 0) {
+    const worst = overspent[0]!;
+    alerts.push({
+      id: "budget-overspent",
+      kind: "BUDGET_OVERSPENT",
+      severity: "ATTENTION",
+      message:
+        overspent.length === 1
+          ? `Uma categoria passou do teto do mês em ${formatMoney(worst.overspend)}.`
+          : `${overspent.length} categorias passaram do teto do mês, somando ${formatMoney(
+              sum(overspent.map((line) => line.overspend)),
+            )}.`,
+      href: "/orcamento",
+      amount: worst.overspend,
     });
   }
 

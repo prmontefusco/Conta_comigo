@@ -6,6 +6,7 @@ import { allocate, fromDecimalString, type Money } from "@/core/money/money";
 import { Button } from "@/components/ui/primitives";
 import { DateField, FormError, MoneyField, SelectField, TextField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
+import { MemberField } from "@/modules/household/ui/member-field";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
@@ -48,6 +49,7 @@ export function NewObligationDialog({
   const [expenseNature, setExpenseNature] = useState("FIXED");
   const [confidence, setConfidence] = useState("CONFIRMED");
   const [visibility, setVisibility] = useState("HOUSEHOLD");
+  const [memberId, setMemberId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -59,6 +61,7 @@ export function NewObligationDialog({
     setDescription("");
     setAmountText("");
     setInstallments(2);
+    setMemberId("");
     setError(null);
   }
 
@@ -103,6 +106,7 @@ export function NewObligationDialog({
           expenseNature: expenseNature as never,
           confidence: confidence as never,
           visibility: visibility as never,
+          ...(memberId ? { responsibleMemberId: memberId } : {}),
           active: true,
         } as never);
       } else {
@@ -126,6 +130,7 @@ export function NewObligationDialog({
             confidence: confidence as never,
             visibility: visibility as never,
             status: "SCHEDULED",
+            ...(memberId ? { responsibleMemberId: memberId } : {}),
             settledAmount: { amount: 0, currency: "BRL" },
             settlementTransactionIds: [],
             ...(shape === "INSTALLMENTS"
@@ -280,8 +285,16 @@ export function NewObligationDialog({
           />
         </div>
 
+        <MemberField
+          label="Quem responde por ela"
+          hint="Serve para o grupo dividir o que é de cada um."
+          value={memberId}
+          onChange={setMemberId}
+          emptyLabel="Do grupo"
+        />
+
         <SelectField
-          label="De quem é"
+          label="Esta conta é"
           value={visibility}
           onChange={(event) => setVisibility(event.target.value)}
           options={[

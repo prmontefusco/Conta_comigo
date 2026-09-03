@@ -3,10 +3,12 @@ import { monthKey } from "@/core/date/calendar-date";
 import { sum } from "@/core/money/money";
 import { aCardPurchase, aCreditCard, brl, on } from "@/modules/shared/testing/builders";
 import {
+  billingSchedule,
   buildInstallments,
   closingDateFor,
   computeLimitStatus,
   dueDateFor,
+  openInstallmentPlans,
   projectStatements,
   splitStatements,
   statementId,
@@ -355,5 +357,122 @@ describe("splitStatements", () => {
     const { settled, overdue } = splitStatements(paid, TODAY);
     expect(settled.map((statement) => statement.referenceMonth)).toContain("2026-05");
     expect(overdue.map((statement) => statement.referenceMonth)).not.toContain("2026-05");
+  });
+});
+
+describe("open installment plans", () => {
+  const purchase = aCardPurchase({
+    id: "purchase-fridge",
+    totalAmount: brl(1200),
+    installmentCount: 6,
+    purchaseDate: on("2026-08-10"),
+  });
+
+  it("counts what was already billed apart from what is still coming", () => {
+    const [plan] = openInstallmentPlans([card], [purchase], TODAY);
+
+    // The August statement closed on the 25th; today is the 28th.
+    expect(plan!.chargedCount).toBe(1);
+    expect(plan!.remainingCount).toBe(5);
+    expect(plan!.remainingAmount).toEqual(brl(1000));
+  });
+
+  it("says when the last installment falls", () => {
+    const [plan] = openInstallmentPlans([card], [purchase], TODAY);
+
+    expect(plan!.firstMonth).toBe("2026-08");
+    expect(plan!.lastMonth).toBe("2027-01");
+    expect(plan!.next?.statementMonth).toBe("2026-09");
+  });
+
+  it("ignores a purchase that was not split", () => {
+    const single = aCardPurchase({ installmentCount: 1, purchaseDate: on("2026-08-10") });
+    expect(openInstallmentPlans([card], [single], TODAY)).toEqual([]);
+  });
+
+  it("drops a plan once every installment has been billed", () => {
+    const finished = aCardPurchase({
+      totalAmount: brl(600),
+      installmentCount: 3,
+      purchaseDate: on("2026-01-10"),
+    });
+    expect(openInstallmentPlans([card], [finished], TODAY)).toEqual([]);
+  });
+
+  it("orders by the month the commitment ends", () => {
+    const longer = aCardPurchase({
+      id: "purchase-sofa",
+      totalAmount: brl(2400),
+      installmentCount: 12,
+      purchaseDate: on("2026-08-10"),
+    });
+
+    const plans = openInstallmentPlans([card], [longer, purchase], TODAY);
+    expect(plans.map((plan) => plan.purchaseId)).toEqual(["purchase-fridge", "purchase-sofa"]);
+  });
+});
+
+describe("billing schedule", () => {
+  const other = aCreditCard({ id: "card-2", name: "Cartão da Maria", closingDay: 5, dueDay: 15 });
+
+  const statements = [
+    ...projectStatements(
+      card,
+      [
+        aCardPurchase({
+          totalAmount: brl(600),
+          installmentCount: 3,
+          purchaseDate: on("2026-09-10"),
+        }),
+      ],
+      [],
+      monthKey("2026-09"),
+      monthKey("2027-02"),
+      TODAY,
+    ),
+    ...projectStatements(
+      other,
+      [
+        aCardPurchase({
+          id: "purchase-2",
+          creditCardId: "card-2",
+          totalAmount: brl(300),
+          installmentCount: 1,
+          purchaseDate: on("2026-09-02"),
+        }),
+      ],
+      [],
+      monthKey("2026-09"),
+      monthKey("2027-02"),
+      TODAY,
+    ),
+  ];
+
+  it("sums every card in the same month", () => {
+    const schedule = billingSchedule([card, other], statements, monthKey("2026-09"), 6);
+    const september = schedule.find((month) => month.month === "2026-09");
+
+    expect(september!.total).toEqual(brl(500));
+    expect(september!.cards.map((line) => line.cardName)).toEqual([
+      "Cartão da Maria",
+      "Cartão principal",
+    ]);
+  });
+
+  it("keeps each card's own due date", () => {
+    const schedule = billingSchedule([card, other], statements, monthKey("2026-09"), 6);
+    const september = schedule.find((month) => month.month === "2026-09");
+
+    expect(september!.cards.map((line) => line.dueDate)).toEqual(["2026-09-15", "2026-10-05"]);
+  });
+
+  it("omits months with nothing to bill instead of showing a zero", () => {
+    const schedule = billingSchedule([card, other], statements, monthKey("2026-09"), 12);
+    expect(schedule.map((month) => month.month)).toEqual(["2026-09", "2026-10", "2026-11"]);
+  });
+
+  it("stops at the requested number of months", () => {
+    const schedule = billingSchedule([card, other], statements, monthKey("2026-09"), 2);
+    expect(schedule).toHaveLength(2);
   });
 });

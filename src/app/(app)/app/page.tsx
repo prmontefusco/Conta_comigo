@@ -10,6 +10,8 @@ import { TodayBlock } from "@/modules/dashboard/ui/today-block";
 import { MonthsTable } from "@/modules/forecast/ui/months-table";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { EducationPillsCard } from "@/modules/education/ui/pills-card";
+import { StarterReserveCard } from "@/modules/reserves/ui/starter-reserve-card";
 
 /**
  * The home screen.
@@ -53,20 +55,26 @@ export default function DashboardPage() {
       {/* 3. Alertas prioritários */}
       <AlertsList alerts={finance.alerts} />
 
-      {/* 4. Visão de Futuro e Linha do Tempo */}
+      {/* 4. O primeiro degrau: um colchão pequeno, antes da quitação */}
+      <StarterReserveCard />
+
+      {/* 5. Visão de Futuro e Linha do Tempo */}
       <FutureTimelineCard />
 
-      {/* 5. Fechamento do Mês Atual */}
+      {/* 6. Fechamento do Mês Atual */}
       <MonthBlock />
 
       {/* Between two informational blocks */}
       <AdSlot placement="dashboard-inline" hidden={isPremium} />
 
-      {/* 6. Próximos 30 dias */}
+      {/* 7. Próximos 30 dias */}
       <Next30DaysBlock />
 
-      {/* 7. Projeção Mês a Mês */}
+      {/* 8. Projeção Mês a Mês */}
       <MonthsTable months={finance.forecast.months} limit={12} />
+
+      {/* 9. Uma explicação curta sobre o que está acontecendo agora */}
+      <EducationPillsCard />
     </div>
   );
 }

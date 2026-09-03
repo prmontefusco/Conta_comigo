@@ -21,6 +21,7 @@ import {
   type AccountType,
 } from "@/modules/accounts/domain/account";
 import { useFinance } from "@/modules/household/ui/finance-provider";
+import { MemberField } from "@/modules/household/ui/member-field";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 
@@ -134,6 +135,7 @@ function NewAccountDialog({ open, onClose }: { open: boolean; onClose: () => voi
   const [balanceDate, setBalanceDate] = useState<string>(asOf);
   const [overdraftText, setOverdraftText] = useState("");
   const [visibility, setVisibility] = useState("HOUSEHOLD");
+  const [ownerMemberId, setOwnerMemberId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -163,6 +165,7 @@ function NewAccountDialog({ open, onClose }: { open: boolean; onClose: () => voi
         openingBalanceDate: balanceDate as never,
         overdraftLimit: overdraftText ? (fromDecimalString(overdraftText) ?? undefined) : undefined,
         visibility: visibility as never,
+        ...(ownerMemberId ? { ownerMemberId } : {}),
         includeInTotals: true,
         archived: false,
       } as never);
@@ -235,8 +238,16 @@ function NewAccountDialog({ open, onClose }: { open: boolean; onClose: () => voi
           hint="Opcional. É crédito, não saldo: fica sempre separado do seu dinheiro."
         />
 
+        <MemberField
+          label="Titular"
+          hint="De quem é esta conta. Deixe no grupo se for conjunta."
+          value={ownerMemberId}
+          onChange={setOwnerMemberId}
+          emptyLabel="Do grupo (conjunta)"
+        />
+
         <SelectField
-          label="De quem é"
+          label="Esta conta é"
           value={visibility}
           onChange={(event) => setVisibility(event.target.value)}
           options={[

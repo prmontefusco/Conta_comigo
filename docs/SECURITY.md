@@ -113,6 +113,25 @@ As regras verificam o que é barato e crítico:
 Validação completa fica nos schemas Zod. As regras cobrem o que precisa valer
 mesmo se o cliente for adversário.
 
+## Entrada com o Google
+
+O provedor Google fica ao lado de e-mail e senha. Duas coisas que o Firebase
+Auth não faz sozinho acontecem logo depois do login
+(`modules/auth/application/google-sign-in.ts`): o perfil em `users/{uid}` é
+criado se não existir, e um household é criado se a pessoa ainda não pertencer
+a nenhum — sem isso ela entraria num aplicativo sem lugar para guardar número
+algum. Ambos são idempotentes, porque uma primeira tentativa interrompida não
+pode deixar uma conta que autentica e nada mais.
+
+Quando o pop-up é bloqueado — navegador embutido, perfil corporativo, bloqueio
+de pop-up — o fluxo cai para `signInWithRedirect` em vez de virar um beco sem
+saída. O botão trata as duas pernas.
+
+Para funcionar em produção é preciso habilitar o provedor Google no console do
+Firebase e listar o domínio em _Authorized domains_. Sem isso o erro chega
+traduzido (`auth/operation-not-allowed`, `auth/unauthorized-domain`), não como
+falha genérica.
+
 ## Enumeração de contas
 
 `users/{uid}` não pode ser listada por ninguém, incluindo o próprio usuário.

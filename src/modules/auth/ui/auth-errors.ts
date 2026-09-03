@@ -30,6 +30,16 @@ export function authErrorMessage(error: unknown): string {
       return "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.";
     case "auth/network-request-failed":
       return "Sem conexão com o servidor. Verifique sua internet e tente de novo.";
+    case "auth/account-exists-with-different-credential":
+      return "Já existe uma conta com esse e-mail. Entre com e-mail e senha e, depois, ligue o Google nas configurações da sua conta Google.";
+    case "auth/missing-email":
+      return "Sua conta do Google não informou um e-mail. Crie a conta com e-mail e senha.";
+    case "auth/popup-blocked":
+      return "Seu navegador bloqueou a janela do Google. Libere os pop-ups para este site e tente de novo.";
+    case "auth/unauthorized-domain":
+      return "Este endereço ainda não está liberado para entrar com o Google.";
+    case "auth/operation-not-allowed":
+      return "A entrada com o Google não está habilitada no momento. Use e-mail e senha.";
     case "auth/requires-recent-login":
       return "Por segurança, entre novamente antes de continuar.";
     default:

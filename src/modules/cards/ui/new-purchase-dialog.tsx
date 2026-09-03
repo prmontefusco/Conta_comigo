@@ -13,6 +13,7 @@ import { Button, Callout } from "@/components/ui/primitives";
 import { DateField, FormError, MoneyField, SelectField, TextField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
 import { dueDateFor, statementMonthForPurchase } from "@/modules/cards/domain/credit-card";
+import { MemberField } from "@/modules/household/ui/member-field";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
@@ -44,6 +45,7 @@ export function NewPurchaseDialog({
   const [installments, setInstallments] = useState("1");
   const [categoryId, setCategoryId] = useState("");
   const [visibility, setVisibility] = useState("HOUSEHOLD");
+  const [memberId, setMemberId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -57,6 +59,7 @@ export function NewPurchaseDialog({
     setPurchaseDate(asOf);
     setInstallments("1");
     setCategoryId(defaultCategoryId);
+    setMemberId("");
     setError(null);
   }, [cardId, asOf, defaultCategoryId]);
 
@@ -110,6 +113,7 @@ export function NewPurchaseDialog({
         categoryId,
         installmentCount: parts,
         visibility: visibility as never,
+        ...(memberId ? { responsibleMemberId: memberId } : {}),
       } as never);
       onClose();
     } catch (saveError) {
@@ -176,8 +180,16 @@ export function NewPurchaseDialog({
           }))}
         />
 
+        <MemberField
+          label="Quem comprou"
+          hint="Serve para o grupo ver quanto cada pessoa gastou."
+          value={memberId}
+          onChange={setMemberId}
+          emptyLabel="Do grupo (ninguém em especial)"
+        />
+
         <SelectField
-          label="De quem é"
+          label="Esta compra é"
           value={visibility}
           onChange={(event) => setVisibility(event.target.value)}
           options={[

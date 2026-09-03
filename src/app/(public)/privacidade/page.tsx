@@ -33,6 +33,7 @@ export default function Page() {
         <Bullets
           items={[
             "Cadastro: nome, e-mail e senha (a senha é guardada apenas na forma criptografada pelo Firebase Authentication e nunca é visível para nós).",
+            "Entrada com o Google (opcional): recebemos do Google apenas seu nome e seu e-mail, para identificar sua conta. Não temos acesso à sua senha do Google nem a nada mais da sua conta lá.",
             "Grupo familiar: nome do grupo, membros e papéis.",
             "Informações financeiras: contas e saldos, receitas, despesas, cartões, compras, faturas, dívidas, reservas, metas e orçamentos.",
           ]}
@@ -98,6 +99,29 @@ export default function Page() {
           ]}
         />
         <p>Não vendemos, alugamos nem cedemos dados pessoais a terceiros.</p>
+      </Section>
+
+      <Section heading="Recursos com inteligência artificial">
+        <p>
+          Dois recursos do aplicativo usam um modelo de inteligência artificial do Google (Gemini),
+          e ambos só funcionam quando você os aciona:
+        </p>
+        <Bullets
+          items={[
+            "Diagnóstico e consultoria: enviamos um resumo dos seus números — saldo, renda, despesas, dívidas e a pergunta que você escreveu. Não enviamos seu nome, seu e-mail, nomes de contas nem lançamentos individuais.",
+            "Leitura de comprovante por foto: a imagem que você fotografa é enviada para ser lida e devolvida como sugestão de preenchimento.",
+          ]}
+        />
+        <p>
+          <strong>A foto do comprovante não é armazenada.</strong> Ela existe durante a leitura e é
+          descartada junto com a requisição: não há upload, não há arquivo guardado e não há nada a
+          excluir depois. O que fica salvo é apenas o lançamento que você confirmar, exatamente como
+          se tivesse digitado.
+        </p>
+        <p>
+          O resultado é uma sugestão, não um lançamento automático: nada é gravado sem você conferir
+          e confirmar.
+        </p>
       </Section>
 
       <Section heading="Onde seus dados ficam">

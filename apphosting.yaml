@@ -113,12 +113,16 @@ env:
     value: "5000" # R$ 50,00 por ano (equivale a R$ 4,17/mês)
     availability: [RUNTIME]
 
-  # ── Consultoria com IA ─────────────────────────────────────────────────────
+  # ── Consultoria com IA e leitura de comprovante ─────────────────────────────
   # RUNTIME apenas. Uma chave de modelo em BUILD acabaria no bundle servido ao
   # navegador, e quem a tivesse gastaria a cota em seu nome.
   #
   # Ausente → a consultoria responde pelo motor determinístico local, sem custo
   # por token. É degradação silenciosa e intencional: o produto continua de pé.
+  #
+  # A mesma chave habilita a leitura de comprovante por foto. Essa não tem
+  # motor local: sem a chave, a tela responde que a leitura está indisponível e
+  # a pessoa digita os dados, como sempre pôde.
   #
   # Crie o segredo antes de descomentar:
   #   npx firebase apphosting:secrets:set GEMINI_API_KEY

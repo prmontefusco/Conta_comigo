@@ -5,6 +5,7 @@ import { fromDecimalString } from "@/core/money/money";
 import { Button } from "@/components/ui/primitives";
 import { FormError, MoneyField, SelectField, TextField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
+import { MemberField } from "@/modules/household/ui/member-field";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 
@@ -18,6 +19,7 @@ export function NewCardDialog({ open, onClose }: { open: boolean; onClose: () =>
   const [closingDay, setClosingDay] = useState("25");
   const [dueDay, setDueDay] = useState("5");
   const [visibility, setVisibility] = useState("HOUSEHOLD");
+  const [holderMemberId, setHolderMemberId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -57,6 +59,7 @@ export function NewCardDialog({ open, onClose }: { open: boolean; onClose: () =>
         closingDay: closing,
         dueDay: due,
         visibility: visibility as never,
+        ...(holderMemberId ? { holderMemberId } : {}),
         archived: false,
       } as never);
       setName("");
@@ -126,8 +129,16 @@ export function NewCardDialog({ open, onClose }: { open: boolean; onClose: () =>
           />
         </div>
 
+        <MemberField
+          label="Titular"
+          hint="Quem responde por este cartão. Serve para o grupo ver os cartões de cada um."
+          value={holderMemberId}
+          onChange={setHolderMemberId}
+          emptyLabel="Do grupo"
+        />
+
         <SelectField
-          label="De quem é"
+          label="Este cartão é"
           value={visibility}
           onChange={(event) => setVisibility(event.target.value)}
           options={[

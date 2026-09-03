@@ -13,7 +13,11 @@ import {
 import { getDb } from "@/lib/firebase/client";
 import type { Account } from "@/modules/accounts/domain/account";
 import { buildAlerts, type Alert } from "@/modules/alerts/domain/alerts";
-import type { Budget } from "@/modules/budget/domain/budget";
+import {
+  computeBudgetStatus,
+  type Budget,
+  type BudgetStatus,
+} from "@/modules/budget/domain/budget";
 import {
   projectStatements,
   type CardPurchase,
@@ -76,10 +80,25 @@ export interface FinanceData {
   readonly cardPurchases: readonly CardPurchase[];
   readonly cardStatements: readonly CardStatement[];
   readonly debts: readonly Debt[];
+  /**
+   * Which instalments of each debt are already paid.
+   *
+   * Derived from the recorded payments, and needed wherever a debt's real
+   * balance is shown: a screen that omits it reports the contracted amount
+   * for ever, as if nothing had been paid.
+   */
+  readonly paidDebtInstallments: ReadonlyMap<string, readonly number[]>;
   readonly recurringRules: readonly RecurringRule[];
   readonly reserves: readonly Reserve[];
   readonly goals: readonly Goal[];
   readonly budgets: readonly Budget[];
+  /**
+   * This month's budget standing, when there is a budget for it.
+   *
+   * Computed once here so the budget screen, the alerts and the guidance can
+   * never disagree about whether a category is over its ceiling.
+   */
+  readonly budgetStatus: BudgetStatus | null;
 
   readonly totalCash: ReturnType<typeof totalCash>;
   readonly protectedReserve: ReturnType<typeof protectedTotal>;
@@ -281,6 +300,13 @@ export function deriveFinanceData(
     forecast: projection,
   });
 
+  /* --- Budget ---------------------------------------------------------- */
+
+  const currentBudget = state.budgets.find((budget) => budget.month === monthKeyOf(asOf)) ?? null;
+  const budgetStatus = currentBudget
+    ? computeBudgetStatus(currentBudget, state.transactions, state.obligations)
+    : null;
+
   const alerts = buildAlerts({
     asOf,
     overview,
@@ -288,6 +314,9 @@ export function deriveFinanceData(
     cards: state.creditCards,
     cardStatements,
     reserves: state.reserves,
+    debts: state.debts,
+    paidDebtInstallments,
+    budgetStatus,
   });
 
   return {
@@ -302,10 +331,12 @@ export function deriveFinanceData(
     cardPurchases: state.cardPurchases,
     cardStatements,
     debts: state.debts,
+    paidDebtInstallments,
     recurringRules: state.recurringRules,
     reserves: state.reserves,
     goals: state.goals,
     budgets: state.budgets,
+    budgetStatus,
     totalCash: cash,
     protectedReserve: reserved,
     forecast: projection,
