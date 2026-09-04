@@ -2,23 +2,19 @@
 
 import { AdSlot } from "@/components/ads/ad-slot";
 import { Callout, Spinner } from "@/components/ui/primitives";
-import { HealthScoreCard } from "@/modules/ai-advisor/ui/health-score-card";
-import { FutureTimelineCard } from "@/modules/recovery-timeline/ui/future-timeline-card";
-import { AlertsList } from "@/modules/alerts/ui/alerts-list";
-import { MonthBlock, Next30DaysBlock } from "@/modules/dashboard/ui/month-block";
-import { TodayBlock } from "@/modules/dashboard/ui/today-block";
-import { MonthsTable } from "@/modules/forecast/ui/months-table";
+import { DashboardTabs } from "@/modules/dashboard/ui/dashboard-tabs";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
-import { EducationPillsCard } from "@/modules/education/ui/pills-card";
-import { StarterReserveCard } from "@/modules/reserves/ui/starter-reserve-card";
 
 /**
  * The home screen.
  *
- * Ordered by the questions people actually arrive with: what do I have now,
- * what is my financial health diagnosis, what does this month look like,
- * when will I get out of debt / reach stability, and what is coming next.
+ * Organized into clear financial pillars:
+ * - Visão Geral: Hero goal, Health Score, Today & 30-day forecast.
+ * - Entradas: Income streams and received vs pending inflows.
+ * - Despesas: Fixed bills, credit cards, variable spending.
+ * - Reservas: Starter cushion and full emergency reserve.
+ * - Dívidas: Liabilities and payoff strategy.
  */
 export default function DashboardPage() {
   const finance = useFinance();
@@ -46,35 +42,11 @@ export default function DashboardPage() {
         </Callout>
       ) : null}
 
-      {/* 1. Diagnóstico Inteligente & Score de Saúde */}
-      <HealthScoreCard />
+      {/* Dashboard Segmentado em Pilares */}
+      <DashboardTabs />
 
-      {/* 2. Hoje: Saldos e Contas Vencendo */}
-      <TodayBlock />
-
-      {/* 3. Alertas prioritários */}
-      <AlertsList alerts={finance.alerts} />
-
-      {/* 4. O primeiro degrau: um colchão pequeno, antes da quitação */}
-      <StarterReserveCard />
-
-      {/* 5. Visão de Futuro e Linha do Tempo */}
-      <FutureTimelineCard />
-
-      {/* 6. Fechamento do Mês Atual */}
-      <MonthBlock />
-
-      {/* Between two informational blocks */}
+      {/* Anúncio discreto para contas gratuitas */}
       <AdSlot placement="dashboard-inline" hidden={isPremium} />
-
-      {/* 7. Próximos 30 dias */}
-      <Next30DaysBlock />
-
-      {/* 8. Projeção Mês a Mês */}
-      <MonthsTable months={finance.forecast.months} limit={12} />
-
-      {/* 9. Uma explicação curta sobre o que está acontecendo agora */}
-      <EducationPillsCard />
     </div>
   );
 }

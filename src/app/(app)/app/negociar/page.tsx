@@ -14,6 +14,7 @@ import {
   type ProposalVerdict,
 } from "@/modules/negotiation/domain/affordable-proposal";
 import { NEGOTIATION_SCRIPTS, type ScriptParams } from "@/modules/negotiation/domain/scripts";
+import { FeiraoCalculatorCard } from "@/modules/negotiation/ui/feirao-calculator-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 
@@ -278,6 +279,12 @@ export default function NegotiatePage() {
           </p>
         )}
       </Card>
+
+      <FeiraoCalculatorCard
+        capacity={capacity}
+        availableCash={finance.totalCash}
+        minimumReserveCushion={finance.protectedReserve}
+      />
 
       <Card>
         <CardTitle hint="Leia em voz alta. Não precisa improvisar.">

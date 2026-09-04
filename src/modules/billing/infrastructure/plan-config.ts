@@ -16,8 +16,8 @@ import { isPaymentConfigured } from "@/modules/billing/infrastructure/asaas-gate
  * cliente exibiria um valor diferente do que seria cobrado.
  *
  * Definir em apphosting.yaml, em centavos inteiros:
- *   SUBSCRIPTION_PRICE_MONTHLY_CENTS: "500"    → R$ 5,00
- *   SUBSCRIPTION_PRICE_YEARLY_CENTS:  "5000"   → R$ 50,00
+ *   SUBSCRIPTION_PRICE_MONTHLY_CENTS: "799"    → R$ 7,99
+ *   SUBSCRIPTION_PRICE_YEARLY_CENTS:  "6999"   → R$ 69,99
  *
  * Decisão registrada na ADR 0010 (docs/adr/0010-price-as-configuration.md).
  */

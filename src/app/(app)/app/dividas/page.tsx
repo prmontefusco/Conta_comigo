@@ -37,6 +37,7 @@ import { useFinance } from "@/modules/household/ui/finance-provider";
 import { MemberField } from "@/modules/household/ui/member-field";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
+import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
 
 /**
  * Loans and financings.
@@ -69,6 +70,18 @@ export default function DebtsPage() {
           {canWrite ? <Button onClick={() => setCreating(true)}>Nova dívida</Button> : null}
         </div>
       </div>
+
+      <FinancialInsightCard
+        tag="Estratégia de Quitação"
+        title="Dívida com Garantia Vem Sempre Antes"
+        description="Financiamento de veículo ou de imóvel tem o próprio bem como garantia: atrasar coloca o patrimônio da família em risco judicial imediato, enquanto empréstimos sem garantia não podem tomar sua casa."
+        tips={[
+          "Proteja os bens da família primeiro: financiou carro ou moto para trabalhar? Essa parcela tem prioridade sobre cartão de crédito e empréstimo pessoal.",
+          "Método Avalanche (Mais Barato): pague o mínimo em todas e foque todo o dinheiro extra na dívida com maior taxa de juros (geralmente rotativo ou cheque especial).",
+          "Método Bola de Neve (Mais Motivador): se estiver desanimado, quite primeiro a dívida de menor valor para eliminar um boleto da sua frente rápido e ganhar alívio.",
+        ]}
+        helpTopic="Cadastre seus contratos, taxa de juros e parcelas. O sistema calcula a taxa real e orienta qual contrato quitar primeiro na aba 'Visão de Futuro'."
+      />
 
       <Card>
         <CardTitle hint="Cartões aparecem na aba Cartões e não estão somados aqui.">

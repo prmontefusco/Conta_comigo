@@ -16,6 +16,7 @@ import {
   Spinner,
 } from "@/components/ui/primitives";
 import { NewObligationDialog } from "@/modules/obligations/ui/new-obligation-dialog";
+import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
@@ -44,9 +45,21 @@ export default function RecurringPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Contas que se repetem</h1>
-        {canWrite ? <Button onClick={() => setCreating(true)}>Nova recorrência</Button> : null}
+        <h1 className="text-xl font-semibold">Recorrências</h1>
+        {canWrite ? <Button onClick={() => setCreating(true)}>Nova regra recorrente</Button> : null}
       </div>
+
+      <FinancialInsightCard
+        tag="Renda e Previsibilidade"
+        title="Como Lidar com Renda Variável, Comissões e Bicos"
+        description="Se a renda da sua casa varia de mês para mês, calibrar o orçamento é a chave para não se endividar nos meses mais fracos."
+        tips={[
+          "Calibre suas despesas essenciais pelo seu mês mais baixo: viva com o valor mínimo seguro para nunca depender de comissões incertas para pagar água e luz.",
+          "Nos meses de renda alta: use o dinheiro extra para acelerar a quitação de dívidas ou engordar a Reserva de Respiro.",
+          "Cadastre salários com dia certo: informe o dia habitual em que o dinheiro cai na conta para a projeção futura calcular os saldos com precisão.",
+        ]}
+        helpTopic="Adicione salários de cada membro da família como 'Receita Recorrente' e contas mensais fixas como 'Despesa Recorrente'. O sistema projeta os próximos 12 meses automaticamente."
+      />
 
       {finance.recurringRules.length === 0 ? (
         <Card>

@@ -23,6 +23,8 @@ import {
 } from "@/modules/obligations/domain/obligation";
 import { NewObligationDialog } from "@/modules/obligations/ui/new-obligation-dialog";
 import { SettleObligationDialog } from "@/modules/obligations/ui/settle-obligation-dialog";
+import { DocumentImportButton } from "@/modules/receipts/ui/document-import-button";
+import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
 
 type Filter = "OPEN" | "OVERDUE" | "THIS_MONTH" | "SETTLED";
 type Direction = "OUTFLOW" | "INFLOW";
@@ -61,8 +63,25 @@ export default function ObligationsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Contas</h1>
-        {canWrite ? <Button onClick={() => setCreating(true)}>Nova conta</Button> : null}
+        {canWrite ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <DocumentImportButton />
+            <Button onClick={() => setCreating(true)}>Nova conta</Button>
+          </div>
+        ) : null}
       </div>
+
+      <FinancialInsightCard
+        tag="Contas Essenciais & Sobrevivência"
+        title="Prioridade Absoluta: Água, Luz e Moradia"
+        description="Contas de serviços essenciais nunca devem ser deixadas para depois de dívidas bancárias comuns. Se o dinheiro faltar no mês, proteja sempre o teto e os serviços básicos da sua família."
+        tips={[
+          "Ligue para a concessionária antes do corte: negociar antes do corte evita taxas de religação e permite parcelamento do saldo atrasado.",
+          "Verifique se você tem direito à Tarifa Social de Energia Elétrica (descontos de até 65% na conta de luz para famílias inscritas no CadÚnico).",
+          "Boletos pagos em atraso acumulam 2% de multa + juros diários. Pague no vencimento sempre que possível.",
+        ]}
+        helpTopic="Use o botão 'Importar Conta / Fatura' para ler o PDF ou foto do boleto pela câmera sem digitar nada, ou clique em 'Nova conta' para lançar manualmente."
+      />
 
       <div role="tablist" aria-label="Tipo" className="flex gap-2">
         {(["OUTFLOW", "INFLOW"] as const).map((value) => (

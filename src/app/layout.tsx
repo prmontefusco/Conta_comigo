@@ -54,8 +54,18 @@ export const metadata: Metadata = {
     title: "Conta comigo — planejamento financeiro pessoal e familiar",
     description: "Quanto tenho, quanto já comprometi e para onde minhas finanças estão indo.",
   },
-  // Alinhada ao robots.txt de propósito: barrar num lugar e convidar no outro
-  // é o tipo de contradição que só aparece depois de indexado.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Conta comigo",
+  },
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.ico", sizes: "32x32" },
+    ],
+    apple: [{ url: "/apple-icon.png", type: "image/png" }],
+  },
   robots: { index: isIndexable(), follow: isIndexable() },
 };
 
@@ -63,10 +73,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f8f9" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1d21" },
-  ],
+  themeColor: "#f8fafc",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

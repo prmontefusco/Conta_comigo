@@ -43,7 +43,7 @@ export function Card({
     <Tag
       {...aria}
       className={cn(
-        "rounded-[var(--radius-card)] border p-4 sm:p-5",
+        "glass-panel rounded-[var(--radius-card)] border p-4 sm:p-5",
         "border-[color:var(--card-border)] bg-[color:var(--card-bg)]",
         className,
       )}
