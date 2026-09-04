@@ -13,4 +13,7 @@ Write-Host "-> Aplicativo:    http://localhost:3000" -ForegroundColor White
 Write-Host "-> Painel Emula:  http://127.0.0.1:4000`n" -ForegroundColor DarkGray
 Write-Host "Dica: Para encerrar tudo de uma vez, pressione Ctrl+C`n" -ForegroundColor Gray
 
+Write-Host "[0/3] Liberando portas ocupadas (3000, 8080, 9099)..." -ForegroundColor DarkYellow
+node scripts/kill-emulators.mjs 2>$null
+
 npm run dev:all

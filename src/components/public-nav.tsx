@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -81,9 +82,16 @@ export function PublicHeader() {
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:py-3.5">
         {/* Brand */}
         <Link href="/" className="group flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-[color:var(--color-brand-100)] text-base text-[color:var(--color-brand-700)] shadow-2xs transition-transform group-hover:scale-105">
-            🌱
-          </span>
+          <div className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-xs transition-transform group-hover:scale-105">
+            <Image
+              src="/logo.png"
+              alt="Logo Conta comigo"
+              width={36}
+              height={36}
+              className="size-full object-cover"
+              priority
+            />
+          </div>
           <div className="flex flex-col">
             <span className="text-base font-semibold tracking-tight text-[color:var(--color-ink-900)]">
               Conta comigo
@@ -167,6 +175,13 @@ export function PublicHeader() {
             )}
           </div>
 
+          <Link
+            href="/planos"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-[color:var(--color-ink-700)] transition-colors hover:bg-slate-100/80 hover:text-[color:var(--color-ink-900)]"
+          >
+            Planos
+          </Link>
+
           <div className="mx-2 h-4 w-px bg-slate-200" aria-hidden="true" />
 
           <Link
@@ -224,6 +239,13 @@ export function PublicHeader() {
               🚀 Como funciona
             </Link>
 
+            <Link
+              href="/planos"
+              className="rounded-lg bg-teal-50/60 px-3 py-2 text-base font-medium text-teal-800 hover:bg-teal-50"
+            >
+              💎 Planos (30 dias grátis)
+            </Link>
+
             <div className="mt-2 border-t border-slate-100 pt-2">
               <p className="px-3 py-1 text-xs font-semibold tracking-wider text-slate-400 uppercase">
                 Guias & Conteúdos
@@ -271,9 +293,15 @@ export function PublicFooter() {
           {/* Coluna 1: Missão & Propósito */}
           <div className="space-y-3 sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-teal-100 text-sm text-teal-800">
-                🌱
-              </span>
+              <div className="relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-lg shadow-2xs">
+                <Image
+                  src="/logo.png"
+                  alt="Conta comigo"
+                  width={28}
+                  height={28}
+                  className="size-full object-cover"
+                />
+              </div>
               <span className="font-semibold tracking-tight text-slate-900">Conta comigo</span>
             </div>
             <p className="text-xs leading-relaxed text-slate-600">
@@ -333,6 +361,14 @@ export function PublicFooter() {
               Planejamento
             </h3>
             <ul className="mt-3 space-y-2 text-sm">
+              <li>
+                <Link
+                  href="/planos"
+                  className="font-medium text-teal-700 transition-colors hover:text-teal-800"
+                >
+                  Planos & Assinatura (30 dias grátis)
+                </Link>
+              </li>
               <li>
                 <Link
                   href="/como-funciona"

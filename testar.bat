@@ -17,4 +17,7 @@ echo Pressione Ctrl+C para encerrar todos os servicos juntos.
 echo =================================================================
 echo.
 
+echo [0/3] Garantindo portas livres (3000, 8080, 9099)...
+node scripts/kill-emulators.mjs >nul 2>&1
+
 npm run dev:all

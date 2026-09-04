@@ -192,6 +192,21 @@ export default function SubscriptionPage() {
       {notice ? <Callout tone={notice.tone}>{notice.text}</Callout> : null}
       {error ? <Callout tone="critical">{error}</Callout> : null}
 
+      {!isPremium ? (
+        <div className="rounded-2xl border border-teal-200/80 bg-teal-50/70 p-4 shadow-2xs backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-base">✨</span>
+            <p className="text-sm font-semibold text-teal-900">
+              Aproveite 30 dias grátis de teste do Plano Premium
+            </p>
+          </div>
+          <p className="mt-1 text-xs text-teal-700">
+            Apenas R$ 7,99/mês ou R$ 69,99/ano (menos de R$ 5,83/mês no plano anual). Cancele quando
+            quiser.
+          </p>
+        </div>
+      ) : null}
+
       <Card>
         <CardTitle>Seu plano</CardTitle>
         <p className="text-sm">
@@ -205,8 +220,8 @@ export default function SubscriptionPage() {
         </p>
         <p className="mt-2 text-sm" style={{ color: "var(--muted-fg)" }}>
           {isPremium
-            ? "Você não vê anúncios. Ao final do período a conta volta ao plano gratuito, e nada é cobrado automaticamente."
-            : "Todas as funções de planejamento estão disponíveis no plano gratuito. O Premium remove os anúncios."}
+            ? "Você não vê anúncios e tem acesso irrestrito ao leitor com IA e projeções completas."
+            : "Você está no plano gratuito. O Premium libera motor de projeção de 12 meses, leitor inteligente de faturas e remove todos os anúncios."}
         </p>
       </Card>
 

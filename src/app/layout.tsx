@@ -59,6 +59,13 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Conta comigo",
   },
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.ico", sizes: "32x32" },
+    ],
+    apple: [{ url: "/apple-icon.png", type: "image/png" }],
+  },
   robots: { index: isIndexable(), follow: isIndexable() },
 };
 

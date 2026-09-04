@@ -12,6 +12,7 @@ import { execSync } from "node:child_process";
  */
 
 const PORTS = [
+  3000, // Next.js dev server
   4000, // Emulator UI
   4400, // Emulator Hub
   4500, // reservada

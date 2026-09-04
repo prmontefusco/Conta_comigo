@@ -6,6 +6,7 @@ import { isNegative } from "@/core/money/money";
 import { Card, CardTitle, Spinner, Stat } from "@/components/ui/primitives";
 import { forecastWindows, type ForecastWindowDays } from "@/modules/forecast/domain/forecast";
 import { MonthsTable } from "@/modules/forecast/ui/months-table";
+import { SalarySimulatorCard } from "@/modules/forecast/ui/salary-simulator-card";
 import { ScenarioSimulator } from "@/modules/forecast/ui/scenario-simulator";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 
@@ -117,6 +118,8 @@ export default function ForecastPage() {
       </Card>
 
       <MonthsTable months={finance.forecast.months} limit={13} title="Mês a mês" />
+
+      <SalarySimulatorCard />
 
       <ScenarioSimulator />
 

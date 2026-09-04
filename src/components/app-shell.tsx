@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
@@ -72,11 +73,24 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-[color:var(--card-border)] bg-[color:var(--card-bg)]/95 shadow-2xs backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{household.name}</p>
-            <p className="truncate text-xs" style={{ color: "var(--muted-fg)" }}>
-              {profile?.displayName ?? "Você"}
-            </p>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Link href="/app" className="group shrink-0" title="Ir para o início">
+              <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg shadow-2xs transition-transform group-hover:scale-105">
+                <Image
+                  src="/logo.png"
+                  alt="Conta comigo"
+                  width={32}
+                  height={32}
+                  className="size-full object-cover"
+                />
+              </div>
+            </Link>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{household.name}</p>
+              <p className="truncate text-xs" style={{ color: "var(--muted-fg)" }}>
+                {profile?.displayName ?? "Você"}
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

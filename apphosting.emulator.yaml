@@ -40,6 +40,6 @@ env:
   # Preços iguais aos de produção, para que a tela de planos seja a de verdade.
   # Sem ASAAS_API_KEY a venda continua fechada: nada é cobrado daqui.
   - variable: SUBSCRIPTION_PRICE_MONTHLY_CENTS
-    value: "500"
+    value: "799"
   - variable: SUBSCRIPTION_PRICE_YEARLY_CENTS
-    value: "5000"
+    value: "6999"
