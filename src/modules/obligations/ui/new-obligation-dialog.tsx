@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { addMonths, todayIn, type CalendarDate, calendarDate } from "@/core/date/calendar-date";
+import { formatMoney } from "@/core/money/format";
 import { allocate, fromDecimalString, type Money } from "@/core/money/money";
 import { Button } from "@/components/ui/primitives";
 import { DateField, FormError, MoneyField, SelectField, TextField } from "@/components/ui/form";
@@ -11,6 +12,7 @@ import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 import { FREQUENCY_LABELS } from "@/modules/recurring/domain/recurring-rule";
+import { estimateVariableExpense } from "@/modules/recurring/domain/variable-expense-estimator";
 
 /**
  * Creating a bill or an expected receipt.
@@ -32,7 +34,7 @@ export function NewObligationDialog({
   onClose: () => void;
   defaultDirection?: "OUTFLOW" | "INFLOW";
 }) {
-  const { categories } = useFinance();
+  const { categories, transactions, obligations, asOf } = useFinance();
   const { household, user } = useSession();
   const collections = useCollections();
 
@@ -56,6 +58,27 @@ export function NewObligationDialog({
   const relevantCategories = categories.filter((category) =>
     direction === "INFLOW" ? category.kind === "INCOME" : category.kind === "EXPENSE",
   );
+
+  const variableEstimate = useMemo(() => {
+    if (direction !== "OUTFLOW") return null;
+    if (!categoryId && description.trim().length < 2) return null;
+    return estimateVariableExpense({
+      transactions,
+      obligations,
+      asOf,
+      categoryId: categoryId || undefined,
+      searchTerms: description.trim().length >= 2 ? [description.trim()] : undefined,
+      lookbackMonths: 3,
+    });
+  }, [transactions, obligations, asOf, categoryId, description, direction]);
+
+  function onCategoryChange(newCategoryId: string) {
+    setCategoryId(newCategoryId);
+    const cat = categories.find((c) => c.id === newCategoryId);
+    if (cat?.defaultExpenseNature) {
+      setExpenseNature(cat.defaultExpenseNature);
+    }
+  }
 
   function reset() {
     setDescription("");
@@ -211,6 +234,57 @@ export function NewObligationDialog({
           }
         />
 
+        {variableEstimate && variableEstimate.hasSufficientData ? (
+          <div className="rounded-xl border border-[color:var(--card-border)] bg-[color:var(--color-brand-50)]/60 p-3 text-xs dark:bg-[color:var(--color-brand-950)]/30">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="font-semibold text-[color:var(--color-brand-700)] dark:text-[color:var(--color-brand-300)]">
+                  💡 Média histórica ({variableEstimate.sampleCount}{" "}
+                  {variableEstimate.sampleCount === 1 ? "mês anterior" : "meses anteriores"}):{" "}
+                </span>
+                <span className="font-bold text-[color:var(--fg)]">
+                  {formatMoney(variableEstimate.average)}
+                </span>
+                {variableEstimate.lowest.amount !== variableEstimate.highest.amount ? (
+                  <span className="ml-1 text-[color:var(--muted-fg)]">
+                    (mín {formatMoney(variableEstimate.lowest)} · máx{" "}
+                    {formatMoney(variableEstimate.highest)})
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAmountText(
+                      (variableEstimate.average.amount / 100).toFixed(2).replace(".", ","),
+                    );
+                    setExpenseNature("VARIABLE");
+                    setConfidence("ESTIMATED");
+                  }}
+                  className="rounded-lg bg-[color:var(--color-brand-600)] px-2.5 py-1 text-xs font-medium text-white transition hover:bg-[color:var(--color-brand-700)]"
+                >
+                  Usar média
+                </button>
+                <button
+                  type="button"
+                  title="Média com margem de segurança de +10% para bandeiras tarifárias e picos sazonais"
+                  onClick={() => {
+                    setAmountText(
+                      (variableEstimate.withSafetyMargin.amount / 100).toFixed(2).replace(".", ","),
+                    );
+                    setExpenseNature("VARIABLE");
+                    setConfidence("ESTIMATED");
+                  }}
+                  className="rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-2.5 py-1 text-xs font-medium transition hover:bg-[color:var(--card-border)]"
+                >
+                  Média +10%
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {shape === "INSTALLMENTS" ? (
           <TextField
             label="Número de parcelas"
@@ -250,7 +324,7 @@ export function NewObligationDialog({
         <SelectField
           label="Categoria"
           value={categoryId}
-          onChange={(event) => setCategoryId(event.target.value)}
+          onChange={(event) => onCategoryChange(event.target.value)}
           options={[
             { value: "", label: "Sem categoria" },
             ...relevantCategories.map((category) => ({

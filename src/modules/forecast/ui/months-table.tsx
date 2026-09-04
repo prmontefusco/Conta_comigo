@@ -128,8 +128,8 @@ export function MonthsTable({
           </>
         ) : null}
         A projeção considera contas recorrentes, parcelas de cartão, empréstimos e financiamentos já
-        registrados. Receitas marcadas como estimadas entram no cálculo, mas não são dinheiro
-        garantido.
+        registrados. Despesas e receitas marcadas como estimadas (como água e luz calculadas pela
+        média recente) entram no cálculo como referência, mantendo sua previsão realista.
       </p>
     </Card>
   );
