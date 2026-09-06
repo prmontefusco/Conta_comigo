@@ -816,6 +816,10 @@ const scenarioC: SeedHousehold = {
           interestRateMonthly: 2.79,
           installmentCount: 24,
           firstDueDate: addMonths(anchors.sixMonthsAgo, 1),
+          // Contratado há seis meses, cinco parcelas já pagas. Sem isto o app
+          // reporta o valor contratado inteiro como saldo devedor e acusa
+          // atraso que não existe.
+          installmentsPaidBeforeTracking: 5,
           monthlyInsurance: brl(18),
           status: "ACTIVE",
           visibility: "HOUSEHOLD",
@@ -833,6 +837,10 @@ const scenarioC: SeedHousehold = {
           interestRateMonthly: 1.49,
           installmentCount: 48,
           firstDueDate: addMonths(anchors.today, -19),
+          // Dezenove parcelas vencidas, dezenove pagas: o carro está em dia.
+          // Antes deste campo o alerta dizia "19 parcelas em atraso" e
+          // ameaçava busca e apreensão de um financiamento normal.
+          installmentsPaidBeforeTracking: 19,
           monthlyInsurance: brl(64),
           status: "ACTIVE",
           visibility: "HOUSEHOLD",
@@ -877,7 +885,242 @@ const scenarioC: SeedHousehold = {
   },
 };
 
-export const SEED_HOUSEHOLDS: readonly SeedHousehold[] = [scenarioA, scenarioB, scenarioC];
+/**
+ * O endividado de massa, que é o público principal do produto.
+ *
+ * Os outros três cenários descrevem casas de classe média: renda de dois
+ * salários somando cinco mil ou mais, carro financiado, escola particular,
+ * cartão com limite de seis mil. São reais e atendíveis, mas não se parecem
+ * com quem está negativado no Brasil.
+ *
+ * Esta é a casa que o produto precisa servir bem: uma renda de pouco mais de
+ * um salário mínimo, aluguel barato, sem carro, sem reserva e sem taxa de
+ * contrato para cadastrar. A dívida dela é o que a dívida da maioria é —
+ * carnê de loja, rotativo de cartão, água e luz atrasadas — e o mês dela não
+ * fecha por aritmética, não por descuido.
+ *
+ * É contra este cenário que se testa se o app é honesto: ele **não** pode
+ * devolver uma data de quitação, e **deve** cair no modo emergência.
+ */
+const scenarioD: SeedHousehold = {
+  id: "seed-familia-negativada",
+  name: "Família Souza",
+  summary:
+    "Renda de um salário e meio, contas de serviço essencial atrasadas, carnê de loja e rotativo. O mês não fecha: nenhum plano de quitação é honesto aqui. Cenário para validar o modo emergência e o aviso de plano inviável.",
+  users: [
+    {
+      uid: "seed-uid-joana",
+      email: "joana@exemplo.test",
+      password: "conta1234",
+      displayName: "Joana Souza",
+      role: "OWNER",
+    },
+  ],
+  monthsOfHistory: 4,
+  historyAccountId: "seed-familia-negativada-conta",
+  build(anchors) {
+    const h = this.id;
+    return {
+      ...emptyContent,
+      accounts: [
+        {
+          id: `${h}-conta`,
+          householdId: h,
+          name: "Conta digital",
+          type: "CHECKING",
+          institution: "Nubank",
+          openingBalance: brl(64),
+          openingBalanceDate: anchors.monthStart,
+          visibility: "HOUSEHOLD",
+          includeInTotals: true,
+          archived: false,
+        },
+      ],
+      creditCards: [
+        {
+          id: `${h}-cartao`,
+          householdId: h,
+          name: "Cartão da conta digital",
+          creditLimit: brl(800),
+          closingDay: 20,
+          dueDay: 1,
+          visibility: "HOUSEHOLD",
+          archived: false,
+        },
+      ],
+      cardPurchases: [
+        {
+          id: `${h}-compra-mercado`,
+          householdId: h,
+          creditCardId: `${h}-cartao`,
+          description: "Mercado do mês",
+          totalAmount: brl(420),
+          purchaseDate: anchors.lastMonth,
+          competenceDate: anchors.lastMonth,
+          categoryId: categoryId(h, "alimentacao"),
+          installmentCount: 1,
+          visibility: "HOUSEHOLD",
+        },
+        {
+          id: `${h}-compra-remedio`,
+          householdId: h,
+          creditCardId: `${h}-cartao`,
+          description: "Remédio contínuo",
+          totalAmount: brl(186),
+          purchaseDate: anchors.lastMonth,
+          competenceDate: anchors.lastMonth,
+          categoryId: categoryId(h, "saude"),
+          installmentCount: 3,
+          visibility: "HOUSEHOLD",
+        },
+      ],
+      recurringRules: [
+        salaryRule(h, `${h}-salario`, "Salário Joana", 1980, 5, anchors.lastYear, "seed-uid-joana"),
+        monthlyRule(h, `${h}-aluguel`, "Aluguel", 700, 10, "moradia", {
+          startDate: anchors.lastYear,
+        }),
+        monthlyRule(h, `${h}-energia`, "Energia elétrica", 148, 15, "energia", {
+          startDate: anchors.lastYear,
+          expenseNature: "VARIABLE",
+          confidence: "ESTIMATED",
+        }),
+        monthlyRule(h, `${h}-agua`, "Água", 72, 18, "agua", {
+          startDate: anchors.lastYear,
+          expenseNature: "VARIABLE",
+          confidence: "ESTIMATED",
+        }),
+        monthlyRule(h, `${h}-gas`, "Gás de cozinha", 120, 8, "gas", {
+          startDate: anchors.lastYear,
+          expenseNature: "VARIABLE",
+        }),
+        monthlyRule(h, `${h}-mercado`, "Supermercado", 620, 3, "alimentacao", {
+          startDate: anchors.lastYear,
+          expenseNature: "VARIABLE",
+          confidence: "ESTIMATED",
+        }),
+        monthlyRule(h, `${h}-transporte`, "Transporte", 260, 5, "transporte", {
+          startDate: anchors.lastYear,
+          expenseNature: "VARIABLE",
+        }),
+        monthlyRule(h, `${h}-celular`, "Celular pré-pago", 40, 12, "internet", {
+          startDate: anchors.lastYear,
+        }),
+      ],
+      obligations: [
+        {
+          id: `${h}-luz-atrasada`,
+          householdId: h,
+          direction: "OUTFLOW",
+          origin: "MANUAL",
+          description: "Energia elétrica (aviso de corte)",
+          amount: brl(148),
+          dueDate: addDays(anchors.today, -42),
+          competenceDate: addMonths(anchors.today, -2),
+          categoryId: categoryId(h, "energia"),
+          expenseNature: "VARIABLE",
+          confidence: "CONFIRMED",
+          visibility: "HOUSEHOLD",
+          status: "SCHEDULED",
+          settledAmount: brl(0),
+          settlementTransactionIds: [],
+        },
+        {
+          id: `${h}-agua-atrasada`,
+          householdId: h,
+          direction: "OUTFLOW",
+          origin: "MANUAL",
+          description: "Água (2 meses)",
+          amount: brl(144),
+          dueDate: addDays(anchors.today, -35),
+          competenceDate: addMonths(anchors.today, -2),
+          categoryId: categoryId(h, "agua"),
+          expenseNature: "VARIABLE",
+          confidence: "CONFIRMED",
+          visibility: "HOUSEHOLD",
+          status: "SCHEDULED",
+          settledAmount: brl(0),
+          settlementTransactionIds: [],
+        },
+        {
+          id: `${h}-carne-loja`,
+          householdId: h,
+          direction: "OUTFLOW",
+          origin: "MANUAL",
+          description: "Carnê da loja de móveis",
+          amount: brl(189),
+          dueDate: addDays(anchors.today, -12),
+          competenceDate: addMonths(anchors.today, -1),
+          expenseNature: "FIXED",
+          confidence: "CONFIRMED",
+          visibility: "HOUSEHOLD",
+          status: "SCHEDULED",
+          settledAmount: brl(0),
+          settlementTransactionIds: [],
+        },
+        {
+          id: `${h}-material-escolar`,
+          householdId: h,
+          direction: "OUTFLOW",
+          origin: "MANUAL",
+          description: "Material escolar",
+          amount: brl(230),
+          dueDate: addDays(anchors.today, 5),
+          competenceDate: anchors.today,
+          categoryId: categoryId(h, "educacao"),
+          expenseNature: "OCCASIONAL",
+          confidence: "CONFIRMED",
+          visibility: "HOUSEHOLD",
+          status: "SCHEDULED",
+          settledAmount: brl(0),
+          settlementTransactionIds: [],
+        },
+      ],
+      debts: [
+        {
+          id: `${h}-emprestimo-app`,
+          householdId: h,
+          kind: "OTHER",
+          description: "Empréstimo pelo aplicativo do banco",
+          institution: "Banco digital",
+          principalContracted: brl(1500),
+          amountDisbursed: brl(1500),
+          disbursementDate: anchors.threeMonthsAgo,
+          amortisationSystem: "SIMPLE",
+          // Sem taxa informada de propósito: quase ninguém neste perfil sabe a
+          // taxa do próprio contrato, e o app precisa funcionar assim.
+          installmentCount: 12,
+          installmentAmount: brl(198),
+          firstDueDate: addMonths(anchors.threeMonthsAgo, 1),
+          installmentsPaidBeforeTracking: 2,
+          status: "IN_DEFAULT",
+          visibility: "HOUSEHOLD",
+        },
+      ],
+      reserves: [
+        {
+          id: `${h}-reserva`,
+          householdId: h,
+          name: "Reserva de partida",
+          purpose: "EMERGENCY",
+          currentAmount: brl(0),
+          targetAmount: brl(500),
+          isProtected: true,
+          visibility: "HOUSEHOLD",
+          archived: false,
+        },
+      ],
+      goals: [],
+      budgets: [],
+    };
+  },
+};
+
+export const SEED_HOUSEHOLDS: readonly SeedHousehold[] = [
+  scenarioA,
+  scenarioB,
+  scenarioC,
+  scenarioD,
+];
 
 export const SEED_TIMEZONE = TIMEZONE;
 

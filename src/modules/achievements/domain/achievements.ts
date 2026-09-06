@@ -116,8 +116,14 @@ export function computeAchievements(input: ComputeAchievementsInput): Achievemen
       all.push({
         id: `debt-progress-${debt.id}-${nextStep}`,
         kind: "DEBT_PROGRESS",
-        title: `${Math.round(nextStep * 100)}% de ${debt.description} amortizados`,
-        detail: `Já foram amortizados ${Math.round(ratio * 100)}% do valor contratado.`,
+        // "Chegar a 25%", não "25% amortizados". Este marco ainda não
+        // aconteceu, e o título anterior o anunciava como feito logo acima de
+        // um detalhe dizendo "já foram amortizados 0%".
+        title: `Chegar a ${Math.round(nextStep * 100)}% de ${debt.description} pagos`,
+        detail:
+          ratio > 0
+            ? `Já foram amortizados ${Math.round(ratio * 100)}% do valor contratado.`
+            : "Nenhuma parcela amortizada ainda.",
         achieved: false,
         progress: clamp(ratio / nextStep),
         remaining: `faltam ${formatMoney({ amount: missing, currency: debt.principalContracted.currency })}`,

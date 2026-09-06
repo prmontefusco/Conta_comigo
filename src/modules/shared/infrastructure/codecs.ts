@@ -41,7 +41,7 @@ export const visibilitySchema = z.enum(["PERSONAL", "HOUSEHOLD"]);
 export const expenseNatureSchema = z.enum(["FIXED", "VARIABLE", "OCCASIONAL"]);
 export const confidenceSchema = z.enum(["CONFIRMED", "ESTIMATED"]);
 export const flowDirectionSchema = z.enum(["INFLOW", "OUTFLOW"]);
-export const householdRoleSchema = z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]);
+export const householdRoleSchema = z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER", "DEPENDENT"]);
 
 /** Ids are opaque strings; length is bounded so they cannot bloat a document. */
 export const idSchema = z.string().min(1).max(250);

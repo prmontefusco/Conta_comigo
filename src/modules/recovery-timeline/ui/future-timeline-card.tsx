@@ -3,23 +3,11 @@
 import Link from "next/link";
 import { formatCalendarDate } from "@/core/date/calendar-date";
 import { Card, CardTitle, Stat } from "@/components/ui/primitives";
-import { calculateRecoveryTimeline } from "@/modules/recovery-timeline/domain/recovery-calculator";
-import { useFinance } from "@/modules/household/ui/finance-provider";
+import { useRecoveryTimeline } from "./use-recovery-timeline";
+import { HorizonStat, PlanViabilityNotice } from "./plan-viability-notice";
 
 export function FutureTimelineCard() {
-  const finance = useFinance();
-
-  const timeline = calculateRecoveryTimeline({
-    asOf: finance.asOf,
-    openingBalance: finance.totalCash,
-    totalCash: finance.totalCash,
-    protectedReserve: finance.protectedReserve,
-    forecast: finance.forecast,
-    debts: finance.debts,
-    cardStatements: finance.cardStatements,
-    reserves: finance.reserves,
-    paidDebtInstallments: finance.paidDebtInstallments,
-  });
+  const timeline = useRecoveryTimeline();
 
   const hasDebts = timeline.totalDebtAmount.amount > 0;
 
@@ -49,19 +37,12 @@ export function FutureTimelineCard() {
       <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {hasDebts ? (
           <>
-            <div>
-              <dt className="text-xs font-medium" style={{ color: "var(--muted-fg)" }}>
-                Tempo para Quitar Dívidas
-              </dt>
-              <dd className="mt-1">
-                <span className="tabular text-xl font-bold text-[color:var(--color-brand-700)]">
-                  {timeline.monthsToDebtFree} {timeline.monthsToDebtFree === 1 ? "mês" : "meses"}
-                </span>
-                <p className="text-2xs mt-0.5" style={{ color: "var(--muted-fg)" }}>
-                  Previsão: {formatCalendarDate(timeline.debtFreeDate)}
-                </p>
-              </dd>
-            </div>
+            <HorizonStat
+              label="Tempo para Quitar Dívidas"
+              months={timeline.monthsToDebtFree}
+              dateLabel={timeline.debtFreeDate ? formatCalendarDate(timeline.debtFreeDate) : null}
+              tone="brand"
+            />
 
             <Stat
               label="Passivo a Liquidar"
@@ -86,34 +67,25 @@ export function FutureTimelineCard() {
           </div>
         )}
 
-        <div>
-          <dt className="text-xs font-medium" style={{ color: "var(--muted-fg)" }}>
-            Reserva de 3 Meses Pronta
-          </dt>
-          <dd className="mt-1">
-            <span className="tabular text-xl font-bold text-[color:var(--page-fg)]">
-              {timeline.monthsToEmergencyFund} meses
-            </span>
-            <p className="text-2xs mt-0.5" style={{ color: "var(--muted-fg)" }}>
-              Previsão: {formatCalendarDate(timeline.emergencyFundDate)}
-            </p>
-          </dd>
-        </div>
+        <HorizonStat
+          label="Reserva de 3 Meses Pronta"
+          months={timeline.monthsToEmergencyFund}
+          dateLabel={
+            timeline.emergencyFundDate ? formatCalendarDate(timeline.emergencyFundDate) : null
+          }
+        />
 
-        <div>
-          <dt className="text-xs font-medium" style={{ color: "var(--muted-fg)" }}>
-            Estabilidade Consolidada
-          </dt>
-          <dd className="mt-1">
-            <span className="tabular text-xl font-bold text-[color:var(--color-positive-700)]">
-              {timeline.monthsToStability} meses
-            </span>
-            <p className="text-2xs mt-0.5" style={{ color: "var(--muted-fg)" }}>
-              Previsão: {formatCalendarDate(timeline.stabilityDate)}
-            </p>
-          </dd>
-        </div>
+        <HorizonStat
+          label="Estabilidade Consolidada"
+          months={timeline.monthsToStability}
+          dateLabel={timeline.stabilityDate ? formatCalendarDate(timeline.stabilityDate) : null}
+          tone="positive"
+        />
       </dl>
+
+      <div className="mt-4">
+        <PlanViabilityNotice feasibility={timeline.feasibility} />
+      </div>
 
       {/* Timeline visual de marcos */}
       <div className="mt-6 border-t border-[color:var(--card-border)] pt-4">

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { isIndexable } from "@/lib/seo";
 import "./globals.css";
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 
 /**
  * Inter, servido do próprio repositório.
@@ -84,6 +85,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           Ir para o conteúdo
         </a>
         {children}
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );

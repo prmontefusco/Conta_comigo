@@ -2,6 +2,7 @@
 
 import { Spinner } from "@/components/ui/primitives";
 import { AchievementsCard } from "@/modules/achievements/ui/achievements-card";
+import { DebtCountdownCard } from "@/modules/recovery-timeline/ui/debt-countdown-card";
 import { FutureTimelineCard } from "@/modules/recovery-timeline/ui/future-timeline-card";
 import { DebtStrategiesView } from "@/modules/recovery-timeline/ui/debt-strategies-view";
 import { SalarySimulatorCard } from "@/modules/forecast/ui/salary-simulator-card";
@@ -28,6 +29,7 @@ export default function VisaoFuturoPage() {
         </div>
       </div>
 
+      <DebtCountdownCard />
       <FutureTimelineCard />
 
       <SalarySimulatorCard />

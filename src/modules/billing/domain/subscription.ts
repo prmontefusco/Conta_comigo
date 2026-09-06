@@ -18,6 +18,55 @@ export type UserPlan = "FREE" | "PREMIUM";
 
 export type SubscriptionStatus = "NONE" | "PENDING" | "ACTIVE" | "EXPIRED" | "CANCELLED";
 
+/* ------------------------------------------------------------------ */
+/* Período de teste                                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Dias de Premium que toda conta nova ganha.
+ *
+ * O site anunciava isto em cinco lugares e o código não implementava em
+ * nenhum: não havia estado de teste, e `ensureUserProfile` gravava `FREE` e
+ * parava por aí. Era propaganda enganosa em relação de consumo, e o conserto
+ * mais barato era implementar a promessa.
+ */
+export const TRIAL_DAYS = 30;
+
+/**
+ * O teste é **derivado** da data de criação da conta, não gravado.
+ *
+ * As Security Rules negam escrita de cliente em `subscriptions` — só o Admin
+ * SDK grava ali (ADR 0009). Um teste que precisasse de escrita exigiria uma
+ * rota de servidor no cadastro, mais um ponto de falha logo no primeiro
+ * minuto de uso. Derivar de `createdAt` dá o mesmo resultado, é a mesma
+ * função no cliente e no servidor, e não pode dessincronizar.
+ */
+export function trialEndsAt(accountCreatedAt: Instant | undefined): Instant | null {
+  if (!accountCreatedAt) return null;
+  const created = new Date(accountCreatedAt).getTime();
+  if (!Number.isFinite(created)) return null;
+  return new Date(created + TRIAL_DAYS * 86_400_000).toISOString() as Instant;
+}
+
+/** Dias que ainda faltam do teste. Zero quando acabou ou nunca houve. */
+export function trialDaysRemaining(
+  accountCreatedAt: Instant | undefined,
+  now: Date = new Date(),
+): number {
+  const ends = trialEndsAt(accountCreatedAt);
+  if (!ends) return 0;
+  const remaining = Math.ceil((new Date(ends).getTime() - now.getTime()) / 86_400_000);
+  return Math.max(0, remaining);
+}
+
+export function isWithinTrial(
+  accountCreatedAt: Instant | undefined,
+  now: Date = new Date(),
+): boolean {
+  const ends = trialEndsAt(accountCreatedAt);
+  return ends !== null && now.getTime() < new Date(ends).getTime();
+}
+
 export type SubscriptionCycle = "MONTHLY" | "YEARLY";
 
 export type PaymentProvider = "ASAAS" | "MANUAL";
@@ -58,21 +107,45 @@ export function freeSubscription(userId: UserId, now: Instant): Subscription {
 export function resolveEffectivePlan(
   subscription: Subscription | null | undefined,
   now: Date = new Date(),
+  /** Quando a conta foi criada, para o período de teste. */
+  accountCreatedAt?: Instant,
 ): UserPlan {
-  if (!subscription) return "FREE";
-  if (subscription.plan !== "PREMIUM") return "FREE";
-  if (subscription.status !== "ACTIVE") return "FREE";
+  if (isSubscriptionActive(subscription, now)) return "PREMIUM";
+  // Uma assinatura paga que venceu não volta a ser teste: o teste é dos
+  // primeiros trinta dias da conta, e esses já passaram há muito.
+  if (isWithinTrial(accountCreatedAt, now)) return "PREMIUM";
+  return "FREE";
+}
+
+function isSubscriptionActive(subscription: Subscription | null | undefined, now: Date): boolean {
+  if (!subscription) return false;
+  if (subscription.plan !== "PREMIUM") return false;
+  if (subscription.status !== "ACTIVE") return false;
   if (subscription.expiresAt && new Date(subscription.expiresAt).getTime() <= now.getTime()) {
-    return "FREE";
+    return false;
   }
-  return "PREMIUM";
+  return true;
 }
 
 export function isPremium(
   subscription: Subscription | null | undefined,
   now: Date = new Date(),
+  accountCreatedAt?: Instant,
 ): boolean {
-  return resolveEffectivePlan(subscription, now) === "PREMIUM";
+  return resolveEffectivePlan(subscription, now, accountCreatedAt) === "PREMIUM";
+}
+
+/** Como a pessoa chegou ao Premium: assinatura paga, teste, ou nenhum. */
+export type PlanSource = "PAID" | "TRIAL" | "NONE";
+
+export function planSource(
+  subscription: Subscription | null | undefined,
+  accountCreatedAt: Instant | undefined,
+  now: Date = new Date(),
+): PlanSource {
+  if (isSubscriptionActive(subscription, now)) return "PAID";
+  if (isWithinTrial(accountCreatedAt, now)) return "TRIAL";
+  return "NONE";
 }
 
 /** Dias que faltam para vencer. Negativo se já venceu, null se não há prazo. */

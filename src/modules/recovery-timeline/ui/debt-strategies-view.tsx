@@ -4,48 +4,35 @@ import { useState } from "react";
 import { formatCalendarDate } from "@/core/date/calendar-date";
 import { fromDecimalString } from "@/core/money/money";
 import { Card, CardTitle, Stat } from "@/components/ui/primitives";
-import {
-  calculateRecoveryTimeline,
-  type PayoffStrategy,
-} from "@/modules/recovery-timeline/domain/recovery-calculator";
-import { useFinance } from "@/modules/household/ui/finance-provider";
+import type { PayoffStrategy } from "@/modules/recovery-timeline/domain/recovery-calculator";
+import { useRecoveryTimeline } from "./use-recovery-timeline";
 
 export function DebtStrategiesView() {
-  const finance = useFinance();
   const [selectedStrategy, setSelectedStrategy] = useState<PayoffStrategy>("AVALANCHE");
   const [extraAmountText, setExtraAmountText] = useState("100");
 
   const extraMoney = fromDecimalString(extraAmountText || "0");
 
-  const baseline = calculateRecoveryTimeline({
-    asOf: finance.asOf,
-    openingBalance: finance.totalCash,
-    totalCash: finance.totalCash,
-    protectedReserve: finance.protectedReserve,
-    forecast: finance.forecast,
-    debts: finance.debts,
-    cardStatements: finance.cardStatements,
-    reserves: finance.reserves,
-    paidDebtInstallments: finance.paidDebtInstallments,
-  });
+  const baseline = useRecoveryTimeline();
 
-  const accelerated = calculateRecoveryTimeline({
-    asOf: finance.asOf,
-    openingBalance: finance.totalCash,
-    totalCash: finance.totalCash,
-    protectedReserve: finance.protectedReserve,
-    forecast: finance.forecast,
-    debts: finance.debts,
-    cardStatements: finance.cardStatements,
-    reserves: finance.reserves,
-    paidDebtInstallments: finance.paidDebtInstallments,
-    extraMonthlyContribution: extraMoney ?? undefined,
-  });
+  const accelerated = useRecoveryTimeline(extraMoney ?? undefined);
 
-  const plan =
-    selectedStrategy === "SNOWBALL" ? accelerated.snowballPlan : accelerated.avalanchePlan;
+  // O plano em destaque é o **real**, sem aporte extra.
+  //
+  // Aqui estava a divergência que aparecia na tela: o campo de aporte nasce
+  // preenchido com R$ 100, e o comparador mostrava o plano acelerado como se
+  // fosse o plano. O topo da mesma página dizia "45 meses" e este bloco dizia
+  // "43", sem nada explicando a diferença. O aporte agora só aparece no
+  // simulador abaixo, que é onde ele foi digitado.
+  const plan = selectedStrategy === "SNOWBALL" ? baseline.snowballPlan : baseline.avalanchePlan;
 
-  const monthsSaved = Math.max(0, baseline.monthsToDebtFree - accelerated.monthsToDebtFree);
+  // Both horizons can be absent: an extra R$ 100 does not rescue a plan whose
+  // minimums already do not fit, and pretending otherwise is the exact false
+  // comfort this screen is meant to replace.
+  const monthsSaved =
+    baseline.monthsToDebtFree !== null && accelerated.monthsToDebtFree !== null
+      ? Math.max(0, baseline.monthsToDebtFree - accelerated.monthsToDebtFree)
+      : null;
 
   return (
     <div className="space-y-6">
@@ -217,10 +204,16 @@ export function DebtStrategiesView() {
             <div>
               <p className="text-xs font-medium text-[color:var(--muted-fg)]">Tempo Economizado</p>
               <p className="tabular mt-1 text-2xl font-extrabold text-[color:var(--color-positive-700)]">
-                {monthsSaved > 0 ? `${monthsSaved} meses a menos` : "Mesmo prazo"}
+                {monthsSaved === null
+                  ? "—"
+                  : monthsSaved > 0
+                    ? `${monthsSaved} meses a menos`
+                    : "Mesmo prazo"}
               </p>
               <p className="text-2xs mt-0.5 text-[color:var(--muted-fg)]">
-                Nova meta: {formatCalendarDate(accelerated.debtFreeDate)}
+                {accelerated.debtFreeDate
+                  ? `Nova meta: ${formatCalendarDate(accelerated.debtFreeDate)}`
+                  : "Um aporte extra não fecha um mês que já está no vermelho."}
               </p>
             </div>
 
@@ -229,10 +222,14 @@ export function DebtStrategiesView() {
                 Novo Prazo de Quitação
               </p>
               <p className="tabular mt-1 text-2xl font-extrabold text-[color:var(--color-brand-700)]">
-                {accelerated.monthsToDebtFree} meses
+                {accelerated.monthsToDebtFree === null
+                  ? "—"
+                  : `${accelerated.monthsToDebtFree} meses`}
               </p>
               <p className="text-2xs mt-0.5 text-[color:var(--muted-fg)]">
-                Em vez de {baseline.monthsToDebtFree} meses
+                {baseline.monthsToDebtFree === null
+                  ? "Sem prazo enquanto as parcelas mínimas não couberem"
+                  : `Em vez de ${baseline.monthsToDebtFree} meses`}
               </p>
             </div>
           </div>

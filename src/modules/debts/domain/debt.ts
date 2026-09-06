@@ -79,6 +79,21 @@ export interface Debt extends AuditFields {
   readonly installmentAmount?: Money;
   readonly firstDueDate: CalendarDate;
 
+  /**
+   * Installments already paid before this debt was registered here.
+   *
+   * Nobody arrives at a budgeting app on the day they sign a loan. A car
+   * financing entered in its twentieth month is the ordinary case, and without
+   * this the app reports the full contracted amount as still owed, tells the
+   * household it has twenty instalments in arrears, and warns about a
+   * repossession that is not happening. Recording payments after the fact is
+   * not a substitute: each one would also have to move money out of an
+   * account that never saw it.
+   *
+   * Counted from the first instalment, because that is how a carnê reads.
+   */
+  readonly installmentsPaidBeforeTracking?: number;
+
   /** Recurring per-installment charges, when the contract separates them. */
   readonly monthlyFees?: Money;
   readonly monthlyInsurance?: Money;
@@ -379,6 +394,44 @@ export function summariseDebts(
 export function disbursementCost(debt: Debt): Money {
   const gap = subtract(debt.principalContracted, debt.amountDisbursed);
   return isPositive(gap) ? gap : zero(gap.currency);
+}
+
+/**
+ * Every instalment number this debt counts as settled.
+ *
+ * Two sources, merged: the ones the household says were already paid before
+ * registering the debt, and the payment transactions recorded since. Keeping
+ * the merge in one place is what stops the outstanding balance, the arrears
+ * alert and the payoff plan from each answering differently.
+ */
+export function settledInstallmentNumbers(
+  debt: Debt,
+  recordedPaymentCount: number,
+): readonly number[] {
+  const before = Math.min(
+    Math.max(Math.trunc(debt.installmentsPaidBeforeTracking ?? 0), 0),
+    debt.installmentCount,
+  );
+  const total = Math.min(before + Math.max(recordedPaymentCount, 0), debt.installmentCount);
+  return Array.from({ length: total }, (_unused, index) => index + 1);
+}
+
+/**
+ * Instalments that were due and are not paid.
+ *
+ * Zero is the honest answer for a debt whose history the household has told us
+ * about; a positive number here is what justifies warning that a financed good
+ * can be taken back.
+ */
+export function lateInstallmentCount(
+  debt: Debt,
+  today: CalendarDate,
+  paidInstallmentNumbers: readonly number[],
+): number {
+  const paid = new Set(paidInstallmentNumbers);
+  return buildSchedule(debt).filter(
+    (item) => isOnOrBefore(item.dueDate, today) && !paid.has(item.number),
+  ).length;
 }
 
 export const DEBT_KIND_LABELS: Record<DebtKind, string> = {

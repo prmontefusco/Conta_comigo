@@ -288,6 +288,7 @@ export const debtSchema = base.extend({
   installmentCount: z.number().int().min(1).max(600),
   installmentAmount: moneySchema.optional(),
   firstDueDate: calendarDateSchema,
+  installmentsPaidBeforeTracking: z.number().int().min(0).max(600).optional(),
   monthlyFees: moneySchema.optional(),
   monthlyInsurance: moneySchema.optional(),
   status: z.enum(["ACTIVE", "SETTLED", "RENEGOTIATED", "IN_DEFAULT"]),

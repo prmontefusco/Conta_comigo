@@ -10,6 +10,8 @@ export const USERS = {
   organised: { email: "ana@exemplo.test", household: "Família Silva" },
   tight: { email: "carla@exemplo.test", household: "Família Costa" },
   indebted: { email: "diego@exemplo.test", household: "Família Almeida" },
+  /** Renda de um salário e meio, contas essenciais atrasadas: o mês não fecha. */
+  massMarket: { email: "joana@exemplo.test", household: "Família Souza" },
 } as const;
 
 /**

@@ -24,18 +24,23 @@ import type { NextConfig } from "next";
  */
 const CSP_REPORT_ONLY = [
   "default-src 'self'",
-  // Firebase Auth (apis.google.com), reCAPTCHA do App Check (google/gstatic) e
-  // AdSense. O inline é da hidratação do Next.
-  "script-src 'self' 'unsafe-inline' https://apis.google.com https://www.google.com https://www.gstatic.com https://pagead2.googlesyndication.com https://partner.googleadservices.com https://tpc.googlesyndication.com",
+  // Firebase Auth (apis.google.com) e o reCAPTCHA do App Check
+  // (google/gstatic). O inline é da hidratação do Next.
+  //
+  // Os domínios de anúncio saíram junto com a publicidade: sem eles, nenhum
+  // terceiro executa script, carrega imagem, abre iframe ou recebe conexão a
+  // partir de uma página que mostra as finanças de alguém. Foi o efeito
+  // colateral mais valioso de tirar o AdSense.
+  "script-src 'self' 'unsafe-inline' https://apis.google.com https://www.google.com https://www.gstatic.com",
   "style-src 'self' 'unsafe-inline'",
   // A fonte é servida por nós de propósito (ver src/app/layout.tsx).
   "font-src 'self'",
-  // `data:` para SVG embutido; os domínios de anúncio servem pixels e criativos.
-  "img-src 'self' data: blob: https://www.google.com https://www.gstatic.com https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://googleads.g.doubleclick.net",
+  // `data:` para SVG embutido.
+  "img-src 'self' data: blob: https://www.google.com https://www.gstatic.com",
   // Firestore fala por WebChannel; Auth por identitytoolkit e securetoken.
-  "connect-src 'self' https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net",
-  // Iframes: criativos de anúncio, o desafio do reCAPTCHA e o handler do Auth.
-  "frame-src 'self' https://www.google.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://*.firebaseapp.com",
+  "connect-src 'self' https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com",
+  // Iframes: o desafio do reCAPTCHA e o handler do Auth.
+  "frame-src 'self' https://www.google.com https://*.firebaseapp.com",
   // Nada disto é usado, e negar é mais barato que auditar depois.
   "object-src 'none'",
   "base-uri 'self'",

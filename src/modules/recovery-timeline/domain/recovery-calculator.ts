@@ -54,6 +54,13 @@ export interface DebtPayoffPlan {
   readonly description: string;
   readonly estimatedMonths: number;
   readonly targetDate: CalendarDate;
+  /**
+   * False when the simulation hit its 30-year ceiling with debt still open.
+   *
+   * A balance that grows faster than it is paid never closes, and reporting
+   * "360 meses" as though it were a plan is worse than reporting nothing.
+   */
+  readonly closes: boolean;
   readonly totalInterestPaid: Money;
   /** How much less interest this plan pays than paying only the minimums. */
   readonly interestSavedVsMinimum: Money;
@@ -81,12 +88,46 @@ export interface Milestone {
   readonly valueFormatted?: string;
 }
 
+/**
+ * Whether the household can actually run the plan it is being shown.
+ *
+ * The distinction this type exists to make: a plan can be slow, and a plan can
+ * be impossible, and telling someone the second is the first is the single
+ * most damaging thing a product like this can do. A household whose income
+ * does not cover the minimum instalments does not need a payoff date - it
+ * needs to renegotiate the term, and to be told so plainly.
+ */
+export type PlanViability =
+  /** The minimums fit, and there is money left over to attack the debt. */
+  | "ON_TRACK"
+  /** The minimums fit, but nothing is left over: the plan only treads water. */
+  | "TIGHT"
+  /** Income does not cover the minimum instalments. No payoff date is honest. */
+  | "NOT_VIABLE";
+
+export interface PlanFeasibility {
+  readonly viability: PlanViability;
+  /** Money available for debt each month: income minus what the home must spend. */
+  readonly monthlyCapacity: Money;
+  /** What the minimum instalments demand every month. */
+  readonly requiredMinimums: Money;
+  /** How much the month is short of the minimums. Zero when it is not. */
+  readonly monthlyShortfall: Money;
+}
+
 export interface RecoveryTimelineResult {
   readonly asOf: CalendarDate;
   readonly monthlySurplus: Money;
+  /**
+   * Whether a payoff date means anything for this household.
+   *
+   * Every date below is conditional on this being anything but `NOT_VIABLE`.
+   */
+  readonly feasibility: PlanFeasibility;
   readonly totalDebtAmount: Money;
-  readonly monthsToDebtFree: number;
-  readonly debtFreeDate: CalendarDate;
+  /** Null when the plan is not viable: there is no honest month to name. */
+  readonly monthsToDebtFree: number | null;
+  readonly debtFreeDate: CalendarDate | null;
   /**
    * The first step: a small cushion, built *before* the debt is gone.
    *
@@ -95,10 +136,11 @@ export interface RecoveryTimelineResult {
    */
   readonly starterReserve: StarterReserveStatus;
   readonly monthsToStarterReserve: number | null;
-  readonly monthsToEmergencyFund: number;
-  readonly emergencyFundDate: CalendarDate;
-  readonly monthsToStability: number;
-  readonly stabilityDate: CalendarDate;
+  /** Null when there is no spare money to build it with. */
+  readonly monthsToEmergencyFund: number | null;
+  readonly emergencyFundDate: CalendarDate | null;
+  readonly monthsToStability: number | null;
+  readonly stabilityDate: CalendarDate | null;
   readonly milestones: readonly Milestone[];
   readonly snowballPlan: DebtPayoffPlan;
   readonly avalanchePlan: DebtPayoffPlan;
@@ -117,6 +159,8 @@ export interface CalculateRecoveryTimelineInput {
   readonly forecast: ForecastResult;
   readonly debts: readonly Debt[];
   readonly cardStatements: readonly CardStatement[];
+  /** Card id to display name, so the plan can say which card it means. */
+  readonly cardNames?: ReadonlyMap<string, string>;
   readonly reserves: readonly Reserve[];
   readonly extraMonthlyContribution?: Money;
   /**
@@ -150,9 +194,21 @@ export function calculateRecoveryTimeline(
   const wholeMonths = input.forecast.months.filter((month) => !month.isPartial);
   const monthlyInflows = averageOf(wholeMonths.map((month) => month.expectedInflows.amount));
   const monthlyOutflows = averageOf(wholeMonths.map((month) => month.committedOutflows.amount));
-  const rawSurplus = Math.max(0, monthlyInflows - monthlyOutflows);
+  const monthlyDebtCommitment = averageOf(wholeMonths.map((month) => month.debtCommitment.amount));
   const extraAmount = input.extraMonthlyContribution?.amount ?? 0;
-  const totalMonthlySurplus = rawSurplus + extraAmount;
+
+  // Everything the home must spend before a single real of debt is serviced.
+  const monthlyEssentials = Math.max(0, monthlyOutflows - monthlyDebtCommitment);
+
+  // The money that can go to debt this month - and it is allowed to be
+  // negative. Clamping it to zero was how a household R$ 800 short every month
+  // came to be shown a payoff date: the shortfall vanished and the simulation
+  // went on paying instalments out of money that does not exist.
+  const monthlyCapacityAmount = monthlyInflows - monthlyEssentials + extraAmount;
+
+  // Kept for the screens that show "what is left after everything", which is a
+  // different question from "what can service debt".
+  const totalMonthlySurplus = monthlyInflows - monthlyOutflows + extraAmount;
 
   // Build debt items list
   const debtItems: DebtItemForPayoff[] = [];
@@ -191,41 +247,102 @@ export function calculateRecoveryTimeline(
     });
   }
 
-  for (const statement of input.cardStatements) {
-    if (statement.remainingAmount.amount <= 0) continue;
+  // Card debt is grouped by card, not by statement.
+  //
+  // One statement per month per card produced a list where "Fatura de setembro
+  // de 2026" appeared twice - once per card, indistinguishable - and where
+  // every one of them was cleared in month one, because a statement's
+  // "minimum payment" had been set to its whole balance. Neither survives
+  // grouping: a card is one debt with one balance, and what it demands next
+  // month is its next fatura, not all of them at once.
+  const openStatements = input.cardStatements.filter(
+    (statement) => statement.remainingAmount.amount > 0,
+  );
+  const byCard = new Map<string, CardStatement[]>();
+  for (const statement of openStatements) {
+    const list = byCard.get(statement.creditCardId);
+    if (list) list.push(statement);
+    else byCard.set(statement.creditCardId, [statement]);
+  }
+
+  for (const [creditCardId, statements] of byCard) {
+    const balance = statements.reduce((total, item) => total + item.remainingAmount.amount, 0);
+    if (balance <= 0) continue;
+
+    const sorted = [...statements].sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1));
+    const overdue = sorted.filter((statement) => statement.dueDate < asOf);
+    const next = sorted[0];
 
     // A fatura still to close is a scheduled payment and costs nothing extra.
     // One already past due is being carried on rotativo, which is the most
     // expensive money in the country - and an estimate, so it is labelled one.
-    const overdue = statement.dueDate < asOf;
+    const carryingRevolving = overdue.length > 0;
+
+    // What the card demands next month: the overdue balance if there is one -
+    // it is all payable today - otherwise the next fatura alone. Never the
+    // whole card at once, which is precisely what a household in trouble
+    // cannot do.
+    const overdueAmount = overdue.reduce((total, item) => total + item.remainingAmount.amount, 0);
+    const demandedNext = carryingRevolving
+      ? Math.max(overdueAmount, minimumStatementPayment(overdueAmount))
+      : (next?.remainingAmount.amount ?? balance);
 
     debtItems.push({
-      id: statement.id,
-      name: `Fatura de ${formatMonthKey(statement.referenceMonth)}`,
+      id: `card:${creditCardId}`,
+      name: cardDebtName(input.cardNames?.get(creditCardId), sorted),
       kind: "CARD",
-      totalBalance: statement.remainingAmount,
-      monthlyPayment: statement.remainingAmount,
-      monthlyRate: overdue ? REVOLVING_MONTHLY_RATE_ESTIMATE : 0,
-      rateSource: overdue ? "MARKET_ESTIMATE" : "CONTRACT",
-      remainingInstallments: 1,
+      totalBalance: money(balance, currency),
+      monthlyPayment: money(Math.min(demandedNext, balance), currency),
+      monthlyRate: carryingRevolving ? REVOLVING_MONTHLY_RATE_ESTIMATE : 0,
+      rateSource: carryingRevolving ? "MARKET_ESTIMATE" : "CONTRACT",
+      remainingInstallments: sorted.length,
     });
   }
 
   const totalDebtCents = debtItems.reduce((acc, d) => acc + d.totalBalance.amount, 0);
   const totalDebtAmount: Money = { amount: totalDebtCents, currency };
 
+  // Can this household even run the plan?
+  //
+  // Answered before any date is computed, because the answer decides whether a
+  // date is worth computing at all.
+  const requiredMinimums = debtItems.reduce((total, item) => total + item.monthlyPayment.amount, 0);
+  const shortfall = Math.max(0, requiredMinimums - monthlyCapacityAmount);
+  const feasibility: PlanFeasibility = {
+    viability:
+      totalDebtCents === 0
+        ? "ON_TRACK"
+        : shortfall > 0
+          ? "NOT_VIABLE"
+          : monthlyCapacityAmount - requiredMinimums <= 0
+            ? "TIGHT"
+            : "ON_TRACK",
+    monthlyCapacity: money(monthlyCapacityAmount, currency),
+    requiredMinimums: money(requiredMinimums, currency),
+    monthlyShortfall: money(shortfall, currency),
+  };
+
   // Calculate payoff plans: Snowball (smallest balance first) & Avalanche (highest rate first)
-  const snowballPlan = simulateStrategy(debtItems, "SNOWBALL", totalMonthlySurplus, asOf, currency);
+  const snowballPlan = simulateStrategy(
+    debtItems,
+    "SNOWBALL",
+    monthlyCapacityAmount,
+    asOf,
+    currency,
+  );
   const avalanchePlan = simulateStrategy(
     debtItems,
     "AVALANCHE",
-    totalMonthlySurplus,
+    monthlyCapacityAmount,
     asOf,
     currency,
   );
 
-  const monthsToDebtFree = avalanchePlan.estimatedMonths;
-  const debtFreeDate = avalanchePlan.targetDate;
+  // No honest month to name when the minimums do not fit. The screens read
+  // `feasibility` and say so, instead of printing a date thirty years out.
+  const planCloses = feasibility.viability !== "NOT_VIABLE" && avalanchePlan.closes;
+  const monthsToDebtFree = planCloses ? avalanchePlan.estimatedMonths : null;
+  const debtFreeDate = planCloses ? avalanchePlan.targetDate : null;
 
   // Target emergency reserve (3 months of essential outflows)
   const monthlyExpenseBase = Math.max(50000, monthlyOutflows); // at least R$ 500/mo
@@ -233,18 +350,26 @@ export function calculateRecoveryTimeline(
   const currentReserveCents = Math.max(0, input.protectedReserve.amount);
   const reserveNeededCents = Math.max(0, emergencyTargetCents - currentReserveCents);
 
-  // Time to complete emergency fund (saving after or alongside debt relief)
-  const effectiveSavingCapacity = Math.max(
-    10000,
-    totalMonthlySurplus > 0 ? totalMonthlySurplus : 20000,
-  ); // at least R$ 100/mo
-  const monthsToFundAfterDebts = Math.ceil(reserveNeededCents / effectiveSavingCapacity);
-  const monthsToEmergencyFund = monthsToDebtFree + monthsToFundAfterDebts;
-  const emergencyFundDate = addMonths(asOf, monthsToEmergencyFund);
+  // Time to complete the emergency fund.
+  //
+  // Once the debt is gone, everything that was servicing it can be saved -
+  // that, and nothing invented. The previous floor of R$ 100 a month conjured
+  // money the household had said it did not have, and turned into milestones
+  // thirteen years out that no one could act on. When there is nothing to save
+  // with, the honest answer is no date at all.
+  const savingCapacityAfterDebts = monthlyCapacityAmount;
+  const monthsToEmergencyFund =
+    reserveNeededCents === 0
+      ? monthsToDebtFree
+      : monthsToDebtFree !== null && savingCapacityAfterDebts > 0
+        ? monthsToDebtFree + Math.ceil(reserveNeededCents / savingCapacityAfterDebts)
+        : null;
+  const emergencyFundDate =
+    monthsToEmergencyFund === null ? null : addMonths(asOf, monthsToEmergencyFund);
 
   // Time to stability (Emergency fund full + 6 months of positive track record)
-  const monthsToStability = monthsToEmergencyFund + 6;
-  const stabilityDate = addMonths(asOf, monthsToStability);
+  const monthsToStability = monthsToEmergencyFund === null ? null : monthsToEmergencyFund + 6;
+  const stabilityDate = monthsToStability === null ? null : addMonths(asOf, monthsToStability);
 
   // Milestones for the visual roadmap
   const milestones: Milestone[] = [
@@ -263,26 +388,45 @@ export function calculateRecoveryTimeline(
   ];
 
   const starter = starterReserveStatus(input.reserves, { amount: monthlyOutflows, currency });
-  const starterMonths = monthsToStarterReserve(starter, {
-    amount: Math.max(totalMonthlySurplus, 0),
-    currency,
-  });
+  // A reserva de partida também precisa passar pelo teste de viabilidade.
+  //
+  // O que sobra depois das contas do mês não é o que sobra para guardar: se as
+  // parcelas mínimas já não cabem, cada real guardado é um real que faltou
+  // numa parcela. Prometer "reserva de partida em 35 meses" a quem está R$ 577
+  // curto por mês contradiz, na mesma tela, o aviso de que o plano não fecha.
+  const canSaveAnything = feasibility.viability !== "NOT_VIABLE";
+  const starterMonths = canSaveAnything
+    ? monthsToStarterReserve(starter, {
+        amount: Math.max(totalMonthlySurplus, 0),
+        currency,
+      })
+    : null;
 
-  milestones.push({
-    id: "m0b",
-    title: "Reserva de partida (antes de quitar tudo)",
-    category: "STARTER_RESERVE",
-    targetDate: addMonths(asOf, starterMonths ?? 0),
-    targetMonth: monthKeyOf(addMonths(asOf, starterMonths ?? 0)),
-    monthsFromNow: starterMonths ?? 0,
-    isCompleted: starter.isComplete,
-    progressPercentage: Math.round(starter.ratio * 100),
-    description:
-      "Um colchão pequeno guardado antes da quitação total. É ele que impede um imprevisto de jogar a família de volta no cartão.",
-    valueFormatted: `${formatMoney(starter.current)} de ${formatMoney(starter.target)}`,
-  });
+  if (starter.isComplete || starterMonths !== null) {
+    milestones.push({
+      id: "m0b",
+      title: "Reserva de partida (antes de quitar tudo)",
+      category: "STARTER_RESERVE",
+      targetDate: addMonths(asOf, starterMonths ?? 0),
+      targetMonth: monthKeyOf(addMonths(asOf, starterMonths ?? 0)),
+      monthsFromNow: starterMonths ?? 0,
+      isCompleted: starter.isComplete,
+      progressPercentage: Math.round(starter.ratio * 100),
+      description:
+        "Um colchão pequeno guardado antes da quitação total. É ele que impede um imprevisto de jogar a família de volta no cartão.",
+      valueFormatted: `${formatMoney(starter.current)} de ${formatMoney(starter.target)}`,
+    });
+  }
 
-  if (totalDebtCents > 0) {
+  // Milestones only exist where a date exists.
+  //
+  // A milestone with no reachable date is not a goal, it is a verdict, and
+  // showing "estabilidade em agosto de 2040" to a family in trouble teaches
+  // them the app is not talking about their life. When the plan does not
+  // close, the screens fall back to `feasibility` and say what to do instead.
+  const itemCount = debtItems.length;
+
+  if (totalDebtCents > 0 && monthsToDebtFree !== null && debtFreeDate !== null) {
     milestones.push({
       id: "m1",
       title: "Quitação Total de Dívidas e Cartões",
@@ -292,13 +436,13 @@ export function calculateRecoveryTimeline(
       monthsFromNow: monthsToDebtFree,
       isCompleted: false,
       progressPercentage: 0,
-      description: `Meta para zerar ${debtItems.length} dívida(s) e compromisso(s) ativo(s).`,
+      description: `Meta para zerar ${itemCount} ${itemCount === 1 ? "dívida ativa" : "dívidas ativas"}.`,
       valueFormatted: `Elimina ${formatMoney(totalDebtAmount)} em passivos`,
     });
   }
 
-  milestones.push(
-    {
+  if (monthsToEmergencyFund !== null && emergencyFundDate !== null) {
+    milestones.push({
       id: "m2",
       title: "Reserva de Emergência Essencial (3 meses)",
       category: "EMERGENCY_RESERVE",
@@ -313,8 +457,11 @@ export function calculateRecoveryTimeline(
       description:
         "Colchão financeiro seguro para proteger sua família contra qualquer imprevisto.",
       valueFormatted: `Meta: ${formatMoney({ amount: emergencyTargetCents, currency })}`,
-    },
-    {
+    });
+  }
+
+  if (monthsToStability !== null && stabilityDate !== null) {
+    milestones.push({
       id: "m3",
       title: "Estabilidade Financeira e Liberdade",
       category: "STABILITY",
@@ -324,21 +471,40 @@ export function calculateRecoveryTimeline(
       isCompleted: false,
       progressPercentage: 0,
       description:
-        "Finanças 100% blindadas, com superávit recorrente e capacidade de novos investimentos.",
-      valueFormatted: "Liberdade Financeira Conquistada",
-    },
-  );
+        "Finanças com folga recorrente e um colchão que absorve imprevistos sem voltar ao cartão.",
+      valueFormatted: "Estabilidade conquistada",
+    });
+  }
 
   // Accelerated payoff estimates
   const acceleratedPayoffEstimate = {
-    extraAporte50: computeAccelerationSavings(debtItems, 5000, asOf, currency),
-    extraAporte100: computeAccelerationSavings(debtItems, 10000, asOf, currency),
-    extraAporte200: computeAccelerationSavings(debtItems, 20000, asOf, currency),
+    extraAporte50: computeAccelerationSavings(
+      debtItems,
+      5000,
+      monthlyCapacityAmount,
+      asOf,
+      currency,
+    ),
+    extraAporte100: computeAccelerationSavings(
+      debtItems,
+      10000,
+      monthlyCapacityAmount,
+      asOf,
+      currency,
+    ),
+    extraAporte200: computeAccelerationSavings(
+      debtItems,
+      20000,
+      monthlyCapacityAmount,
+      asOf,
+      currency,
+    ),
   };
 
   return {
     asOf,
     monthlySurplus: { amount: totalMonthlySurplus, currency },
+    feasibility,
     totalDebtAmount,
     monthsToDebtFree,
     debtFreeDate,
@@ -355,10 +521,17 @@ export function calculateRecoveryTimeline(
   };
 }
 
+/**
+ * Runs the payoff month by month against a real monthly budget.
+ *
+ * `monthlyCapacity` is everything the household can put towards debt in a
+ * month - minimums included, not on top of them. That single change is what
+ * separates a plan from a wish.
+ */
 function simulateStrategy(
   items: readonly DebtItemForPayoff[],
   strategy: PayoffStrategy,
-  monthlySurplus: number,
+  monthlyCapacity: number,
   asOf: CalendarDate,
   currency: Money["currency"],
   /** False on the inner run that measures "paying only the minimums". */
@@ -371,6 +544,7 @@ function simulateStrategy(
       description: "Você não possui dívidas ativas. Parabéns!",
       estimatedMonths: 0,
       targetDate: asOf,
+      closes: true,
       totalInterestPaid: zero(currency),
       interestSavedVsMinimum: zero(currency),
       estimatedRateItems: 0,
@@ -401,49 +575,71 @@ function simulateStrategy(
 
   const maxMonths = 360; // 30 years cap
 
+  const settle = (d: { id: string; name: string; balance: number }) => {
+    if (d.balance > 0 || payoffOrder.some((p) => p.debtId === d.id)) return;
+    payoffOrder.push({
+      debtId: d.id,
+      name: d.name,
+      payoffMonthIndex: months,
+      estimatedPayoffDate: addMonths(asOf, months),
+    });
+  };
+
+  // A plan that is going backwards is not a slow plan.
+  //
+  // When the month's money does not even cover the interest, the balance grows
+  // and keeps growing: running that to the 360-month ceiling produces numbers
+  // that overflow the money type long before they produce an answer. Three
+  // consecutive months without progress is proof enough - capacity and rates
+  // are constant here, so a stall never un-stalls itself.
+  let previousTotal = pool.reduce((total, d) => total + d.balance, 0);
+  let stalledMonths = 0;
+  const STALL_LIMIT = 3;
+
   while (pool.some((d) => d.balance > 0) && months < maxMonths) {
     months++;
-    let extraCash = monthlySurplus;
 
-    // 1. Accrue monthly interest & pay minimums
+    // Every month starts with a fixed amount of real money, and not one
+    // centavo more. The old loop paid every minimum unconditionally and then
+    // added the surplus on top, so a household with nothing still "paid" its
+    // instalments - which is how an impossible plan acquired a completion
+    // date. Here the month can genuinely run out of money, and a debt that
+    // goes unpaid simply keeps its balance and accrues next month.
+    let cash = Math.max(0, monthlyCapacity);
+
+    // 1. Interest first: it accrues whether or not anything is paid.
     for (const d of pool) {
       if (d.balance <= 0) continue;
       const interest = Math.round(d.balance * (d.monthlyRate / 100));
       totalInterest += interest;
       d.balance += interest;
-
-      // Minimum payment
-      const minPayment = Math.min(d.monthlyPayment.amount, d.balance);
-      d.balance -= minPayment;
-
-      if (d.balance <= 0 && !payoffOrder.some((p) => p.debtId === d.id)) {
-        payoffOrder.push({
-          debtId: d.id,
-          name: d.name,
-          payoffMonthIndex: months,
-          estimatedPayoffDate: addMonths(asOf, months),
-        });
-      }
     }
 
-    // 2. Direct extra surplus to the target debt of the strategy
+    // 2. Minimums, in strategy order, while the money lasts.
     for (const d of pool) {
-      if (d.balance <= 0 || extraCash <= 0) continue;
-      const payment = Math.min(extraCash, d.balance);
+      if (d.balance <= 0 || cash <= 0) continue;
+      const payment = Math.min(d.monthlyPayment.amount, d.balance, cash);
       d.balance -= payment;
-      extraCash -= payment;
-
-      if (d.balance <= 0 && !payoffOrder.some((p) => p.debtId === d.id)) {
-        payoffOrder.push({
-          debtId: d.id,
-          name: d.name,
-          payoffMonthIndex: months,
-          estimatedPayoffDate: addMonths(asOf, months),
-        });
-      }
+      cash -= payment;
+      settle(d);
     }
+
+    // 3. Whatever is left over goes to the strategy's target debt.
+    for (const d of pool) {
+      if (d.balance <= 0 || cash <= 0) continue;
+      const payment = Math.min(cash, d.balance);
+      d.balance -= payment;
+      cash -= payment;
+      settle(d);
+    }
+
+    const total = pool.reduce((sofar, d) => sofar + d.balance, 0);
+    stalledMonths = total >= previousTotal ? stalledMonths + 1 : 0;
+    previousTotal = total;
+    if (stalledMonths >= STALL_LIMIT) break;
   }
 
+  const closes = pool.every((d) => d.balance <= 0);
   const targetDate = addMonths(asOf, months);
 
   return {
@@ -458,15 +654,17 @@ function simulateStrategy(
         : "Foca em liquidar as dívidas mais caras (juros maiores) primeiro, economizando o máximo de dinheiro em taxas.",
     estimatedMonths: months,
     targetDate,
+    closes,
     totalInterestPaid: { amount: totalInterest, currency },
     // Measured, not assumed: the same plan run with no extra money is what
     // "paying only the minimums" costs, and the difference is the saving.
     interestSavedVsMinimum: withBaseline
       ? clampToZero(
-          subtract(simulateStrategy(items, strategy, 0, asOf, currency, false).totalInterestPaid, {
-            amount: totalInterest,
-            currency,
-          }),
+          subtract(
+            simulateStrategy(items, strategy, minimumsOnly(items), asOf, currency, false)
+              .totalInterestPaid,
+            { amount: totalInterest, currency },
+          ),
         )
       : zero(currency),
     estimatedRateItems: items.filter(
@@ -479,20 +677,27 @@ function simulateStrategy(
 function computeAccelerationSavings(
   items: readonly DebtItemForPayoff[],
   extraMonthlyCents: number,
+  baseCapacity: number,
   asOf: CalendarDate,
   currency: Money["currency"],
 ): { monthsReduced: number; interestSaved: Money } {
   if (items.length === 0) return { monthsReduced: 0, interestSaved: zero(currency) };
 
-  const baseline = simulateStrategy(items, "AVALANCHE", 0, asOf, currency, false);
+  const baseline = simulateStrategy(items, "AVALANCHE", baseCapacity, asOf, currency, false);
   const accelerated = simulateStrategy(
     items,
     "AVALANCHE",
-    extraMonthlyCents,
+    baseCapacity + extraMonthlyCents,
     asOf,
     currency,
     false,
   );
+
+  // An extra R$ 50 cannot shorten a plan that never ends. Saying it does is
+  // the same false comfort this module exists to avoid.
+  if (!baseline.closes && !accelerated.closes) {
+    return { monthsReduced: 0, interestSaved: zero(currency) };
+  }
 
   const monthsReduced = Math.max(0, baseline.estimatedMonths - accelerated.estimatedMonths);
   const interestSaved = clampToZero(
@@ -500,6 +705,32 @@ function computeAccelerationSavings(
   );
 
   return { monthsReduced, interestSaved };
+}
+
+/** Just enough money to cover every minimum, and nothing beyond it. */
+function minimumsOnly(items: readonly DebtItemForPayoff[]): number {
+  return items.reduce((total, item) => total + item.monthlyPayment.amount, 0);
+}
+
+/**
+ * The regulated floor for a credit-card statement in Brazil.
+ *
+ * Fifteen percent of the balance is the minimum a card issuer may accept
+ * (CMN Res. 4.549). It is the smallest payment that keeps the account from
+ * default - and the most expensive way to carry the debt, which is why the
+ * rotativo rate is applied to whatever is left.
+ */
+export const MINIMUM_STATEMENT_SHARE = 0.15;
+
+export function minimumStatementPayment(balanceCents: number): number {
+  return Math.min(balanceCents, Math.ceil(balanceCents * MINIMUM_STATEMENT_SHARE));
+}
+
+/** "Cartão Nubank" when the name is known, otherwise the months it covers. */
+function cardDebtName(cardName: string | undefined, statements: readonly CardStatement[]): string {
+  if (cardName) return `Cartão ${cardName}`;
+  const first = statements[0];
+  return first ? `Fatura de ${formatMonthKey(first.referenceMonth)}` : "Cartão de crédito";
 }
 
 function averageOf(values: readonly number[]): number {

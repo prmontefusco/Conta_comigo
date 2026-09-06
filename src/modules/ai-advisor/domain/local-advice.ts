@@ -58,6 +58,23 @@ export function namesInvestmentProduct(text: string): string | undefined {
   );
 }
 
+/**
+ * How this text refers to the payoff horizon.
+ *
+ * There is no horizon when the minimum instalments do not fit in the month,
+ * and every sentence that names one has to disappear in that case. A plan
+ * that cannot be run is not a slow plan.
+ */
+function horizonSentence(context: AdvisorContext): string {
+  if (context.planViability === "NOT_VIABLE") {
+    return `Hoje **não há prazo de quitação possível**: faltam **${context.monthlyShortfallFormatted}** por mês só para cobrir as parcelas mínimas. Isso é aritmética, não falta de esforço — e o caminho é alongar prazo com os credores, não apertar mais o mês.`;
+  }
+  if (context.monthsToDebtFree === null) {
+    return "Ainda não há dados suficientes para estimar um prazo de quitação.";
+  }
+  return `Quitação estimada em **${context.monthsToDebtFree} meses** (${context.debtFreeDateFormatted}).`;
+}
+
 export function generateLocalFinancialAdvice(context: AdvisorContext, question: string): string {
   const q = question.toLowerCase();
 
@@ -94,7 +111,7 @@ Com base no seu perfil (comprometimento de **${context.debtCommitmentRatio}%** e
   ) {
     return `### 🎯 Plano de Quitação das suas Dívidas (${context.totalDebtFormatted})
 
-Para atingir a sua **quitação estimada em ${context.monthsToDebtFree} meses (${context.debtFreeDateFormatted})**:
+${horizonSentence(context)}
 
 1. **Método Recomendado: Bola de Neve vs Avalanche**:
    - **Método Avalanche (Mais Econômico)**: Se você tem dívidas com juros altos (cheque especial, cartão), priorize quitá-las primeiro para estancar os juros.
@@ -122,7 +139,7 @@ Atualmente, sua reserva cobre **${context.emergencyFundMonths} meses** do seu cu
 - **Score de Saúde:** **${context.score}/100** (${context.statusLabel}).
 - **Comprometimento com Dívidas:** **${context.debtCommitmentRatio}%** da sua renda.
 - **Sobra Mensal Estimada:** **${context.monthlyNetFormatted}**.
-- **Horizonte para Quitação Total:** **${context.monthsToDebtFree} meses** (previsão: **${context.debtFreeDateFormatted}**).
+- **Horizonte para Quitação Total:** ${horizonSentence(context)}
 
 ---
 

@@ -13,7 +13,9 @@ import {
   isWithinRenewalWindow,
   markPending,
   parsePlanPrice,
+  planSource,
   resolveEffectivePlan,
+  trialDaysRemaining,
   yearlySavingPerMonth,
   type Subscription,
 } from "./subscription";
@@ -308,5 +310,70 @@ describe("economia do plano anual", () => {
 
   it("é null quando falta um dos ciclos", () => {
     expect(yearlySavingPerMonth(buildPlanCatalogue({ yearly: "9900" }))).toBeNull();
+  });
+});
+
+/**
+ * O teste de 30 dias.
+ *
+ * O site anunciava isto em cinco lugares e o código não implementava em
+ * nenhum: não havia estado de teste, `ensureUserProfile` gravava FREE e nada
+ * mais acontecia. Estes testes existem para que a promessa e o produto não
+ * voltem a divergir.
+ */
+describe("período de teste", () => {
+  const criacao = "2026-09-01T12:00:00.000Z" as Instant;
+
+  it("dá Premium a uma conta recém-criada, sem assinatura nenhuma", () => {
+    const dezDiasDepois = new Date("2026-09-11T12:00:00.000Z");
+
+    expect(resolveEffectivePlan(null, dezDiasDepois, criacao)).toBe("PREMIUM");
+    expect(planSource(null, criacao, dezDiasDepois)).toBe("TRIAL");
+  });
+
+  it("volta para FREE no dia 31, não antes e não depois", () => {
+    const vespera = new Date("2026-10-01T11:59:00.000Z");
+    const depois = new Date("2026-10-01T12:00:01.000Z");
+
+    expect(resolveEffectivePlan(null, vespera, criacao)).toBe("PREMIUM");
+    expect(resolveEffectivePlan(null, depois, criacao)).toBe("FREE");
+    expect(planSource(null, criacao, depois)).toBe("NONE");
+  });
+
+  it("conta os dias que faltam, e nunca menos que zero", () => {
+    expect(trialDaysRemaining(criacao, new Date("2026-09-01T12:00:00.000Z"))).toBe(30);
+    expect(trialDaysRemaining(criacao, new Date("2026-09-21T12:00:00.000Z"))).toBe(10);
+    expect(trialDaysRemaining(criacao, new Date("2027-01-01T12:00:00.000Z"))).toBe(0);
+  });
+
+  it("uma assinatura paga vence sem reabrir o teste", () => {
+    const contaAntiga = "2024-01-01T00:00:00.000Z" as Instant;
+    const vencida: Subscription = {
+      userId: "u1",
+      plan: "PREMIUM",
+      status: "ACTIVE",
+      expiresAt: "2026-08-01T00:00:00.000Z" as Instant,
+      updatedAt: "2026-07-01T00:00:00.000Z" as Instant,
+    };
+
+    const agora = new Date("2026-09-15T00:00:00.000Z");
+    expect(resolveEffectivePlan(vencida, agora, contaAntiga)).toBe("FREE");
+  });
+
+  it("a assinatura paga tem precedência sobre o teste ainda correndo", () => {
+    const paga: Subscription = {
+      userId: "u1",
+      plan: "PREMIUM",
+      status: "ACTIVE",
+      expiresAt: "2027-09-01T00:00:00.000Z" as Instant,
+      updatedAt: criacao,
+    };
+
+    expect(planSource(paga, criacao, new Date("2026-09-10T00:00:00.000Z"))).toBe("PAID");
+  });
+
+  it("sem data de criação não há teste — falha fechado", () => {
+    expect(resolveEffectivePlan(null, new Date(), undefined)).toBe("FREE");
+    expect(trialDaysRemaining(undefined)).toBe(0);
   });
 });

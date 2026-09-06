@@ -152,8 +152,24 @@ const ESSENTIAL_SERVICE_CONSEQUENCES: Record<string, string> = {
   educacao: "bloqueio de matrícula ou de acesso às aulas",
 };
 
-/** What is lost if this bill stays unpaid, or null when nothing essential is. */
+/**
+ * What is lost if this bill stays unpaid, or null when nothing essential is.
+ *
+ * The slug is matched at the end of the id, not against the whole string.
+ * Households created through the app store a category as `energia`, while the
+ * development fixtures store `<household>-cat-energia` - so an exact match
+ * silently failed for every seeded household, and the screens that warn about
+ * a power cut said nothing. Matching the trailing segment covers both shapes
+ * and any prefix someone adds later.
+ */
 export function essentialServiceConsequence(categoryId: string | undefined): string | null {
   if (!categoryId) return null;
-  return ESSENTIAL_SERVICE_CONSEQUENCES[categoryId] ?? null;
+
+  const direct = ESSENTIAL_SERVICE_CONSEQUENCES[categoryId];
+  if (direct) return direct;
+
+  for (const [slug, consequence] of Object.entries(ESSENTIAL_SERVICE_CONSEQUENCES)) {
+    if (categoryId.endsWith(`-${slug}`)) return consequence;
+  }
+  return null;
 }

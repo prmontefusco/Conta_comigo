@@ -10,7 +10,9 @@ import {
 } from "firebase/firestore";
 import { instant } from "@/core/date/calendar-date";
 import { err, ok, validationError, type Result } from "@/core/result/result";
-import type { HouseholdId, HouseholdRole, UserId } from "@/modules/shared/domain/common";
+import { DEPENDENT_ID_PREFIX } from "@/modules/shared/domain/common";
+import type { HouseholdId, HouseholdRole, MemberId, UserId } from "@/modules/shared/domain/common";
+import { randomId } from "@/core/id/id";
 
 /**
  * Adding and removing the other people in the household.
@@ -95,6 +97,62 @@ export async function addMemberByUid(input: AddMemberInput): Promise<Result<{ ui
   }
 
   return ok({ uid });
+}
+
+export interface AddDependentInput {
+  readonly db: Firestore;
+  readonly householdId: HouseholdId;
+  /** O administrador que está cadastrando. Fica como autor do perfil. */
+  readonly actorUid: UserId;
+  readonly displayName: string;
+}
+
+/**
+ * Uma pessoa da casa que não entra no aplicativo.
+ *
+ * O caso mais comum de uma família brasileira, e o que ficava de fora: um
+ * filho de doze anos, um pai idoso, alguém que só precisa existir para a
+ * pergunta "de quem é este gasto". Exigir conta própria e a troca de um
+ * identificador de 28 caracteres para isso matava a atribuição de despesas
+ * na prática.
+ *
+ * Duas diferenças em relação a `addMemberByUid`, e as duas são o ponto:
+ *
+ * 1. **O id não é um uid.** É gerado aqui com o prefixo `dep_`, que o Firebase
+ *    Auth nunca emite. As Security Rules exigem esse prefixo justamente para
+ *    que um administrador não possa criar `members/{uidDeOutraPessoa}` e fazer
+ *    o próprio grupo aparecer na lista de um estranho.
+ * 2. **`memberUids` não é tocado.** Aquele array é o que concede acesso; um
+ *    perfil sem acesso não entra nele. Por isso aqui há uma escrita só, e não
+ *    a dança de duas etapas que `addMemberByUid` precisa fazer.
+ */
+export async function addDependent(input: AddDependentInput): Promise<Result<{ id: MemberId }>> {
+  const displayName = input.displayName.trim();
+  if (displayName.length < 2) {
+    return err(validationError("Informe o nome da pessoa."));
+  }
+
+  const id = `${DEPENDENT_ID_PREFIX}${randomId()}`;
+  const now = instant();
+
+  try {
+    await setDoc(doc(input.db, `households/${input.householdId}/members/${id}`), {
+      uid: id,
+      householdId: input.householdId,
+      displayName,
+      role: "DEPENDENT",
+      status: "ACTIVE",
+      joinedAt: now,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: input.actorUid,
+    });
+  } catch (writeError) {
+    console.error(writeError);
+    return err(validationError("Não foi possível cadastrar essa pessoa agora. Tente novamente."));
+  }
+
+  return ok({ id });
 }
 
 export interface RemoveMemberInput {

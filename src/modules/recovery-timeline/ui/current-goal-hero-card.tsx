@@ -4,25 +4,14 @@ import Link from "next/link";
 import { formatCalendarDate } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
 import { Badge, Button, Card } from "@/components/ui/primitives";
-import { calculateRecoveryTimeline } from "../domain/recovery-calculator";
 import { useFinance } from "@/modules/household/ui/finance-provider";
+import { useRecoveryTimeline } from "./use-recovery-timeline";
 
 export function CurrentGoalHeroCard() {
   const finance = useFinance();
+  const timeline = useRecoveryTimeline();
 
   if (finance.loading) return null;
-
-  const timeline = calculateRecoveryTimeline({
-    asOf: finance.asOf,
-    openingBalance: finance.totalCash,
-    totalCash: finance.totalCash,
-    protectedReserve: finance.protectedReserve,
-    forecast: finance.forecast,
-    debts: finance.debts,
-    cardStatements: finance.cardStatements,
-    reserves: finance.reserves,
-    paidDebtInstallments: finance.paidDebtInstallments,
-  });
 
   // Identifica a próxima milestone não concluída
   const nextMilestone = timeline.milestones.find((m) => !m.isCompleted) ?? timeline.milestones[0];
@@ -57,7 +46,7 @@ export function CurrentGoalHeroCard() {
           </Badge>
           <Link href="/app/visao-futuro">
             <Button variant="secondary" className="text-xs">
-              Ver Linha do Tempo &rarr;
+              Ver Linha do Tempo →
             </Button>
           </Link>
         </div>
@@ -105,19 +94,31 @@ export function CurrentGoalHeroCard() {
                   {formatMoney(timeline.totalDebtAmount)}
                 </strong>
               </span>
-              <span className="font-semibold text-[color:var(--color-brand-700)]">
-                Previsão de liberdade financeira: {formatCalendarDate(timeline.debtFreeDate)} (em{" "}
-                {timeline.monthsToDebtFree} meses)
-              </span>
+              {timeline.debtFreeDate && timeline.monthsToDebtFree !== null ? (
+                <span className="font-semibold text-[color:var(--color-brand-700)]">
+                  Previsão de liberdade financeira: {formatCalendarDate(timeline.debtFreeDate)} (em{" "}
+                  {timeline.monthsToDebtFree} meses)
+                </span>
+              ) : (
+                <span className="font-semibold text-[color:var(--tone-critical)]">
+                  Ainda não dá para prever a quitação: as parcelas mínimas não cabem no mês.
+                </span>
+              )}
             </>
           ) : (
             <>
               <span style={{ color: "var(--muted-fg)" }}>
                 Reserva acumulada para tranquilidade da família.
               </span>
-              <span className="font-semibold text-[color:var(--color-positive-fg)]">
-                Previsão da reserva plena: {formatCalendarDate(timeline.emergencyFundDate)}
-              </span>
+              {timeline.emergencyFundDate ? (
+                <span className="font-semibold text-[color:var(--color-positive-fg)]">
+                  Previsão da reserva plena: {formatCalendarDate(timeline.emergencyFundDate)}
+                </span>
+              ) : (
+                <span className="font-semibold" style={{ color: "var(--muted-fg)" }}>
+                  A reserva ganha data quando sobrar algo no mês.
+                </span>
+              )}
             </>
           )}
         </div>

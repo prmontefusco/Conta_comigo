@@ -8,7 +8,8 @@ import {
   receiptRequestSchema,
 } from "@/modules/receipts/domain/receipt-reading";
 import { requireAuth } from "@/server/auth-guard";
-import { checkRateLimit } from "@/server/rate-limit";
+import { requirePremiumFeature } from "@/server/plan-guard";
+import { checkSharedRateLimit } from "@/server/rate-limit-store";
 
 /**
  * Leitura de comprovante por foto.
@@ -28,8 +29,7 @@ import { checkRateLimit } from "@/server/rate-limit";
  * 4. **A foto não é guardada.** Ela chega, vai ao modelo e some com a
  *    requisição. Não há Storage, não há log do corpo, não há retenção deste
  *    lado — o que também é a única razão pela qual esta rota não precisa de um
- *    ciclo de vida de exclusão (docs/SECURITY.md, docs/ADSENSE.md sobre dados
- *    pessoais).
+ *    ciclo de vida de exclusão (docs/SECURITY.md sobre dados pessoais).
  *
  * Sem `GEMINI_API_KEY` a rota responde 503 e a tela oferece a digitação
  * normal. Aqui não há motor local: não existe OCR determinístico dentro do
@@ -49,7 +49,18 @@ export async function POST(request: Request) {
   const auth = await requireAuth(request);
   if ("errorResponse" in auth) return auth.errorResponse;
 
-  const limit = checkRateLimit(`receipt:${auth.caller.uid}`, RATE_LIMIT, RATE_WINDOW_MS);
+  const denied = await requirePremiumFeature(
+    auth.caller.uid,
+    "documentReading",
+    "A leitura por foto faz parte do Premium. Você tem 30 dias de teste ao criar a conta — depois disso, dá para digitar os dados normalmente.",
+  );
+  if (denied) return denied;
+
+  const limit = await checkSharedRateLimit(
+    `receipt:${auth.caller.uid}`,
+    RATE_LIMIT,
+    RATE_WINDOW_MS,
+  );
 
   if (!limit.allowed) {
     return NextResponse.json(

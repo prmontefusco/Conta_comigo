@@ -1,14 +1,66 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { FREE_LIMITS, PREMIUM_LIMITS } from "@/modules/billing/domain/plan-limits";
+import { TRIAL_DAYS } from "@/modules/billing/domain/subscription";
+
+/**
+ * Os planos, com o preço vindo do servidor.
+ *
+ * Os valores estavam escritos à mão aqui — "7,99", "69,99", "5,83" — enquanto
+ * a ADR 0010 dizia que a única fonte de verdade é `GET /api/assinatura/planos`,
+ * o mesmo catálogo que o checkout usa para cobrar. Bastava alterar a variável
+ * de ambiente em produção para o site anunciar um preço e a cobrança sair por
+ * outro. Agora não há preço nesta camada: enquanto a resposta não chega, os
+ * cartões mostram o que o plano faz, sem número nenhum.
+ */
+
+interface PlanOption {
+  readonly cycle: "MONTHLY" | "YEARLY";
+  readonly label: string;
+  readonly amountCents: number;
+}
+
+interface Catalogue {
+  readonly open: boolean;
+  readonly plans: readonly PlanOption[];
+  readonly yearlySavingPerMonthCents: number | null;
+}
+
+function formatCents(cents: number): string {
+  return (cents / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 
 export function PricingCards() {
   const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY">("YEARLY");
+  const [catalogue, setCatalogue] = useState<Catalogue | null>(null);
 
-  const monthlyPrice = "7,99";
-  const yearlyPrice = "69,99";
-  const yearlyEquivalentMonthly = "5,83";
+  useEffect(() => {
+    let active = true;
+    fetch("/api/assinatura/planos")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: Catalogue | null) => {
+        if (active && data) setCatalogue(data);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const monthly = catalogue?.plans.find((plan) => plan.cycle === "MONTHLY");
+  const yearly = catalogue?.plans.find((plan) => plan.cycle === "YEARLY");
+  const selected = billingCycle === "YEARLY" ? yearly : monthly;
+
+  const yearlyPerMonth = yearly ? Math.round(yearly.amountCents / 12) : null;
+  const savingPercent =
+    monthly && yearlyPerMonth && monthly.amountCents > yearlyPerMonth
+      ? Math.round(((monthly.amountCents - yearlyPerMonth) / monthly.amountCents) * 100)
+      : null;
 
   return (
     <div className="space-y-8">
@@ -37,9 +89,11 @@ export function PricingCards() {
             }`}
           >
             <span>Anual</span>
-            <span className="rounded-full bg-emerald-100/90 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-              Economize 27%
-            </span>
+            {savingPercent ? (
+              <span className="rounded-full bg-emerald-100/90 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                Economize {savingPercent}%
+              </span>
+            ) : null}
           </button>
         </div>
       </div>
@@ -60,7 +114,8 @@ export function PricingCards() {
 
             <h2 className="mt-3 text-xl font-bold text-slate-900">Conta comigo Grátis</h2>
             <p className="mt-1 text-xs text-slate-500">
-              Para quem quer dar os primeiros passos e organizar a rotina básica de contas.
+              Tudo o que é preciso para enxergar a própria situação e sair da dívida. Sem prazo para
+              acabar.
             </p>
 
             <div className="mt-6 flex items-baseline gap-1">
@@ -69,25 +124,29 @@ export function PricingCards() {
             </div>
 
             <ul className="mt-6 space-y-3 text-xs text-slate-600">
-              <li className="flex items-center gap-2.5">
-                <span className="text-teal-600">✓</span>
-                <span>Registro de contas e despesas do dia a dia</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="text-teal-600">✓</span>
-                <span>Visão de contas a pagar no mês</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="text-teal-600">✓</span>
-                <span>1 membro no grupo familiar</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="text-teal-600">✓</span>
-                <span>Acesso a todos os artigos e guias educativos</span>
-              </li>
-              <li className="flex items-center gap-2.5 text-slate-400">
+              {[
+                "Contas, dívidas e lançamentos sem limite de quantidade",
+                "Modo emergência: o que pagar primeiro quando o dinheiro não dá",
+                "Quanto o atraso está custando por dia, em multa e juros",
+                "Calculadora de acordo e roteiros de negociação",
+                "Diagnóstico honesto, inclusive quando o plano não fecha",
+                "Todos os guias de educação financeira",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2.5">
+                  <span className="text-teal-600">✓</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+              <li className="flex items-start gap-2.5 text-slate-400">
                 <span>•</span>
-                <span>Exibe anúncios discretos</span>
+                <span>
+                  Projeção de {FREE_LIMITS.forecastMonths} meses, {FREE_LIMITS.members} pessoas no
+                  grupo e {FREE_LIMITS.creditCards} cartões
+                </span>
+              </li>
+              <li className="flex items-start gap-2.5 text-slate-400">
+                <span>•</span>
+                <span>Cadastro de contas e faturas digitado, sem leitura por foto</span>
               </li>
             </ul>
           </div>
@@ -102,10 +161,10 @@ export function PricingCards() {
           </div>
         </div>
 
-        {/* Plano Premium - Destaque */}
+        {/* Plano Premium */}
         <div className="relative flex flex-col justify-between rounded-3xl border-2 border-teal-500 bg-gradient-to-b from-teal-50/50 via-white to-white p-6 shadow-md sm:p-8">
           <div className="absolute -top-3.5 right-6 rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 px-3.5 py-1 text-xs font-bold text-white shadow-sm">
-            ⭐ 30 DIAS GRÁTIS
+            ⭐ {TRIAL_DAYS} DIAS GRÁTIS
           </div>
 
           <div>
@@ -113,94 +172,69 @@ export function PricingCards() {
               <span className="text-xs font-semibold tracking-wider text-teal-700 uppercase">
                 Plano Completo Familiar
               </span>
-              <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
-                Teste 30 dias grátis
-              </span>
             </div>
 
             <h2 className="mt-3 text-xl font-bold text-slate-900">Conta comigo Premium</h2>
             <p className="mt-1 text-xs text-slate-600">
-              Controle total, projeção de 12 meses, IA financeira e zero distrações para sua
-              família.
+              Para organizar com mais folga: horizonte longo, leitura automática de documentos e a
+              casa toda no mesmo painel.
             </p>
 
             <div className="mt-6 flex flex-col">
-              {billingCycle === "YEARLY" ? (
-                <div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-4xl font-extrabold text-slate-900">
-                      R$ {yearlyEquivalentMonthly}
-                    </span>
-                    <span className="text-xs text-slate-500">/ mês</span>
+              {selected ? (
+                billingCycle === "YEARLY" && yearlyPerMonth ? (
+                  <div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-4xl font-extrabold text-slate-900">
+                        R$ {formatCents(yearlyPerMonth)}
+                      </span>
+                      <span className="text-xs text-slate-500">/ mês</span>
+                    </div>
+                    <p className="mt-1 text-xs font-medium text-teal-800">
+                      Cobrado uma vez por ano: R$ {formatCents(selected.amountCents)}, após os{" "}
+                      {TRIAL_DAYS} dias grátis.
+                    </p>
                   </div>
-                  <p className="mt-1 text-xs font-medium text-teal-800">
-                    Cobrado anualmente: R$ {yearlyPrice} / ano (após os 30 dias grátis)
-                  </p>
-                </div>
+                ) : (
+                  <div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-4xl font-extrabold text-slate-900">
+                        R$ {formatCents(selected.amountCents)}
+                      </span>
+                      <span className="text-xs text-slate-500">/ mês</span>
+                    </div>
+                    <p className="mt-1 text-xs font-medium text-teal-800">
+                      Sem fidelidade e sem renovação automática.
+                    </p>
+                  </div>
+                )
               ) : (
-                <div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-4xl font-extrabold text-slate-900">
-                      R$ {monthlyPrice}
-                    </span>
-                    <span className="text-xs text-slate-500">/ mês</span>
-                  </div>
-                  <p className="mt-1 text-xs font-medium text-teal-800">
-                    Sem fidelidade. Cancele quando quiser.
-                  </p>
-                </div>
+                <p className="text-sm text-slate-500">
+                  {catalogue && !catalogue.open
+                    ? "A assinatura ainda não está disponível. O plano gratuito já funciona por inteiro."
+                    : "Carregando o preço…"}
+                </p>
               )}
             </div>
 
-            <ul className="mt-6 space-y-3 text-xs text-slate-700">
-              <li className="flex items-center gap-2.5 font-medium text-slate-900">
-                <span className="flex size-4.5 items-center justify-center rounded-full bg-teal-100 text-xs text-teal-700">
-                  ✓
-                </span>
-                <span>30 dias de teste gratuito sem compromisso</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="flex size-4.5 items-center justify-center rounded-full bg-teal-100 text-xs text-teal-700">
-                  ✓
-                </span>
-                <span>100% Livre de anúncios e distrações</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="flex size-4.5 items-center justify-center rounded-full bg-teal-100 text-xs text-teal-700">
-                  ✓
-                </span>
-                <span>Motor de Projeção Financeira Completo (30 a 365 dias)</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="flex size-4.5 items-center justify-center rounded-full bg-teal-100 text-xs text-teal-700">
-                  ✓
-                </span>
-                <span>Simulador de Salários, 13º Salário e Proventos Futuros</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="flex size-4.5 items-center justify-center rounded-full bg-teal-100 text-xs text-teal-700">
-                  ✓
-                </span>
-                <span>Diagnóstico com IA & Leitor Inteligente de Faturas/Boletos</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="flex size-4.5 items-center justify-center rounded-full bg-teal-100 text-xs text-teal-700">
-                  ✓
-                </span>
-                <span>Multi-membros da família no mesmo painel compartilhado</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="flex size-4.5 items-center justify-center rounded-full bg-teal-100 text-xs text-teal-700">
-                  ✓
-                </span>
-                <span>Calculadora de Acordos e Roteiros de Negociação de Dívidas</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="flex size-4.5 items-center justify-center rounded-full bg-teal-100 text-xs text-teal-700">
-                  ✓
-                </span>
-                <span>Suporte prioritário e humanizado</span>
-              </li>
+            <p className="mt-6 text-xs font-semibold text-slate-900">Tudo do gratuito, e mais:</p>
+            <ul className="mt-3 space-y-3 text-xs text-slate-700">
+              {[
+                `${TRIAL_DAYS} dias de teste ao criar a conta, sem cartão`,
+                `Projeção completa de ${PREMIUM_LIMITS.forecastMonths} meses, não ${FREE_LIMITS.forecastMonths}`,
+                "Leitor de faturas, boletos e comprovantes por foto",
+                "Diagnóstico redigido por IA, além do cálculo local",
+                `Até ${PREMIUM_LIMITS.members} pessoas no mesmo painel familiar`,
+                `Até ${PREMIUM_LIMITS.creditCards} cartões de crédito`,
+                "Simulador de aumento, 13º salário e férias",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2.5">
+                  <span className="mt-px flex size-4.5 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs text-teal-700">
+                    ✓
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -209,10 +243,10 @@ export function PricingCards() {
               href="/criar-conta"
               className="flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 font-semibold text-white shadow-sm transition-all hover:from-teal-700 hover:to-cyan-700 hover:shadow-md"
             >
-              Experimentar 30 dias grátis
+              Começar os {TRIAL_DAYS} dias grátis
             </Link>
             <p className="mt-2 text-center text-[11px] text-slate-500">
-              Ativação imediata • Cancele quando quiser
+              Sem cartão para testar • O pagamento é avulso e não renova sozinho
             </p>
           </div>
         </div>

@@ -319,6 +319,7 @@ function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }
   const [rateText, setRateText] = useState("");
   const [cetText, setCetText] = useState("");
   const [firstDueDate, setFirstDueDate] = useState<string>(asOf);
+  const [alreadyPaid, setAlreadyPaid] = useState("0");
   const [memberId, setMemberId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -352,6 +353,12 @@ function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }
     }
     const installmentAmount = installmentText ? fromDecimalString(installmentText) : null;
 
+    const paidBefore = alreadyPaid.trim() === "" ? 0 : Number(alreadyPaid);
+    if (!Number.isInteger(paidBefore) || paidBefore < 0 || paidBefore > count) {
+      setError(`As parcelas já pagas precisam estar entre 0 e ${count}.`);
+      return;
+    }
+
     setSaving(true);
     try {
       await collections.debts.create({
@@ -368,6 +375,7 @@ function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }
         installmentCount: count,
         installmentAmount: installmentAmount ?? undefined,
         firstDueDate: firstDueDate as never,
+        installmentsPaidBeforeTracking: paidBefore > 0 ? paidBefore : undefined,
         status: "ACTIVE",
         visibility: "HOUSEHOLD",
         ...(memberId ? { responsibleMemberId: memberId } : {}),
@@ -468,6 +476,17 @@ function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }
           required
           value={firstDueDate}
           onChange={(event) => setFirstDueDate(event.target.value)}
+          hint="Se a dívida é antiga, coloque a data da primeira parcela — mesmo que já tenha passado."
+        />
+
+        <TextField
+          label="Parcelas que você já pagou"
+          type="number"
+          min={0}
+          max={600}
+          value={alreadyPaid}
+          onChange={(event) => setAlreadyPaid(event.target.value)}
+          hint="Quantas parcelas já saíram antes de você cadastrar aqui. Sem isso o app acha que você deve tudo de novo — e avisa de atraso que não existe."
         />
 
         <MemberField

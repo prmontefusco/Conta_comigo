@@ -400,6 +400,14 @@ export interface InstallmentPlan {
   readonly remainingCount: number;
   /** What is still to be billed, from the open statement onwards. */
   readonly remainingAmount: Money;
+  /**
+   * The instalments still to be billed, in order.
+   *
+   * Already computed to derive `remainingAmount`; exposed so a caller can ask
+   * *when* the money falls, not only how much is left. It is what lets the
+   * cards screen answer "how much of each month ahead is already spoken for".
+   */
+  readonly remainingInstallments: readonly CardInstallment[];
   /** The next instalment to hit a statement, when there is one. */
   readonly next?: CardInstallment;
   readonly firstMonth: MonthKey;
@@ -457,6 +465,7 @@ export function openInstallmentPlans(
         remaining.map((installment) => installment.amount),
         purchase.totalAmount.currency,
       ),
+      remainingInstallments: remaining,
       next: remaining[0],
       firstMonth: installments[0]!.statementMonth,
       lastMonth: installments[installments.length - 1]!.statementMonth,

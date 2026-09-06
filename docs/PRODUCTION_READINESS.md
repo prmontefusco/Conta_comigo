@@ -1,5 +1,19 @@
 # Prontidão para produção
 
+> **Nota de revisão — setembro de 2026.** Este documento descreve a Fase 12 e
+> ficou parcialmente desatualizado depois da auditoria que removeu a
+> publicidade e reescreveu o motor de recuperação. O que mudou desde então:
+>
+> - **AdSense foi removido por completo** — componentes, rota `ads.txt`,
+>   variáveis de ambiente e domínios da CSP. Todo trecho abaixo sobre ad units,
+>   conta aprovada ou placeholders está obsoleto. A assinatura passou a ser a
+>   única receita.
+> - **O plano gratuito ganhou limites reais** (`plan-limits.ts`) e o teste de
+>   30 dias passou a existir de fato, derivado da data de criação da conta.
+> - **O motor de recuperação deixou de prometer quitação a quem está em
+>   déficit**: quando as parcelas mínimas não cabem, não há data, e as telas
+>   encaminham para renegociação e para o modo emergência.
+
 Registro da revisão da Fase 12. Escrito para ser lido antes de qualquer deploy,
 e atualizado quando alguma linha deixar de ser verdade.
 

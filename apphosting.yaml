@@ -35,20 +35,6 @@ env:
     value: "false"
     availability: [BUILD, RUNTIME]
 
-  # AdSense. Real ad scripts only ever load in production (docs/ADSENSE.md).
-  #
-  # Começa DESLIGADO. Ligar isto sem uma conta AdSense aprovada e sem os ids das
-  # ad units não mostra anúncio nenhum: mostra o espaço vazio do placeholder
-  # para usuário real. É melhor não ter anúncio do que ter buraco.
-  #
-  # Ligue quando a conta estiver aprovada e o publisher id preenchido abaixo.
-  - variable: NEXT_PUBLIC_ADS_ENABLED
-    value: "false"
-    availability: [BUILD, RUNTIME]
-  - variable: NEXT_PUBLIC_ADSENSE_CLIENT_ID
-    value: REPLACE_WITH_ADSENSE_CLIENT_ID
-    availability: [BUILD, RUNTIME]
-
   # Indexação pelos buscadores. Opt-in explícito, e por isso começa desligada.
   #
   # O primeiro deploy vai para o domínio provisório do App Hosting. Deixar o
@@ -107,10 +93,10 @@ env:
   # Um valor inválido ou ausente fecha a venda daquele ciclo, em vez de virar
   # zero: é melhor não vender do que vender pelo preço errado.
   - variable: SUBSCRIPTION_PRICE_MONTHLY_CENTS
-    value: "799" # R$ 7,99 por mês
+    value: "1199" # R$ 11,99 por mês
     availability: [RUNTIME]
   - variable: SUBSCRIPTION_PRICE_YEARLY_CENTS
-    value: "6999" # R$ 69,99 por ano (equivale a ~R$ 5,83/mês)
+    value: "10999" # R$ 109,99 por ano (equivale a ~R$ 9,17/mês)
     availability: [RUNTIME]
 
   # ── Consultoria com IA e leitura de comprovante ─────────────────────────────

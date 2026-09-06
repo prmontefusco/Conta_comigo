@@ -90,11 +90,14 @@ test.describe("resumo", () => {
     await expect(primeiraLinha).not.toContainText("Déficit");
   });
 
-  test("não carrega publicidade real em ambiente local", async ({ page }) => {
-    await expect(page.getByTestId("ad-placeholder-dashboard-inline")).toBeAttached();
-
-    const scripts = await page.locator('script[src*="googlesyndication"]').count();
-    expect(scripts).toBe(0);
+  // O teste antigo verificava que o *placeholder* de anúncio estava no lugar
+  // em ambiente local. Não há mais placeholder porque não há mais publicidade
+  // — então o que se guarda agora é a ausência, e ela vale em produção também.
+  test("nenhum anúncio, nenhum script de rede de anúncios", async ({ page }) => {
+    expect(await page.locator('[data-testid^="ad-"]').count()).toBe(0);
+    expect(await page.locator('script[src*="googlesyndication"]').count()).toBe(0);
+    expect(await page.locator('script[src*="doubleclick"]').count()).toBe(0);
+    expect(await page.locator("ins.adsbygoogle").count()).toBe(0);
   });
 });
 

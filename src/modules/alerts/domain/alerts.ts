@@ -14,7 +14,7 @@ import {
 } from "@/modules/cards/domain/credit-card";
 import type { BudgetStatus } from "@/modules/budget/domain/budget";
 import type { DashboardOverview } from "@/modules/dashboard/domain/overview";
-import { buildSchedule, type Debt } from "@/modules/debts/domain/debt";
+import { lateInstallmentCount, type Debt } from "@/modules/debts/domain/debt";
 import { classifyDebt, essentialServiceConsequence } from "@/modules/debts/domain/debt-risk";
 import type { ForecastResult } from "@/modules/forecast/domain/forecast-types";
 import { progressOf, type Reserve } from "@/modules/reserves/domain/reserve";
@@ -132,9 +132,15 @@ export function buildAlerts(input: AlertInput): Alert[] {
     const risk = classifyDebt(debt);
     if (risk.guarantee !== "COLLATERAL") continue;
 
-    const paidCount = (input.paidDebtInstallments?.get(debt.id) ?? []).length;
-    const dueByNow = buildSchedule(debt).filter((item) => item.dueDate <= input.asOf).length;
-    const late = dueByNow - paidCount;
+    // Counted against every instalment the household has told us about,
+    // including the ones paid before the debt was registered here. Without
+    // that, a financing entered halfway through its term looks abandoned and
+    // the app warns about a repossession that is not happening.
+    const late = lateInstallmentCount(
+      debt,
+      input.asOf,
+      input.paidDebtInstallments?.get(debt.id) ?? [],
+    );
 
     // A debt marked in default is late whatever the payment records say.
     if (late <= 0 && debt.status !== "IN_DEFAULT") continue;

@@ -350,7 +350,7 @@ export function SalarySimulatorCard() {
                 onClick={() => setIsIncrease(true)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                   isIncrease
-                    ? "bg-emerald-600 text-white shadow-2xs"
+                    ? "bg-emerald-700 text-white shadow-2xs"
                     : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
                 }`}
               >

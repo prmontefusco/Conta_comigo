@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   ADMIN_A,
   anonymous,
+  asEmail,
   as,
   auditFor,
   brl,
@@ -645,5 +646,456 @@ describe("undeclared collections", () => {
     await assertFails(db.doc(`households/${HOUSEHOLD_A}/secrets/whatever`).set({ a: 1 }));
     await assertFails(db.doc("randomCollection/doc").set({ a: 1 }));
     await assertFails(db.doc(`households/${HOUSEHOLD_A}/secrets/whatever`).get());
+  });
+});
+
+/**
+ * Perfis sem acesso.
+ *
+ * Um dependente concede nada por **construção**, não por verificação: as
+ * regras só reconhecem um membro quando o id do documento é o uid de quem
+ * chama, e um id `dep_…` nunca pode ser um uid do Firebase Auth. Estes testes
+ * guardam exatamente essa fronteira — inclusive a tentativa de usá-la para
+ * enfiar o próprio grupo na lista de um estranho.
+ */
+describe("dependent profiles", () => {
+  const dependentDoc = (name = "Lucas") => ({
+    uid: "",
+    householdId: HOUSEHOLD_A,
+    displayName: name,
+    role: "DEPENDENT",
+    status: "ACTIVE",
+    ...auditFor(ADMIN_A),
+  });
+
+  it("an admin can create a profile with no access, without touching memberUids", async () => {
+    await seed();
+    const db = as(testEnv, ADMIN_A).firestore();
+    const id = "dep_lucas01";
+
+    await assertSucceeds(
+      db.doc(`households/${HOUSEHOLD_A}/members/${id}`).set({
+        ...dependentDoc(),
+        uid: id,
+      }),
+    );
+  });
+
+  it("refuses a real uid dressed as a dependent, which is how a household would appear in a stranger's list", async () => {
+    await seed();
+    const db = as(testEnv, ADMIN_A).firestore();
+
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}/members/${OUTSIDER}`).set({
+        ...dependentDoc("Vítima"),
+        uid: OUTSIDER,
+      }),
+    );
+  });
+
+  it("refuses an id that only looks prefixed", async () => {
+    await seed();
+    const db = as(testEnv, ADMIN_A).firestore();
+
+    for (const id of ["dependente01", "DEP_lucas", "dep-lucas", "dep_"]) {
+      await assertFails(
+        db.doc(`households/${HOUSEHOLD_A}/members/${id}`).set({
+          ...dependentDoc(),
+          uid: id,
+        }),
+      );
+    }
+  });
+
+  it("refuses a dep_ id carrying a role that grants access", async () => {
+    await seed();
+    const db = as(testEnv, ADMIN_A).firestore();
+    const id = "dep_sneaky01";
+
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}/members/${id}`).set({
+        ...dependentDoc(),
+        uid: id,
+        role: "ADMIN",
+      }),
+    );
+  });
+
+  it("a plain MEMBER cannot create a dependent", async () => {
+    await seed();
+    const db = as(testEnv, MEMBER_A).firestore();
+    const id = "dep_lucas02";
+
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}/members/${id}`).set({
+        ...dependentDoc(),
+        uid: id,
+      }),
+    );
+  });
+
+  it("nobody outside the household can create one", async () => {
+    await seed();
+    const db = as(testEnv, OUTSIDER).firestore();
+    const id = "dep_lucas03";
+
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}/members/${id}`).set({
+        ...dependentDoc(),
+        uid: id,
+      }),
+    );
+  });
+
+  it("a dependent cannot be promoted into a profile that has access", async () => {
+    await seed();
+    const db = as(testEnv, ADMIN_A).firestore();
+    const id = "dep_lucas04";
+
+    await assertSucceeds(
+      db.doc(`households/${HOUSEHOLD_A}/members/${id}`).set({
+        ...dependentDoc(),
+        uid: id,
+      }),
+    );
+
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}/members/${id}`).update({
+        role: "MEMBER",
+        updatedAt: "2026-08-29T10:00:00.000Z",
+      }),
+    );
+  });
+
+  it("a real member cannot be demoted into a dependent", async () => {
+    await seed();
+    const db = as(testEnv, ADMIN_A).firestore();
+
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}/members/${MEMBER_A}`).update({
+        role: "DEPENDENT",
+        updatedAt: "2026-08-29T10:00:00.000Z",
+      }),
+    );
+  });
+
+  it("an admin can rename a dependent and remove it", async () => {
+    await seed();
+    const db = as(testEnv, ADMIN_A).firestore();
+    const id = "dep_lucas05";
+
+    await assertSucceeds(
+      db.doc(`households/${HOUSEHOLD_A}/members/${id}`).set({
+        ...dependentDoc(),
+        uid: id,
+      }),
+    );
+    await assertSucceeds(
+      db.doc(`households/${HOUSEHOLD_A}/members/${id}`).update({
+        displayName: "Lucas Souza",
+        updatedAt: "2026-08-29T10:00:00.000Z",
+      }),
+    );
+    await assertSucceeds(db.doc(`households/${HOUSEHOLD_A}/members/${id}`).delete());
+  });
+
+  it("a dependent document grants no read access to the household", async () => {
+    await seed();
+    const admin = as(testEnv, ADMIN_A).firestore();
+    const id = "dep_lucas06";
+
+    await assertSucceeds(
+      admin.doc(`households/${HOUSEHOLD_A}/members/${id}`).set({
+        ...dependentDoc(),
+        uid: id,
+      }),
+    );
+
+    // O outsider continua fora, com ou sem dependentes no grupo.
+    const outsider = as(testEnv, OUTSIDER).firestore();
+    await assertFails(outsider.doc(`households/${HOUSEHOLD_A}`).get());
+    await assertFails(outsider.doc(`households/${HOUSEHOLD_A}/members/${id}`).get());
+  });
+});
+
+/**
+ * A contagem do limitador é do servidor, e de mais ninguém.
+ *
+ * Legível, ela diria quantas chamadas ainda cabem antes do bloqueio.
+ * Gravável, não seria um limite.
+ */
+describe("rateLimits", () => {
+  it("ninguém lê nem escreve, nem mesmo autenticado", async () => {
+    await seed();
+    const db = as(testEnv, OWNER_A).firestore();
+
+    await assertFails(db.doc("rateLimits/ai_uid-owner-a__1000").get());
+    await assertFails(db.doc("rateLimits/ai_uid-owner-a__1000").set({ count: 0 }));
+    await assertFails(db.collection("rateLimits").get());
+  });
+
+  it("nem o anônimo", async () => {
+    await seed();
+    const db = anonymous(testEnv).firestore();
+
+    await assertFails(db.doc("rateLimits/qualquer").get());
+    await assertFails(db.doc("rateLimits/qualquer").set({ count: 0 }));
+  });
+});
+
+/**
+ * Aceitar convite sem passar por servidor.
+ *
+ * O convidado precisa se acrescentar a `memberUids` — a lista que concede
+ * acesso — e criar a própria participação. Duas escritas que, mal desenhadas,
+ * seriam a permissão de entrar em qualquer grupo.
+ *
+ * O que as torna seguras é o id do convite **ser** o e-mail em minúsculas, e a
+ * regra exigir `email_verified`. Sem a confirmação, bastaria criar uma conta
+ * com o e-mail de outra pessoa. Estes testes existem sobretudo para as
+ * tentativas que precisam falhar.
+ */
+describe("convite por e-mail", () => {
+  const CONVIDADO = "uid-convidado";
+  const EMAIL = "convidado@exemplo.test";
+
+  async function criarConvite(overrides: Record<string, unknown> = {}) {
+    const db = as(testEnv, ADMIN_A).firestore();
+    await db.doc(`households/${HOUSEHOLD_A}/invites/${EMAIL}`).set({
+      householdId: HOUSEHOLD_A,
+      email: EMAIL,
+      role: "MEMBER",
+      status: "PENDING",
+      expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      ...auditFor(ADMIN_A),
+      ...overrides,
+    });
+  }
+
+  async function entrar(db: ReturnType<ReturnType<typeof as>["firestore"]>) {
+    await db.doc(`households/${HOUSEHOLD_A}`).update({
+      memberUids: [OWNER_A, ADMIN_A, MEMBER_A, VIEWER_A, CONVIDADO],
+      updatedAt: "2026-08-29T10:00:00.000Z",
+    });
+  }
+
+  it("o administrador cria o convite com o e-mail como id", async () => {
+    await seed();
+    await assertSucceeds(
+      as(testEnv, ADMIN_A)
+        .firestore()
+        .doc(`households/${HOUSEHOLD_A}/invites/${EMAIL}`)
+        .set({
+          householdId: HOUSEHOLD_A,
+          email: EMAIL,
+          role: "MEMBER",
+          status: "PENDING",
+          expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+          ...auditFor(ADMIN_A),
+        }),
+    );
+  });
+
+  it("recusa convite cujo id não é o e-mail: a regra não o encontraria", async () => {
+    await seed();
+    await assertFails(
+      as(testEnv, ADMIN_A)
+        .firestore()
+        .doc(`households/${HOUSEHOLD_A}/invites/codigo-aleatorio`)
+        .set({
+          householdId: HOUSEHOLD_A,
+          email: EMAIL,
+          role: "MEMBER",
+          status: "PENDING",
+          expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+          ...auditFor(ADMIN_A),
+        }),
+    );
+  });
+
+  it("um membro comum não convida ninguém", async () => {
+    await seed();
+    await assertFails(
+      as(testEnv, MEMBER_A)
+        .firestore()
+        .doc(`households/${HOUSEHOLD_A}/invites/${EMAIL}`)
+        .set({
+          householdId: HOUSEHOLD_A,
+          email: EMAIL,
+          role: "MEMBER",
+          status: "PENDING",
+          expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+          ...auditFor(MEMBER_A),
+        }),
+    );
+  });
+
+  it("o convidado entra: acrescenta o próprio uid e cria a participação", async () => {
+    await seed();
+    await criarConvite();
+
+    const db = asEmail(testEnv, CONVIDADO, EMAIL).firestore();
+
+    await assertSucceeds(entrar(db));
+    await assertSucceeds(
+      db.doc(`households/${HOUSEHOLD_A}/members/${CONVIDADO}`).set({
+        uid: CONVIDADO,
+        householdId: HOUSEHOLD_A,
+        displayName: "Convidado",
+        role: "MEMBER",
+        status: "ACTIVE",
+        ...auditFor(CONVIDADO),
+      }),
+    );
+  });
+
+  it("sem e-mail confirmado, não entra", async () => {
+    // O ataque que isto fecha: criar uma conta com o e-mail de outra pessoa,
+    // sem nunca provar que o acessa, e cair no grupo dela.
+    await seed();
+    await criarConvite();
+
+    const db = asEmail(testEnv, CONVIDADO, EMAIL, false).firestore();
+    await assertFails(entrar(db));
+  });
+
+  it("sem convite, não entra", async () => {
+    await seed();
+    const db = asEmail(testEnv, CONVIDADO, EMAIL).firestore();
+    await assertFails(entrar(db));
+  });
+
+  it("com convite expirado, não entra", async () => {
+    await seed();
+    await criarConvite({ expiresAt: new Date("2020-01-01T00:00:00.000Z") });
+
+    const db = asEmail(testEnv, CONVIDADO, EMAIL).firestore();
+    await assertFails(entrar(db));
+  });
+
+  it("convite de outro e-mail não serve", async () => {
+    await seed();
+    await criarConvite();
+
+    const db = asEmail(testEnv, OUTSIDER, "outro@exemplo.test").firestore();
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}`).update({
+        memberUids: [OWNER_A, ADMIN_A, MEMBER_A, VIEWER_A, OUTSIDER],
+        updatedAt: "2026-08-29T10:00:00.000Z",
+      }),
+    );
+  });
+
+  it("o convidado só pode se acrescentar, não reescrever a lista", async () => {
+    await seed();
+    await criarConvite();
+    const db = asEmail(testEnv, CONVIDADO, EMAIL).firestore();
+
+    // Remover os outros de tabela: a igualdade exata da regra recusa.
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}`).update({
+        memberUids: [CONVIDADO],
+        updatedAt: "2026-08-29T10:00:00.000Z",
+      }),
+    );
+    // Levar um cúmplice junto também não.
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}`).update({
+        memberUids: [OWNER_A, ADMIN_A, MEMBER_A, VIEWER_A, CONVIDADO, OUTSIDER],
+        updatedAt: "2026-08-29T10:00:00.000Z",
+      }),
+    );
+  });
+
+  it("o convidado não muda o nome nem o dono do grupo de carona", async () => {
+    await seed();
+    await criarConvite();
+    const db = asEmail(testEnv, CONVIDADO, EMAIL).firestore();
+
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}`).update({
+        memberUids: [OWNER_A, ADMIN_A, MEMBER_A, VIEWER_A, CONVIDADO],
+        name: "Grupo sequestrado",
+        updatedAt: "2026-08-29T10:00:00.000Z",
+      }),
+    );
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}`).update({
+        memberUids: [OWNER_A, ADMIN_A, MEMBER_A, VIEWER_A, CONVIDADO],
+        ownerUid: CONVIDADO,
+        updatedAt: "2026-08-29T10:00:00.000Z",
+      }),
+    );
+  });
+
+  it("o convidado não escolhe o próprio papel", async () => {
+    await seed();
+    await criarConvite();
+    const db = asEmail(testEnv, CONVIDADO, EMAIL).firestore();
+    await entrar(db);
+
+    // O convite diz MEMBER; entrar como ADMIN é recusado.
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}/members/${CONVIDADO}`).set({
+        uid: CONVIDADO,
+        householdId: HOUSEHOLD_A,
+        displayName: "Convidado",
+        role: "ADMIN",
+        status: "ACTIVE",
+        ...auditFor(CONVIDADO),
+      }),
+    );
+  });
+
+  it("o convidado marca o próprio convite como aceito, e só isso", async () => {
+    await seed();
+    await criarConvite();
+    const db = asEmail(testEnv, CONVIDADO, EMAIL).firestore();
+
+    await assertSucceeds(
+      db.doc(`households/${HOUSEHOLD_A}/invites/${EMAIL}`).update({ status: "ACCEPTED" }),
+    );
+    // Elevar o papel do próprio convite, não.
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}/invites/${EMAIL}`).update({ role: "ADMIN" }),
+    );
+  });
+
+  it("o convite aceito não serve para entrar de novo", async () => {
+    await seed();
+    await criarConvite();
+
+    // Aceito pelo caminho real: a regra de criação exige PENDING, então um
+    // convite já aceito só existe depois de alguém aceitá-lo.
+    await as(testEnv, ADMIN_A)
+      .firestore()
+      .doc(`households/${HOUSEHOLD_A}/invites/${EMAIL}`)
+      .update({ status: "ACCEPTED" });
+
+    const db = asEmail(testEnv, CONVIDADO, EMAIL).firestore();
+    await assertFails(entrar(db));
+  });
+
+  it("o convidado lê o household antes de entrar, porque precisa da lista", async () => {
+    // Sem isto o convite era impossível de aceitar: montar `memberUids` com o
+    // próprio uid no fim exige conhecer a lista, e conhecê-la exigia já ser
+    // membro.
+    await seed();
+    await criarConvite();
+
+    const comConvite = asEmail(testEnv, CONVIDADO, EMAIL).firestore();
+    await assertSucceeds(comConvite.doc(`households/${HOUSEHOLD_A}`).get());
+
+    const semConvite = asEmail(testEnv, OUTSIDER, "outro@exemplo.test").firestore();
+    await assertFails(semConvite.doc(`households/${HOUSEHOLD_A}`).get());
+  });
+
+  it("o convidado lê o próprio convite antes de ser membro, e não o dos outros", async () => {
+    await seed();
+    await criarConvite();
+    const db = asEmail(testEnv, CONVIDADO, EMAIL).firestore();
+
+    await assertSucceeds(db.doc(`households/${HOUSEHOLD_A}/invites/${EMAIL}`).get());
+    await assertFails(db.doc(`households/${HOUSEHOLD_A}/invites/outro@exemplo.test`).get());
   });
 });

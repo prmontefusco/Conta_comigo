@@ -13,7 +13,10 @@ import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import { getAuthClient, getDb } from "@/lib/firebase/client";
 import {
+  planSource,
   resolveEffectivePlan,
+  trialDaysRemaining,
+  type PlanSource,
   type Subscription,
   type UserPlan,
 } from "@/modules/billing/domain/subscription";
@@ -55,10 +58,14 @@ interface SessionValue {
    *
    * Nunca leia `profile.plan` para decidir o que mostrar: ele é um espelho de
    * conveniência escrito pelo servidor e não sabe se o prazo acabou. Uma
-   * assinatura vencida ficaria sem anúncios para sempre.
+   * assinatura vencida continuaria com os recursos pagos para sempre.
    */
   readonly effectivePlan: UserPlan;
   readonly isPremium: boolean;
+  /** Se o Premium de agora vem de assinatura paga, do teste, ou de nada. */
+  readonly planSource: PlanSource;
+  /** Dias que ainda faltam do teste de 30 dias. Zero quando acabou. */
+  readonly trialDaysLeft: number;
   selectHousehold(householdId: string): void;
   logout(): Promise<void>;
   refreshProfile(): Promise<void>;
@@ -211,7 +218,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const household = households.find((item) => item.id === selectedId) ?? null;
   const role = membership?.status === "ACTIVE" ? membership.role : null;
-  const effectivePlan = resolveEffectivePlan(subscription);
+  // O teste de 30 dias sai daqui: `profile.createdAt` é a data da conta, e
+  // `resolveEffectivePlan` decide sozinho se ela ainda está dentro do período.
+  const effectivePlan = resolveEffectivePlan(subscription, new Date(), profile?.createdAt);
+  const source = planSource(subscription, profile?.createdAt);
 
   const value = useMemo<SessionValue>(
     () => ({
@@ -227,6 +237,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       subscription,
       effectivePlan,
       isPremium: effectivePlan === "PREMIUM",
+      planSource: source,
+      trialDaysLeft: trialDaysRemaining(profile?.createdAt),
       selectHousehold,
       logout,
       refreshProfile,
@@ -240,6 +252,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       membership,
       role,
       subscription,
+      source,
       effectivePlan,
       selectHousehold,
       logout,

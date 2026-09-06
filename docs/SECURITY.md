@@ -79,7 +79,91 @@ As regras impedem explicitamente:
   atualizar o documento do household primeiro, mantendo array e subcoleção em
   sincronia.
 
+- transformar um perfil sem acesso num membro com acesso, ou o contrário
+  (`(role == 'DEPENDENT') == (novo role == 'DEPENDENT')`).
+
 Cada um desses tem teste.
+
+## Perfis sem acesso
+
+Uma pessoa da casa pode existir sem conta: um filho, um pai idoso, alguém que
+só precisa aparecer na pergunta "de quem é este gasto".
+
+O que torna isso seguro não é uma verificação de papel — é a **forma do id**.
+`isMember()` lê `members/$(request.auth.uid)`, então um documento só concede
+acesso quando o id dele é o uid de quem chama. O id de um dependente é gerado
+com o prefixo `dep_`, e o Firebase Auth emite uids de 28 caracteres
+alfanuméricos, sem sublinhado: os dois conjuntos não se cruzam.
+
+A regra exige `memberUid.matches('^dep_[A-Za-z0-9]+$')` no servidor, e não só
+no aplicativo, por causa de um ataque concreto: sem isso, um administrador
+poderia criar `members/{uidDeUmEstranho}` com papel DEPENDENT e fazer o próprio
+grupo aparecer na lista de households daquela pessoa — um vetor de phishing
+razoavelmente convincente, já que o grupo chegaria "de dentro" do aplicativo.
+
+Um dependente também **não entra em `memberUids`**. Aquele array é o que
+concede acesso; um perfil sem uid não tem o que colocar nele, e colocar algo
+seria o defeito.
+
+## Limite de requisições
+
+As rotas de IA chamam um modelo cobrado por token. Autenticar impede o anônimo;
+não impede uma conta autenticada num laço.
+
+A contagem vive em `rateLimits/{chave}__{início da janela}`, escrita pelo Admin
+SDK em transação. As Security Rules negam **leitura e escrita** ali para todo
+mundo: uma contagem legível diria quantas chamadas ainda cabem, e uma gravável
+não seria um limite.
+
+Duas consequências operacionais que valem estar escritas:
+
+- **É preciso uma política de TTL** no campo `expiresAt` da coleção
+  `rateLimits`, no console do Firestore. Sem ela nada quebra e nada fica
+  inseguro — a coleção só cresce, e o custo aparece na conta.
+- **A falha é permissiva.** Se o Firestore não responder, o limitador cai para
+  a contagem em memória do processo em vez de bloquear. Negar a função a todo
+  mundo por uma falha de infraestrutura seria pior que perder a precisão entre
+  instâncias, e a autenticação continua barrando o anônimo.
+
+## Convite por e-mail
+
+Entrar num grupo exige escrever em `households/{id}.memberUids`, que concede
+acesso — e por muito tempo isso pareceu exigir um servidor. Não exige.
+
+O **id do documento de convite é o e-mail em minúsculas**. Isso é o que permite
+a regra encontrar o convite sozinha:
+
+```
+get(/…/households/$(householdId)/invites/$(request.auth.token.email.lower()))
+```
+
+Se o id fosse aleatório, o convidado teria de informá-lo — e informar um id não
+prova nada sobre quem ele é.
+
+Três condições, todas necessárias:
+
+1. **`email_verified`.** Sem ela bastaria criar uma conta com o e-mail de outra
+   pessoa, sem nunca provar que o acessa, para entrar no grupo dela.
+2. **Convite `PENDING` e dentro do prazo.** Aceito ou vencido não autoriza.
+3. **A escrita é uma igualdade exata**: `memberUids` de antes, com o próprio
+   uid no fim. Qualquer folga aí viraria permissão de reescrever a lista de
+   membros — e há teste para as duas tentativas óbvias, remover os outros e
+   levar um cúmplice junto.
+
+O papel vem do convite, nunca da escrita: o convidado não escolhe entrar como
+administrador.
+
+Quem tem convite válido também **lê o household** antes de entrar. Não é
+conveniência: sem a lista atual não há como montar a escrita acima. Expõe nome
+do grupo, dono e uids a quem já recebeu um convite nominal e confirmado.
+
+### O token, não o SDK
+
+Confirmar o e-mail não altera o token que já está no navegador — ele foi
+emitido antes, com `email_verified: false`, e vale uma hora. O SDK passa a
+dizer `emailVerified: true` depois de `reload()`, mas as regras leem o
+**token**. Por isso a tela de convite chama `getIdToken(true)` antes de
+escrever; sem isso ela mostraria "confirmado" e o Firestore recusaria.
 
 ## O bootstrap do household
 
@@ -171,7 +255,7 @@ dívida, despesas, categorias, nomes de contas, dados familiares, informações 
 cartão, valores de parcelas ou comportamento financeiro individual.
 
 O componente `AdSlot` não recebe nenhuma prop financeira — não há o que vazar.
-Ver [`ADSENSE.md`](ADSENSE.md).
+Não há publicidade no produto: nenhum script, pixel ou domínio de anúncio é carregado em nenhuma tela.
 
 ## LGPD
 
@@ -302,7 +386,7 @@ câmera, microfone, geolocalização e pagamento, e `frame-ancestors 'none'` com
 Existe uma política completa, servida como `Content-Security-Policy-Report-Only`:
 o navegador **relata** o que ela bloquearia e não bloqueia nada. É a única forma
 honesta de escrever a primeira versão de uma CSP para uma página que carrega
-Firebase, reCAPTCHA e AdSense — terceiros cujos domínios mudam sem aviso. Uma CSP
+Firebase e reCAPTCHA — os únicos terceiros que restaram depois da remoção da publicidade. Uma CSP
 errada não degrada: quebra o login ou a monetização, em produção, e em silêncio
 para quem já estava com a página aberta.
 
@@ -315,7 +399,7 @@ que ninguém consulta.
 
 1. O teste acima passando — já é o caso.
 2. As diretivas de anúncio exercitadas contra tráfego real. O ambiente local não
-   carrega AdSense de propósito, então elas **não** são validadas hoje. Esta é a
+   não exercita todos os domínios do Firebase, então elas **não** são validadas hoje. Esta é a
    razão pela qual a política ainda não vale.
 
 Duas frouxidões conhecidas e por quê: `'unsafe-inline'` em `script-src`, porque o

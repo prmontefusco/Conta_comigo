@@ -88,6 +88,39 @@ service cloud.firestore {
       return request.resource.data.keys().size() <= 60;
     }
 
+    /**
+     * O convite pendente endereçado a quem está chamando.
+     *
+     * O id do documento **é** o e-mail em minúsculas. Isso é o que permite a
+     * regra encontrar o convite sem que o cliente diga qual é — se o id fosse
+     * aleatório, o convidado teria de informá-lo, e informar um id não prova
+     * nada sobre quem ele é.
+     *
+     * `get()` dentro de uma regra lê o documento independentemente das regras
+     * de leitura, então o convidado não precisa ser membro para que a regra
+     * verifique o convite dele.
+     */
+    function inviteFor(householdId) {
+      return get(/databases/$(database)/documents/households/$(householdId)/invites/$(request.auth.token.email.lower()));
+    }
+
+    /**
+     * Quem tem convite válido para este household.
+     *
+     * `email_verified` é inegociável: sem ele, bastaria alguém criar uma conta
+     * com o e-mail de outra pessoa — sem nunca provar que o acessa — para
+     * entrar no grupo dela. O Firebase só marca esse campo depois da
+     * confirmação, e é o que separa "digitou um e-mail" de "é o dono dele".
+     */
+    function hasPendingInvite(householdId) {
+      return isSignedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/households/$(householdId)/invites/$(request.auth.token.email.lower()))
+        && inviteFor(householdId).data.status == 'PENDING'
+        && request.time < inviteFor(householdId).data.expiresAt;
+    }
+
     function validNewDocument(householdId) {
       return declaresHousehold(householdId)
         && reasonableSize()
@@ -136,6 +169,19 @@ service cloud.firestore {
     }
 
     /* ------------------------------------------------------------ */
+    /* Limite de requisições                                         */
+    /* ------------------------------------------------------------ */
+
+    match /rateLimits/{windowId} {
+      // Nem leitura, nem escrita, para ninguém. Uma contagem que o navegador
+      // pudesse ler diria quantas chamadas ainda cabem; uma que pudesse
+      // escrever não seria um limite. Só o Admin SDK toca aqui, pelo mesmo
+      // caminho privilegiado de `subscriptions`
+      // (src/server/rate-limit-store.ts).
+      allow read, write: if false;
+    }
+
+    /* ------------------------------------------------------------ */
     /* Households                                                    */
     /* ------------------------------------------------------------ */
 
@@ -143,7 +189,17 @@ service cloud.firestore {
       // Reading a household requires membership. The `list` case additionally
       // relies on the query being constrained to memberUids array-contains the
       // caller, which Firestore enforces against this same condition.
-      allow get: if isMember(householdId);
+      // Quem tem convite válido lê o household antes de entrar.
+      //
+      // Não é conveniência: aceitar exige reenviar `memberUids` com o próprio
+      // uid no fim, e ninguém consegue montar essa lista sem lê-la. Sem esta
+      // linha o convite ficava impossível de aceitar — o convidado precisava
+      // ser membro para se tornar membro.
+      //
+      // O que se expõe é o nome do grupo, o dono e a lista de uids, a quem já
+      // recebeu um convite nominal, confirmado e dentro do prazo. A tela usa
+      // isso para dizer em que casa a pessoa está entrando.
+      allow get: if isMember(householdId) || hasPendingInvite(householdId);
       allow list: if isSignedIn() && request.auth.uid in resource.data.memberUids;
 
       // Bootstrap: whoever creates a household is its owner and its only
@@ -155,10 +211,31 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.uid
         && reasonableSize();
 
-      allow update: if canAdminister(householdId)
-        && request.resource.data.ownerUid == resource.data.ownerUid
-        && request.resource.data.createdAt == resource.data.createdAt
-        && reasonableSize();
+      // Duas formas de alterar o household:
+      //
+      //  - um administrador muda o que quiser, menos dono e data de criação;
+      //  - um convidado se acrescenta a `memberUids`, e **nada mais**.
+      //
+      // A segunda existe para que aceitar um convite não dependa de servidor.
+      // Ela é escrita como uma igualdade exata — a lista de antes com o uid de
+      // quem chama no fim — porque qualquer folga aqui viraria a permissão de
+      // reescrever a lista de membros do grupo.
+      allow update: if (
+          canAdminister(householdId)
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && reasonableSize()
+        ) || (
+          hasPendingInvite(householdId)
+          && !(request.auth.uid in resource.data.memberUids)
+          && request.resource.data.memberUids == resource.data.memberUids.concat([request.auth.uid])
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.name == resource.data.name
+          && request.resource.data.settings == resource.data.settings
+          && request.resource.data.archived == resource.data.archived
+          && reasonableSize()
+        );
 
       // Only the owner can delete the household.
       allow delete: if isOwner(householdId);
@@ -170,11 +247,32 @@ service cloud.firestore {
       match /members/{memberUid} {
         allow read: if isMember(householdId);
 
-        // Two ways a member document is created:
+        // A profile with no access at all: a child, an elderly parent, anyone
+        // who only needs to exist for "whose expense is this?".
+        //
+        // It grants nothing by *construction*, not by a check: `isMember`
+        // reads members/$(request.auth.uid), so a document only ever confers
+        // access when its id is the caller's own uid. The `dep_` prefix is
+        // what makes that impossible here - Firebase Auth uids are 28
+        // alphanumeric characters and never contain an underscore, so a
+        // dependent id can never equal anyone's uid.
+        //
+        // Enforcing the prefix in the rule, and not only in the app, is the
+        // point: without it an administrator could create members/{victimUid}
+        // and make their household appear in a stranger's list.
+        function isDependentProfile() {
+          return memberUid.matches('^dep_[A-Za-z0-9]+$')
+            && request.resource.data.role == 'DEPENDENT';
+        }
+
+        // Three ways a member document is created:
         //  - the founder claiming ownership of the household they just made;
-        //  - an admin adding someone who is already listed in memberUids.
-        // The second half is what forces an admin to update the household
-        // document first, keeping the array and the subcollection in step.
+        //  - an admin adding someone who is already listed in memberUids;
+        //  - an admin adding a profile with no access.
+        // The second case is what forces an admin to update the household
+        // document first, keeping the array and the subcollection in step. The
+        // third deliberately does *not* touch memberUids: a dependent has no
+        // uid to put there, and putting one would be the bug.
         allow create: if isSignedIn()
           && request.resource.data.uid == memberUid
           && request.resource.data.householdId == householdId
@@ -189,15 +287,33 @@ service cloud.firestore {
               && memberUid in get(householdPath(householdId)).data.memberUids
               && request.resource.data.role in ['ADMIN', 'MEMBER', 'VIEWER']
             )
+            || (canAdminister(householdId) && isDependentProfile())
+            // O convidado cria a própria participação, com o papel que o
+            // convite fixou — nunca com um que ele escolha. Já precisa estar
+            // em `memberUids`, o que só a regra acima permite, e só a quem
+            // tem convite válido.
+            || (
+              memberUid == request.auth.uid
+              && hasPendingInvite(householdId)
+              && memberUid in get(householdPath(householdId)).data.memberUids
+              && request.resource.data.role == inviteFor(householdId).data.role
+              && request.resource.data.status == 'ACTIVE'
+            )
           );
 
         // Admins manage roles, but nobody can promote themselves and the
         // owner's role cannot be changed by anyone else.
+        //
+        // A profile can never cross the line between having access and not
+        // having it: a DEPENDENT stays DEPENDENT, and a real member never
+        // becomes one. Both directions are refused because either would let an
+        // administrator quietly change what a document means.
         allow update: if canAdminister(householdId)
           && request.resource.data.uid == resource.data.uid
           && request.resource.data.householdId == householdId
           && resource.data.role != 'OWNER'
-          && request.resource.data.role in ['ADMIN', 'MEMBER', 'VIEWER']
+          && (resource.data.role == 'DEPENDENT') == (request.resource.data.role == 'DEPENDENT')
+          && request.resource.data.role in ['ADMIN', 'MEMBER', 'VIEWER', 'DEPENDENT']
           && !(memberUid == request.auth.uid && request.resource.data.role != resource.data.role);
 
         // Leaving is always your own right, owner included: without it, the
@@ -218,11 +334,36 @@ service cloud.firestore {
       /* ---------------------------------------------------------- */
 
       match /invites/{inviteId} {
-        allow read: if isMember(householdId);
+        // O convidado ainda não é membro e precisa ler o próprio convite para
+        // a tela mostrar quem convidou e com que papel. Ler o convite de
+        // outra pessoa continua fora.
+        allow get: if isMember(householdId)
+          || (isSignedIn() && request.auth.token.email != null
+              && inviteId == request.auth.token.email.lower());
+        allow list: if isMember(householdId);
+
+        // O id é o e-mail em minúsculas, e a regra exige isso: um id
+        // arbitrário quebraria a busca que `hasPendingInvite` faz, e um
+        // convite que a regra não encontra é um convite que não funciona.
         allow create: if canAdminister(householdId)
           && validNewDocument(householdId)
+          && inviteId == request.resource.data.email.lower()
+          && request.resource.data.status == 'PENDING'
           && request.resource.data.role in ['ADMIN', 'MEMBER', 'VIEWER'];
-        allow update, delete: if canAdminister(householdId);
+
+        // Quem convidou cancela; o convidado só pode marcar o próprio como
+        // aceito, e uma vez só — depois disso ele não serve mais para entrar.
+        allow update: if canAdminister(householdId)
+          || (
+            isSignedIn() && request.auth.token.email != null
+            && inviteId == request.auth.token.email.lower()
+            && resource.data.status == 'PENDING'
+            && request.resource.data.status == 'ACCEPTED'
+            && request.resource.data.email == resource.data.email
+            && request.resource.data.role == resource.data.role
+          );
+
+        allow delete: if canAdminister(householdId);
       }
 
       /* ---------------------------------------------------------- */

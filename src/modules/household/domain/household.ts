@@ -134,6 +134,7 @@ export const ROLE_LABELS: Record<HouseholdRole, string> = {
   ADMIN: "Administrador",
   MEMBER: "Membro",
   VIEWER: "Visualizador",
+  DEPENDENT: "Sem acesso",
 };
 
 export const ROLE_DESCRIPTIONS: Record<HouseholdRole, string> = {
@@ -141,4 +142,6 @@ export const ROLE_DESCRIPTIONS: Record<HouseholdRole, string> = {
   ADMIN: "Gerencia membros, convites e configurações.",
   MEMBER: "Registra e edita informações financeiras.",
   VIEWER: "Vê as informações, sem alterar nada.",
+  DEPENDENT:
+    "Aparece nos lançamentos como pessoa da casa, mas não entra no aplicativo. Para filhos, pais e quem não precisa de acesso.",
 };

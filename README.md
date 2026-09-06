@@ -34,13 +34,17 @@ E popula os emuladores com três famílias fictícias. Entre em
 http://127.0.0.1:5002/entrar com qualquer um destes usuários — **senha
 `conta1234`**:
 
-| E-mail               | Cenário                                                                                                       |
-| -------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `ana@exemplo.test`   | Família organizada: receitas acima dos compromissos, reserva formada                                          |
-| `carla@exemplo.test` | Família apertada: margem mensal pequena, qualquer imprevisto muda o mês                                       |
-| `diego@exemplo.test` | Família endividada: empréstimo, financiamento, cartão parcelado, contas em atraso e meses futuros com déficit |
+| E-mail               | Cenário                                                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `ana@exemplo.test`   | Família organizada: receitas acima dos compromissos, reserva formada                                         |
+| `carla@exemplo.test` | Família apertada: margem mensal pequena, qualquer imprevisto muda o mês                                      |
+| `diego@exemplo.test` | Classe média endividada: empréstimo, financiamento, cartão parcelado e contas em atraso                      |
+| `joana@exemplo.test` | Endividamento de massa: renda de um salário e meio, luz e água atrasadas, carnê e rotativo. O mês não fecha. |
 
-O terceiro cenário é o mais interessante para ver a projeção funcionando.
+Os dois últimos são os que importam. `diego` mostra a projeção completa
+funcionando; `joana` é o público principal do produto, e serve para verificar
+o oposto: que o aplicativo **não** inventa data de quitação quando a conta não
+fecha, e cai no modo emergência.
 
 **Nada disso toca o Firebase real.** O projeto usado localmente é
 `demo-conta-comigo`; um id que começa com `demo-` faz o Emulator Suite recusar
@@ -86,6 +90,12 @@ livre.
 **A fatura do cartão não é uma segunda despesa.** A compra é contabilizada no
 mês em que aconteceu; pagar a fatura movimenta caixa sem repetir o gasto.
 
+**Um plano que não fecha não é um plano lento.** Quando a renda não cobre nem
+as parcelas mínimas, o produto não devolve data de quitação: ele diz de quanto
+é o buraco por mês e encaminha para renegociar prazo. Prometer quitação a quem
+está em déficit é o erro mais confortável que um aplicativo destes pode
+cometer, e o mais caro para quem acredita.
+
 Cada um desses princípios tem teste automatizado em
 [`src/modules/transactions/domain/financial-principles.test.ts`](src/modules/transactions/domain/financial-principles.test.ts).
 
@@ -129,7 +139,7 @@ Detalhes em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | [`docs/FORECAST_ENGINE.md`](docs/FORECAST_ENGINE.md)           | Como a projeção é calculada                          |
 | [`docs/REPORTS.md`](docs/REPORTS.md)                           | Os relatórios e a pergunta que cada um responde      |
 | [`docs/BILLING.md`](docs/BILLING.md)                           | Assinatura, pagamentos e a conta Asaas compartilhada |
-| [`docs/ADSENSE.md`](docs/ADSENSE.md)                           | Publicidade e as regras de privacidade               |
+| [`docs/PURCHASE_ADVISOR.md`](docs/PURCHASE_ADVISOR.md)         | Proposta de desenho: "Antes de comprar"              |
 | [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md) | Revisão da Fase 12: achados, custo e o que falta     |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md)                           | Fases e estado atual                                 |
 | [`docs/adr/`](docs/adr/)                                       | Decisões arquiteturais registradas                   |

@@ -21,6 +21,7 @@ import {
   type CardStatement,
 } from "@/modules/cards/domain/credit-card";
 import { BillingCalendarCard } from "@/modules/cards/ui/billing-calendar-card";
+import { CommittedMonthsCard } from "@/modules/cards/ui/committed-months-card";
 import { InstallmentPlansCard } from "@/modules/cards/ui/installment-plans-card";
 import { NewCardDialog } from "@/modules/cards/ui/new-card-dialog";
 import { NewPurchaseDialog } from "@/modules/cards/ui/new-purchase-dialog";
@@ -96,6 +97,7 @@ export default function CardsPage() {
             />
           ))}
 
+          <CommittedMonthsCard />
           <InstallmentPlansCard />
           <BillingCalendarCard />
         </>

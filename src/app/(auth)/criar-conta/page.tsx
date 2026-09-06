@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  updateProfile,
+} from "firebase/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -56,6 +60,17 @@ export default function SignUpPage() {
       );
 
       await updateProfile(credential.user, { displayName: values.displayName });
+
+      // Envia a confirmação de e-mail já no cadastro.
+      //
+      // Não é burocracia: entrar num grupo por convite exige `email_verified`
+      // nas Security Rules, porque sem isso bastaria criar uma conta com o
+      // e-mail de outra pessoa para cair no grupo dela. Mandar agora evita que
+      // alguém convidado descubra o requisito só na hora de aceitar.
+      //
+      // Falhar aqui não pode interromper o cadastro — a conta já existe, e a
+      // tela de convite reenvia quando for preciso.
+      await sendEmailVerification(credential.user).catch(() => undefined);
       await ensureUserProfile(credential.user.uid, values.displayName, values.email);
       await createHousehold(
         credential.user.uid,

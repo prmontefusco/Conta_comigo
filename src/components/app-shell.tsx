@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { Button, Spinner } from "@/components/ui/primitives";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { AlertBell } from "@/modules/alerts/ui/alert-bell";
 
 /**
  * The authenticated shell.
@@ -18,12 +19,15 @@ import { useSession } from "@/modules/household/ui/session-provider";
 const DESKTOP_NAV = [
   { href: "/app", label: "Início", icon: "🏠" },
   { href: "/app/dia-a-dia", label: "Dia a dia", icon: "🧾" },
+  { href: "/app/emergencia", label: "Pagar primeiro", icon: "🚨" },
+  { href: "/app/comprar", label: "Antes de comprar", icon: "🛒" },
   { href: "/app/diagnostico-ia", label: "Diagnóstico IA", icon: "✨" },
   { href: "/app/visao-futuro", label: "Visão de Futuro", icon: "🚀" },
   { href: "/app/contas", label: "Contas a Pagar", icon: "📄" },
   { href: "/app/cartoes", label: "Cartões", icon: "💳" },
   { href: "/app/dividas", label: "Dívidas & Empréstimos", icon: "🏛️" },
   { href: "/app/projecao", label: "Projeção & Fluxo", icon: "📈" },
+  { href: "/app/importar", label: "Importar extrato", icon: "📥" },
   { href: "/app/mais", label: "Mais Opções", icon: "⋯" },
 ] as const;
 
@@ -32,7 +36,7 @@ const DESKTOP_NAV = [
 const MOBILE_NAV = [
   { href: "/app", label: "Início", icon: "🏠" },
   { href: "/app/dia-a-dia", label: "Dia a dia", icon: "🧾" },
-  { href: "/app/visao-futuro", label: "Futuro", icon: "🚀" },
+  { href: "/app/emergencia", label: "Pagar 1º", icon: "🚨" },
   { href: "/app/contas", label: "Contas", icon: "📄" },
   { href: "/app/mais", label: "Mais", icon: "⋯" },
 ] as const;
@@ -94,6 +98,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
+            <AlertBell />
             {households.length > 1 ? (
               <label className="text-sm">
                 <span className="sr-only">Trocar de grupo</span>

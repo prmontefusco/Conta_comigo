@@ -27,8 +27,6 @@ export interface FirebaseEnv extends FirebaseConfig {
   readonly useEmulators: boolean;
   readonly authEmulatorHost: string;
   readonly firestoreEmulatorHost: string;
-  readonly adsEnabled: boolean;
-  readonly adsenseClientId: string | undefined;
   readonly siteUrl: string;
 }
 
@@ -41,8 +39,6 @@ export const firebaseEnv: FirebaseEnv = {
   useEmulators: process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === "true",
   authEmulatorHost: process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST ?? "127.0.0.1:9099",
   firestoreEmulatorHost: process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8080",
-  adsEnabled: process.env.NEXT_PUBLIC_ADS_ENABLED === "true",
-  adsenseClientId: process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID,
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:5002",
 };
 

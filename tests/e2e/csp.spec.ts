@@ -13,8 +13,8 @@ import { signIn, USERS } from "./seed-users";
  * Quando um deles falhar, a saída diz exatamente qual diretiva e qual recurso —
  * que é a pergunta que se faz ao apertar uma CSP.
  *
- * Ressalva honesta: o ambiente local não carrega AdSense (docs/ADSENSE.md), e há
- * teste E2E garantindo justamente isso. Logo, as diretivas de anúncio **não**
+ * Ressalva honesta: o ambiente local não exercita todos os domínios do Firebase, e há
+ * teste E2E garantindo a ausência de publicidade. Logo, algumas diretivas **não**
  * são exercidas aqui. Elas só serão validadas contra tráfego real, e é por isso
  * que a política ainda não é obrigatória.
  */

@@ -1,10 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AdSlot } from "@/components/ads/ad-slot";
 import { Callout, Spinner } from "@/components/ui/primitives";
 import { useFinance } from "@/modules/household/ui/finance-provider";
-import { useSession } from "@/modules/household/ui/session-provider";
 import { recentMonths } from "@/modules/reports/domain/reports";
 import {
   BudgetSection,
@@ -27,7 +25,6 @@ import {
  */
 export default function ReportsPage() {
   const finance = useFinance();
-  const { isPremium } = useSession();
   const [monthsBack, setMonthsBack] = useState(6);
 
   const months = useMemo(() => recentMonths(finance.asOf, monthsBack), [finance.asOf, monthsBack]);
@@ -67,7 +64,6 @@ export default function ReportsPage() {
       <CategoriesSection months={months} />
 
       {/* Between two informational blocks, never next to an action. */}
-      <AdSlot placement="dashboard-inline" hidden={isPremium} />
 
       <TrendSection months={months} hasHistory={hasHistory} />
 

@@ -5,7 +5,7 @@ import { formatCalendarDate } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
 import { Button, Card, CardTitle, Spinner } from "@/components/ui/primitives";
 import { evaluateFinancialHealth } from "@/modules/ai-advisor/domain/financial-health";
-import { calculateRecoveryTimeline } from "@/modules/recovery-timeline/domain/recovery-calculator";
+import { useRecoveryTimeline } from "@/modules/recovery-timeline/ui/use-recovery-timeline";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 
@@ -40,17 +40,7 @@ export function AIAdvisorPanel() {
     reserves: finance.reserves,
   });
 
-  const recovery = calculateRecoveryTimeline({
-    asOf: finance.asOf,
-    openingBalance: finance.totalCash,
-    totalCash: finance.totalCash,
-    protectedReserve: finance.protectedReserve,
-    forecast: finance.forecast,
-    debts: finance.debts,
-    cardStatements: finance.cardStatements,
-    reserves: finance.reserves,
-    paidDebtInstallments: finance.paidDebtInstallments,
-  });
+  const recovery = useRecoveryTimeline();
 
   async function handleAsk(promptText: string) {
     if (!promptText.trim()) return;
@@ -91,7 +81,11 @@ export function AIAdvisorPanel() {
             overdueBillsTotalFormatted: formatMoney(report.overdueBillsTotal),
             emergencyFundMonths: report.emergencyFundMonths,
             monthsToDebtFree: recovery.monthsToDebtFree,
-            debtFreeDateFormatted: formatCalendarDate(recovery.debtFreeDate),
+            debtFreeDateFormatted: recovery.debtFreeDate
+              ? formatCalendarDate(recovery.debtFreeDate)
+              : null,
+            planViability: recovery.feasibility.viability,
+            monthlyShortfallFormatted: formatMoney(recovery.feasibility.monthlyShortfall),
           },
         }),
       });

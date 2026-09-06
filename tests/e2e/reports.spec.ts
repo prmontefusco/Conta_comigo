@@ -79,8 +79,9 @@ test.describe("relatórios", () => {
     await expect(page.getByRole("heading", { name: "Relatórios", level: 1 })).toBeVisible();
   });
 
-  test("não carrega publicidade real localmente", async ({ page }) => {
-    await expect(page.getByTestId("ad-placeholder-dashboard-inline")).toBeAttached();
+  test("nenhum anúncio nas telas de relatório", async ({ page }) => {
+    expect(await page.locator('[data-testid^="ad-"]').count()).toBe(0);
+    expect(await page.locator("ins.adsbygoogle").count()).toBe(0);
   });
 });
 

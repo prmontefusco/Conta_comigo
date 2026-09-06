@@ -1,4 +1,4 @@
-import type { CalendarDate } from "@/core/date/calendar-date";
+import { formatCalendarDate, type CalendarDate } from "@/core/date/calendar-date";
 import { type Money, subtract } from "@/core/money/money";
 import type { CreditCard, CardStatement } from "@/modules/cards/domain/credit-card";
 import { outstandingPrincipal, type Debt } from "@/modules/debts/domain/debt";
@@ -88,16 +88,19 @@ export function evaluateFinancialHealth(
   };
   const monthlyNet = subtract(monthlyInflows, monthlyOutflows);
 
-  // Fallback monthly base income from recurring rules if forecast has few events
+  // Fallback monthly base income from the recurring rules, when the projection
+  // has too few events to average.
+  //
+  // What is deliberately *not* in this maximum any more is `totalCash`. A
+  // balance is not a salary: counting it as one divided the debt-commitment
+  // ratio by money that arrives once, so someone with a lump sum in the
+  // account and a small wage was told their debts were under control. The
+  // floor is 1 centavo only to keep the ratio from dividing by zero.
   const recurringIncomes = input.recurringRules
     .filter((r) => r.direction === "INFLOW")
     .reduce((acc, r) => acc + r.amount.amount, 0);
 
-  const baseMonthlyIncomeAmount = Math.max(
-    monthlyInflows.amount,
-    recurringIncomes,
-    input.totalCash.amount > 0 ? input.totalCash.amount : 1,
-  );
+  const baseMonthlyIncomeAmount = Math.max(monthlyInflows.amount, recurringIncomes, 1);
 
   // 2. Overdue bills
   const overdueObligations = input.obligations.filter((o) => isOpen(o) && o.dueDate < input.asOf);
@@ -125,9 +128,21 @@ export function evaluateFinancialHealth(
       : 0;
 
   // 4. Emergency reserve coverage (in months of essential expenses)
+  //
+  // Measured against the reserve the household actually protected, not the
+  // balance in the account. Money that pays next week's bills is not a
+  // cushion, and calling it one contradicts the distinction the rest of the
+  // product is built on: saldo total and saldo livre are different numbers
+  // (docs/DOMAIN.md, README "Reserva não é gasto").
   const averageMonthlyExpense = Math.max(1, monthlyOutflows.amount);
-  const availableLiquidity = Math.max(0, input.totalCash.amount);
-  const emergencyFundMonths = Number((availableLiquidity / averageMonthlyExpense).toFixed(1));
+  const emergencyReserve = input.reserves
+    .filter((reserve) => !reserve.archived && reserve.purpose === "EMERGENCY")
+    .reduce((total, reserve) => total + reserve.currentAmount.amount, 0);
+  const protectedLiquidity = Math.max(
+    0,
+    Math.max(emergencyReserve, Math.min(input.protectedReserve.amount, input.totalCash.amount)),
+  );
+  const emergencyFundMonths = Number((protectedLiquidity / averageMonthlyExpense).toFixed(1));
 
   // -------------------------------------------------------------
   // PILLAR 1: Pontualidade & Ausência de Atrasos (Peso: 25%)
@@ -172,7 +187,7 @@ export function evaluateFinancialHealth(
     message:
       debtCommitmentRatio === 0
         ? "Nenhum comprometimento pesado de renda com empréstimos ou juros."
-        : `Seus compromissos com dívidas e parcelas consom ${debtCommitmentRatio}% da sua renda mensal.`,
+        : `Seus compromissos com dívidas e parcelas consomem ${debtCommitmentRatio}% da sua renda mensal.`,
     recommendation:
       debtCommitmentRatio > 30
         ? "O ideal é manter o comprometimento com dívidas abaixo de 30% da renda para evitar o efeito bola de neve."
@@ -201,7 +216,7 @@ export function evaluateFinancialHealth(
     weight: 0.25,
     status: getPillarStatus(cashFlowScore),
     message: firstNegativeDate
-      ? `Atenção: A projeção indica que o saldo pode ficar negativo a partir de ${firstNegativeDate}.`
+      ? `Atenção: a projeção indica que o saldo pode ficar negativo a partir de ${formatCalendarDate(firstNegativeDate)}.`
       : monthlyNet.amount >= 0
         ? `Você tem uma sobra média estimada de ${formatMoneyRaw(monthlyNet)} no período.`
         : "O total de despesas está muito próximo ou superando a receita prevista.",
@@ -231,9 +246,9 @@ export function evaluateFinancialHealth(
     status: getPillarStatus(reserveScore),
     message:
       emergencyFundMonths >= 3
-        ? `Você possui reserva para aproximadamente ${emergencyFundMonths} meses de custo de vida.`
+        ? `Sua reserva protegida cobre aproximadamente ${emergencyFundMonths} meses de custo de vida.`
         : emergencyFundMonths > 0
-          ? `Sua liquidez atual cobre cerca de ${emergencyFundMonths} meses de despesas básicas.`
+          ? `Sua reserva protegida cobre cerca de ${emergencyFundMonths} meses de despesas básicas. O resto do saldo já tem destino.`
           : "Você ainda não possui uma reserva de emergência protegida.",
     recommendation:
       emergencyFundMonths < 3
@@ -284,6 +299,7 @@ export function evaluateFinancialHealth(
   };
 }
 
+/** The same five bands rate a single pillar and the score as a whole. */
 function getPillarStatus(score: number): HealthStatus {
   if (score >= 85) return "EXCELLENT";
   if (score >= 70) return "HEALTHY";
@@ -292,13 +308,7 @@ function getPillarStatus(score: number): HealthStatus {
   return "CRITICAL";
 }
 
-function getHealthStatus(score: number): HealthStatus {
-  if (score >= 85) return "EXCELLENT";
-  if (score >= 70) return "HEALTHY";
-  if (score >= 50) return "BALANCED";
-  if (score >= 30) return "ATTENTION";
-  return "CRITICAL";
-}
+const getHealthStatus = getPillarStatus;
 
 export function getHealthStatusLabel(status: HealthStatus): string {
   switch (status) {
@@ -412,8 +422,12 @@ function buildFinancialTips(debtRatio: number, reserveMonths: number): string[] 
   ];
 
   if (debtRatio > 30) {
+    // Deliberately not "procure um consignado". Telling someone whose income
+    // is already 30% committed to take on new credit is how the hole gets
+    // deeper, and it is a credit recommendation the terms of use rule out.
+    // What is safe to say is the criterion, and where to check it.
     tips.push(
-      "Dica de ouro para dívidas: Se o juros do cartão ou cheque especial for alto, busque um empréstimo consignado ou com garantia com taxa menor para trocar uma dívida cara por uma barata.",
+      "Antes de trocar uma dívida cara por outra, compare pelo CET (Custo Efetivo Total), não pela parcela: uma parcela menor com prazo maior quase sempre custa mais no fim. Peça o CET por escrito das duas.",
     );
   }
 

@@ -48,10 +48,12 @@ test.describe("páginas públicas", () => {
     expect(external).toEqual([]);
   });
 
-  test("ads.txt não expõe publisher id fora de produção", async ({ page }) => {
+  // `ads.txt` existia para declarar o publisher da rede de anúncios. A rota
+  // saiu junto com a publicidade, e o teste que resta é que ela realmente não
+  // está lá — voltar a servi-la seria voltar a ter anúncio.
+  test("ads.txt não existe mais, porque não há publicidade", async ({ page }) => {
     const response = await page.goto("/ads.txt");
-    expect(response?.status()).toBe(200);
-    expect(await response!.text()).toContain("Sem publicidade configurada");
+    expect(response?.status()).toBe(404);
   });
 
   test("robots bloqueia indexação do ambiente local", async ({ page }) => {
@@ -61,7 +63,10 @@ test.describe("páginas públicas", () => {
 
   test("o aviso de que não é consultoria financeira está no rodapé", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText(/não fazemos recomendação de investimentos/i)).toBeVisible();
+    // O rodapé diz "consultoria de investimentos"; o teste procurava
+    // "recomendação". O texto está certo e o teste é que tinha envelhecido.
+    await expect(page.getByText(/consultoria de investimentos/i)).toBeVisible();
+    await expect(page.getByText(/não somos.*instituição bancária/i)).toBeVisible();
   });
 });
 

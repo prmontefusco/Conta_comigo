@@ -1,11 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { FREE_LIMITS, PREMIUM_LIMITS } from "@/modules/billing/domain/plan-limits";
+import { TRIAL_DAYS } from "@/modules/billing/domain/subscription";
 import { PricingCards } from "./pricing-cards";
 
 export const metadata: Metadata = {
-  title: "Planos e Assinatura — 30 dias grátis | Conta comigo",
+  title: "Planos e Assinatura",
+  // Sem preço aqui de propósito: o valor vem do servidor (ADR 0010), e um
+  // número escrito à mão na metadata seria a primeira coisa a ficar velha.
   description:
-    "Organize suas finanças com tranquilidade. Teste 30 dias grátis. Apenas R$ 7,99 por mês ou R$ 69,99 por ano no plano anual. Sem fidelidade.",
+    "O plano gratuito é completo para quem está endividado: modo emergência, cálculo de multa e juros, calculadora de acordo e roteiros de negociação. O Premium acrescenta projeção longa, leitura de documentos por IA e o painel da família.",
   alternates: { canonical: "/planos" },
 };
 
@@ -16,16 +20,17 @@ export default function PlanosPage() {
       <div className="mx-auto max-w-3xl text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-teal-200/80 bg-teal-50/80 px-3.5 py-1 text-xs font-semibold text-teal-800 shadow-2xs">
           <span>✨</span>
-          <span>30 dias de teste gratuito em todos os planos Premium</span>
+          <span>Toda conta nova começa com {TRIAL_DAYS} dias de Premium</span>
         </div>
 
         <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-          Um investimento pequeno para uma tranquilidade sem preço.
+          Quem está endividado não deveria precisar pagar para ver a saída.
         </h1>
 
         <p className="mt-3 text-base leading-relaxed text-slate-600 sm:text-lg">
-          Sem letrinhas miúdas, sem pegadinhas e sem renovações escondidas. Experimente por 30 dias
-          e comprove como a clareza financeira transforma sua rotina.
+          Por isso o plano gratuito não é uma amostra: ele tem o modo emergência, o cálculo de
+          quanto o atraso custa por dia, a calculadora de acordo e os roteiros de negociação — para
+          sempre, sem limite de contas. O Premium é para quem quer organizar com mais folga.
         </p>
       </div>
 
@@ -42,10 +47,10 @@ export default function PlanosPage() {
               🛡️
             </span>
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">30 Dias Sem Risco</h3>
+              <h3 className="text-sm font-semibold text-slate-900">{TRIAL_DAYS} dias sem cartão</h3>
               <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                Aproveite todos os recursos avançados livremente. Se não amar a experiência, cancele
-                a qualquer momento com um único clique.
+                O teste começa sozinho quando você cria a conta e não pede dados de pagamento. Se
+                não assinar depois, a conta continua funcionando no plano gratuito — nada é apagado.
               </p>
             </div>
           </div>
@@ -55,10 +60,11 @@ export default function PlanosPage() {
               🔒
             </span>
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">Privacidade Sagrada</h3>
+              <h3 className="text-sm font-semibold text-slate-900">Sem anúncios, sem repasse</h3>
               <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                Seus dados financeiros nunca serão vendidos para terceiros ou anunciantes.
-                Criptografia bancária de ponta a ponta.
+                Não há publicidade em nenhuma tela e seus dados não são vendidos nem compartilhados.
+                O tráfego é criptografado e o banco guarda tudo criptografado em repouso — não é
+                ponta a ponta, e a gente prefere dizer isso do que exagerar.
               </p>
             </div>
           </div>
@@ -68,10 +74,10 @@ export default function PlanosPage() {
               ⚡
             </span>
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">Pix & Cartão Seguro</h3>
+              <h3 className="text-sm font-semibold text-slate-900">Pagamento avulso</h3>
               <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                Pagamentos processados com segurança máxima. No Pix, ativação imediata sem
-                burocracia.
+                Cada pagamento vale por um período e acaba nele. Não há cobrança recorrente, não há
+                cartão guardado e não há renovação para cancelar depois.
               </p>
             </div>
           </div>
@@ -88,65 +94,57 @@ export default function PlanosPage() {
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-200/80 bg-white p-4.5 shadow-2xs">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Como funcionam os 30 dias grátis?
-            </h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-              Você cria sua conta e ganha 30 dias de acesso irrestrito a todos os recursos Premium,
-              incluindo IA de leitura de documentos e projeção completa de 12 meses. Nada será
-              cobrado durante o período de teste.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-slate-200/80 bg-white p-4.5 shadow-2xs">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Posso cancelar a qualquer momento?
-            </h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-              Sim! Sem carência, sem contratos de longo prazo e sem burocracia. Você pode cancelar a
-              renovação com 1 clique direto no menu de sua conta.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-slate-200/80 bg-white p-4.5 shadow-2xs">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Qual a vantagem do plano anual de R$ 69,99?
-            </h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-              O plano anual sai por <strong>R$ 69,99 por ano</strong>, o que equivale a apenas{" "}
-              <strong>R$ 5,83 por mês</strong>. É uma economia de 27% em relação ao valor da
-              mensalidade avulsa.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-slate-200/80 bg-white p-4.5 shadow-2xs">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Minha família pode usar a mesma assinatura?
-            </h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-              Sim! O Conta comigo foi feito para famílias. Você pode convidar seu parceiro(a) ou
-              outros membros da casa para visualizar e registrar contas juntos dentro do mesmo grupo
-              familiar.
-            </p>
-          </div>
+          {[
+            {
+              q: `Como funcionam os ${TRIAL_DAYS} dias grátis?`,
+              a: `Ao criar a conta você entra automaticamente no Premium por ${TRIAL_DAYS} dias, sem informar cartão. Quando o período acaba, a conta passa para o plano gratuito e continua funcionando: nada é apagado e nenhuma cobrança acontece sozinha.`,
+            },
+            {
+              q: "Preciso cancelar alguma coisa depois?",
+              a: "Não. O pagamento aqui é avulso: cada compra vale por um período e termina nele. Não guardamos cartão, não há assinatura recorrente e não existe renovação automática para cancelar.",
+            },
+            {
+              q: "O plano gratuito é limitado de verdade?",
+              a: `Nas comodidades, sim: a projeção mostra ${FREE_LIMITS.forecastMonths} meses em vez de ${PREMIUM_LIMITS.forecastMonths}, cabem ${FREE_LIMITS.members} pessoas no grupo e ${FREE_LIMITS.creditCards} cartões, e o cadastro é digitado. No que ajuda alguém a sair da dívida, não: contas e dívidas sem limite de quantidade, modo emergência, cálculo de multa e mora, calculadora de acordo e roteiros de negociação ficam liberados para sempre.`,
+            },
+            {
+              q: "Estou no vermelho. Vale pagar por um aplicativo?",
+              a: "Provavelmente não agora — e o gratuito foi feito exatamente para isso. Use o modo emergência e a tela de negociação sem pagar nada. Se o Premium fizer sentido mais adiante, ele vai estar aqui.",
+            },
+            {
+              q: "Minha família pode usar a mesma conta?",
+              a: `Pode. Cada pessoa cria o próprio acesso e entra no mesmo grupo familiar, vendo os mesmos números. O gratuito comporta ${FREE_LIMITS.members} pessoas; o Premium, até ${PREMIUM_LIMITS.members}.`,
+            },
+            {
+              q: "Vocês negociam minhas dívidas por mim?",
+              a: "Não, e não temos relação com nenhum credor. O que fazemos é calcular quanto cabe no seu mês antes da ligação e dar o roteiro do que dizer. A conversa e a decisão continuam sendo suas.",
+            },
+          ].map((item) => (
+            <div
+              key={item.q}
+              className="rounded-xl border border-slate-200/80 bg-white p-4.5 shadow-2xs"
+            >
+              <h3 className="text-sm font-semibold text-slate-900">{item.q}</h3>
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-600">{item.a}</p>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Chamada Final */}
       <div className="mt-16 text-center">
         <h3 className="text-lg font-semibold text-slate-900">
-          Pronto para dar o primeiro passo rumo à tranquilidade?
+          O primeiro passo é ver o tamanho real do problema.
         </h3>
         <p className="mt-1 text-sm text-slate-600">
-          Crie sua conta em menos de 1 minuto e comece seu teste gratuito.
+          Leva menos de um minuto para criar a conta, e você pode cadastrar as contas aos poucos.
         </p>
         <div className="mt-5">
           <Link
             href="/criar-conta"
             className="inline-flex min-h-12 items-center rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 px-8 font-semibold text-white shadow-sm transition-all hover:from-teal-700 hover:to-cyan-700 hover:shadow-md"
           >
-            Começar meus 30 dias grátis agora
+            Criar minha conta
           </Link>
         </div>
       </div>

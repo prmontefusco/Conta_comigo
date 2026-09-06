@@ -26,6 +26,17 @@ const CONTEXT: AdvisorContext = {
   emergencyFundMonths: 0,
   monthsToDebtFree: 36,
   debtFreeDateFormatted: "01/09/2029",
+  planViability: "ON_TRACK",
+  monthlyShortfallFormatted: "R$ 0,00",
+};
+
+/** Alguém cujas parcelas mínimas não cabem no mês. Não existe prazo para ela. */
+const CONTEXT_INVIAVEL: AdvisorContext = {
+  ...CONTEXT,
+  monthsToDebtFree: null,
+  debtFreeDateFormatted: null,
+  planViability: "NOT_VIABLE",
+  monthlyShortfallFormatted: "R$ 820,00",
 };
 
 /** Uma pergunta por ramo, mais o caso sem pergunta. */
@@ -115,5 +126,24 @@ describe("generateLocalFinancialAdvice", () => {
       const advice = generateLocalFinancialAdvice(CONTEXT, question).toLowerCase();
       expect(advice).not.toMatch(/garantimos|garantido|com certeza você (vai|irá)/);
     }
+  });
+});
+
+describe("quando o plano não fecha", () => {
+  it("não promete prazo de quitação em nenhum caminho do texto", () => {
+    const perguntas = ["", "como quitar minhas dívidas?", "e o cartão?", "quero cortar gastos"];
+
+    for (const pergunta of perguntas) {
+      const texto = generateLocalFinancialAdvice(CONTEXT_INVIAVEL, pergunta);
+      expect(texto).not.toMatch(/quita(ção|r) estimada/i);
+      expect(texto).not.toContain("null");
+      expect(texto).not.toMatch(/36 meses/);
+    }
+  });
+
+  it("diz o tamanho do buraco e aponta a renegociação", () => {
+    const texto = generateLocalFinancialAdvice(CONTEXT_INVIAVEL, "");
+    expect(texto).toContain("R$ 820,00");
+    expect(texto.toLowerCase()).toContain("prazo");
   });
 });

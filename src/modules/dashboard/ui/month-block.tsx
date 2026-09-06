@@ -60,14 +60,14 @@ export function MonthBlock() {
             tone="outflow"
           />
           <Stat
-            label="Resultado esperado"
+            label="Entra menos sai, no mês"
             value={thisMonth.expectedResult}
             size="lg"
             tone={isNegative(thisMonth.expectedResult) ? "critical" : "positive"}
             hint={
               isNegative(thisMonth.expectedResult)
-                ? "Os compromissos do mês superam o que entra."
-                : "O que deve sobrar considerando tudo o que está previsto."
+                ? "O que o mês compromete supera o que entra nele. É um número de fluxo: não conta o saldo que você já tinha."
+                : "Sobra do mês, contando só o que entra e sai nele — sem o saldo que você já tinha."
             }
           />
         </dl>

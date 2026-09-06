@@ -6,10 +6,13 @@ import { FormError, SelectField, TextField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
 import { getDb } from "@/lib/firebase/client";
 import {
+  addDependent,
   addMemberByUid,
   changeMemberRole,
   removeMember,
 } from "@/modules/household/application/manage-members";
+import { canAddOne } from "@/modules/billing/domain/plan-limits";
+import { INVITE_VALID_DAYS, createInvite } from "@/modules/household/application/invites";
 import { ROLE_DESCRIPTIONS, ROLE_LABELS } from "@/modules/household/domain/household";
 import { useMembers } from "@/modules/household/ui/use-members";
 import { useSession } from "@/modules/household/ui/session-provider";
@@ -30,6 +33,8 @@ export default function MembersPage() {
   const { household, user, canAdminister } = useSession();
   const { active, loading } = useMembers();
   const [adding, setAdding] = useState(false);
+  const [addingDependent, setAddingDependent] = useState(false);
+  const [invitingByEmail, setInvitingByEmail] = useState(false);
   const [invitingFamily, setInvitingFamily] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -46,8 +51,12 @@ export default function MembersPage() {
         </div>
         {canAdminister ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => setInvitingFamily(true)}>
-              👨‍👩‍👧‍👦 Cadastrar Familiar (Cônjuge / Filhos)
+            <Button onClick={() => setInvitingByEmail(true)}>Convidar por e-mail</Button>
+            <Button variant="secondary" onClick={() => setInvitingFamily(true)}>
+              👨‍👩‍👧‍👦 Cadastrar Familiar
+            </Button>
+            <Button variant="secondary" onClick={() => setAddingDependent(true)}>
+              Adicionar pessoa sem acesso
             </Button>
             <Button variant="secondary" onClick={() => setAdding(true)}>
               Adicionar por código
@@ -162,7 +171,7 @@ export default function MembersPage() {
             identificador&rdquo;.
           </li>
           <li>
-            Você clica em <strong>Adicionar pessoa</strong> acima e cola o código dela.
+            Você clica em <strong>Adicionar por código</strong> acima e cola o código dela.
           </li>
         </ol>
         <p className="mt-3 text-xs" style={{ color: "var(--muted-fg)" }}>
@@ -184,6 +193,8 @@ export default function MembersPage() {
       </Card>
 
       <AddMemberDialog open={adding} onClose={() => setAdding(false)} />
+      <AddDependentDialog open={addingDependent} onClose={() => setAddingDependent(false)} />
+      <InviteByEmailDialog open={invitingByEmail} onClose={() => setInvitingByEmail(false)} />
       <InviteFamilyModal open={invitingFamily} onClose={() => setInvitingFamily(false)} />
     </div>
   );
@@ -227,7 +238,10 @@ function MemberRow({
       </div>
 
       <div className="flex items-center gap-2">
-        {editable ? (
+        {/* Um dependente não tem papel a escolher: mudar isso seria fazer um
+            perfil sem acesso virar um com acesso, e as Security Rules recusam
+            essa travessia nas duas direções. */}
+        {editable && role !== "DEPENDENT" ? (
           <>
             <label className="text-sm">
               <span className="sr-only">Papel de {displayName}</span>
@@ -284,8 +298,218 @@ function MemberRow({
   );
 }
 
-function AddMemberDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+/**
+ * Convidar quem vai usar o aplicativo.
+ *
+ * O caminho antigo pedia que a outra pessoa criasse a conta, achasse o próprio
+ * identificador de 28 caracteres e o mandasse de volta. Aqui o administrador
+ * informa o e-mail, e o link resultante é a única coisa que viaja — numa
+ * direção só.
+ */
+function InviteByEmailDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { household, user, effectivePlan } = useSession();
+  const { active } = useMembers();
+
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<Exclude<HouseholdRole, "OWNER" | "DEPENDENT">>("MEMBER");
+  const [link, setLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  function close() {
+    setEmail("");
+    setLink(null);
+    setCopied(false);
+    setError(null);
+    onClose();
+  }
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+    if (!household || !user) return;
+
+    const seats = active.filter((member) => member.role !== "DEPENDENT").length;
+    const room = canAddOne("members", effectivePlan, seats);
+    if (!room.allowed) {
+      setError(room.message);
+      return;
+    }
+
+    setSaving(true);
+    const result = await createInvite({
+      db: getDb(),
+      householdId: household.id,
+      actorUid: user.uid,
+      email,
+      role,
+    });
+    setSaving(false);
+
+    if (!result.ok) {
+      setError(result.error.message);
+      return;
+    }
+
+    setLink(`${window.location.origin}/app/convite?grupo=${household.id}`);
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={close}
+      title="Convidar por e-mail"
+      description="A pessoa cria a conta com esse mesmo e-mail, abre o link e entra. Nada precisa voltar para você."
+    >
+      {link ? (
+        <div className="space-y-4">
+          <Callout tone="positive">
+            Convite criado para <strong>{email}</strong>. Ele vale por {INVITE_VALID_DAYS} dias.
+          </Callout>
+
+          <div>
+            <p className="text-2xs font-semibold tracking-wider uppercase">Link do convite</p>
+            <p className="mt-1 rounded-lg border border-[color:var(--card-border)] p-3 text-sm break-all">
+              {link}
+            </p>
+            <Button
+              variant="secondary"
+              className="mt-2"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(link);
+                  setCopied(true);
+                } catch {
+                  setCopied(false);
+                }
+              }}
+            >
+              {copied ? "Copiado" : "Copiar link"}
+            </Button>
+          </div>
+
+          <p className="text-2xs" style={{ color: "var(--muted-fg)" }}>
+            O aplicativo não envia e-mail — mande o link por onde preferir. Só quem entrar com{" "}
+            <strong>{email}</strong>, e tiver confirmado esse endereço, consegue usá-lo.
+          </p>
+
+          <Button onClick={close} className="w-full">
+            Pronto
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={onSubmit} className="space-y-4" noValidate>
+          {error ? <FormError>{error}</FormError> : null}
+
+          <TextField
+            label="E-mail da pessoa"
+            type="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="pessoa@exemplo.com"
+            hint="Precisa ser o mesmo e-mail com que ela vai criar a conta."
+          />
+
+          <SelectField
+            label="O que ela vai poder fazer"
+            value={role}
+            onChange={(event) =>
+              setRole(event.target.value as Exclude<HouseholdRole, "OWNER" | "DEPENDENT">)
+            }
+            options={[
+              { value: "MEMBER", label: "Membro — registra e edita informações" },
+              { value: "ADMIN", label: "Administrador — também gerencia o grupo" },
+              { value: "VIEWER", label: "Visualizador — só vê, não altera" },
+            ]}
+          />
+
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" className="flex-1" disabled={saving}>
+              {saving ? "Criando…" : "Criar convite"}
+            </Button>
+            <Button type="button" variant="secondary" onClick={close}>
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      )}
+    </Modal>
+  );
+}
+
+/**
+ * Uma pessoa da casa que não entra no aplicativo.
+ *
+ * Um campo só, porque é tudo o que existe para pedir: um dependente não tem
+ * e-mail para convidar nem papel para escolher. Ele passa a aparecer em "de
+ * quem é este gasto", e nada além disso.
+ */
+function AddDependentDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { household, user } = useSession();
+  const [displayName, setDisplayName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+    if (!household || !user) return;
+
+    setSaving(true);
+    const result = await addDependent({
+      db: getDb(),
+      householdId: household.id,
+      actorUid: user.uid,
+      displayName,
+    });
+    setSaving(false);
+
+    if (!result.ok) {
+      setError(result.error.message);
+      return;
+    }
+
+    setDisplayName("");
+    onClose();
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Adicionar pessoa sem acesso"
+      description="Para quem faz parte da casa mas não vai usar o aplicativo: filhos, pais, quem não precisa entrar."
+    >
+      <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        {error ? <FormError>{error}</FormError> : null}
+
+        <TextField
+          label="Nome da pessoa"
+          required
+          value={displayName}
+          onChange={(event) => setDisplayName(event.target.value)}
+          placeholder="Lucas"
+          hint="Ela passa a aparecer quando você escolhe de quem é um gasto. Não recebe convite, não faz login e não vê nada."
+        />
+
+        <div className="flex gap-2 pt-2">
+          <Button type="submit" className="flex-1" disabled={saving}>
+            {saving ? "Salvando…" : "Adicionar"}
+          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function AddMemberDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { household, user, effectivePlan } = useSession();
+  const { active } = useMembers();
   const [uid, setUid] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -297,6 +521,16 @@ function AddMemberDialog({ open, onClose }: { open: boolean; onClose: () => void
     event.preventDefault();
     setError(null);
     if (!household || !user) return;
+
+    // Dependentes não ocupam assento: o limite do plano é sobre pessoas com
+    // acesso, e cobrar por um filho de doze anos que nem entra no aplicativo
+    // tornaria o plano gratuito inútil para uma família.
+    const seats = active.filter((member) => member.role !== "DEPENDENT").length;
+    const room = canAddOne("members", effectivePlan, seats);
+    if (!room.allowed) {
+      setError(room.message);
+      return;
+    }
 
     setSaving(true);
     const result = await addMemberByUid({

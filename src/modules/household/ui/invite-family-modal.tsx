@@ -6,6 +6,8 @@ import { FormError, SelectField, TextField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
 import { getDb } from "@/lib/firebase/client";
 import { addMemberByUid } from "../application/manage-members";
+import { canAddOne } from "@/modules/billing/domain/plan-limits";
+import { useMembers } from "./use-members";
 import { useSession } from "./session-provider";
 import type { HouseholdRole } from "@/modules/shared/domain/common";
 
@@ -27,7 +29,8 @@ export function InviteFamilyModal({
   onClose: () => void;
   onSuccess?: () => void;
 }) {
-  const { household, user } = useSession();
+  const { household, user, effectivePlan } = useSession();
+  const { active } = useMembers();
   const [name, setName] = useState("");
   const [relationship, setRelationship] = useState<RelationshipType>("SPOUSE");
   const [role, setRole] = useState<Exclude<HouseholdRole, "OWNER">>("MEMBER");
@@ -48,11 +51,14 @@ export function InviteFamilyModal({
     setSaving(false);
   }
 
+  // Sem tratamento afetuoso por padrão: o mesmo modal convida cônjuge, filho e
+  // mãe, e "Oi, amor" para a própria mãe é constrangedor. E sem prometer que o
+  // perfil "já está reservado" — nada é criado até o código chegar.
   const generatedInviteMessage =
-    `Oi, ${name || "amor"}! Criei nosso grupo familiar no Conta comigo para planejarmos nossas finanças, lançarmos cupons de mercado e acompanharmos nossas metas juntos.\n\n` +
-    `1. Acesse https://contacomigo.app/entrar e crie sua conta com seu e-mail.\n` +
-    `2. Vá em Menu > Membros e me envie o código do seu identificador.\n` +
-    `3. Eu já reservei seu perfil de ${RELATIONSHIP_LABELS[relationship]} para você começar a lançar seus gastos pelo celular!`;
+    `Oi${name.trim() ? `, ${name.trim()}` : ""}! Criei nosso grupo no Conta comigo para a gente organizar as contas da casa juntos e acompanhar os mesmos números.\n\n` +
+    `1. Acesse https://contacomigo.app/criar-conta e crie sua conta com o seu e-mail.\n` +
+    `2. Depois de entrar, vá em Mais > Membros e copie o código que aparece em "Seu identificador".\n` +
+    `3. Me mande esse código e eu incluo você no grupo como ${RELATIONSHIP_LABELS[relationship]}.`;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -66,6 +72,17 @@ export function InviteFamilyModal({
     // Se o usuário forneceu o identificador da outra pessoa, adiciona diretamente
     if (identifier.trim()) {
       if (!household || !user) return;
+
+      // Dependentes não ocupam assento: o limite do plano é sobre pessoas com
+      // acesso, e cobrar por um filho de doze anos que nem entra no aplicativo
+      // tornaria o plano gratuito inútil para uma família.
+      const seats = active.filter((member) => member.role !== "DEPENDENT").length;
+      const room = canAddOne("members", effectivePlan, seats);
+      if (!room.allowed) {
+        setError(room.message);
+        return;
+      }
+
       setSaving(true);
       const db = getDb();
       const result = await addMemberByUid({
@@ -165,7 +182,7 @@ export function InviteFamilyModal({
                 ? "Salvando..."
                 : identifier.trim()
                   ? "Adicionar Agora"
-                  : "Continuar para Convite &rarr;"}
+                  : "Continuar para Convite →"}
             </Button>
           </div>
         </form>

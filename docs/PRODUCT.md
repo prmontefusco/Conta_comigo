@@ -156,12 +156,17 @@ retorno visível.
 
 ## Modelo de negócio
 
-**FREE** — funcionalidades principais, com anúncios do Google AdSense.
+**FREE** — sem anúncios, sem prazo e sem limite de quantidade no que decide
+sair da dívida: contas, dívidas e lançamentos à vontade, modo emergência,
+cálculo de multa e juros de mora, calculadora de acordo e roteiros de
+negociação. O que ele limita é comodidade: projeção de 3 meses em vez de 13,
+duas pessoas no grupo, dois cartões e cadastro digitado (sem leitura por
+foto).
 **PREMIUM** — arquitetura preparada para ausência de anúncios e recursos
 adicionais. Cobrança não implementada.
 
 Nenhum dado financeiro é enviado à rede de anúncios, em nenhuma hipótese. Ver
-[`ADSENSE.md`](ADSENSE.md).
+`plan-limits.ts`.
 
 ## Definition of Done do MVP
 

@@ -5,12 +5,15 @@ import { fromDecimalString } from "@/core/money/money";
 import { Button } from "@/components/ui/primitives";
 import { FormError, MoneyField, SelectField, TextField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
+import { canAddOne } from "@/modules/billing/domain/plan-limits";
+import { useFinance } from "@/modules/household/ui/finance-provider";
 import { MemberField } from "@/modules/household/ui/member-field";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 
 export function NewCardDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { household } = useSession();
+  const { household, effectivePlan } = useSession();
+  const finance = useFinance();
   const collections = useCollections();
 
   const [name, setName] = useState("");
@@ -27,6 +30,15 @@ export function NewCardDialog({ open, onClose }: { open: boolean; onClose: () =>
     event.preventDefault();
     setError(null);
     if (!household) return;
+
+    // O teto do plano é checado antes de qualquer validação de formulário: não
+    // faz sentido pedir para alguém corrigir um campo de um cartão que não vai
+    // caber de qualquer jeito.
+    const room = canAddOne("creditCards", effectivePlan, finance.cards.length);
+    if (!room.allowed) {
+      setError(room.message);
+      return;
+    }
 
     const creditLimit = fromDecimalString(limitText);
     if (!creditLimit || creditLimit.amount < 0) {

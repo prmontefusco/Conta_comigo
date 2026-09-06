@@ -128,6 +128,22 @@ export function FeiraoCalculatorCard({
             {analysis.recommendationReason}
           </Callout>
 
+          {analysis.warnings.length > 0 ? (
+            <ul className="space-y-1.5">
+              {analysis.warnings.map((warning) => (
+                <li
+                  key={warning}
+                  className="flex gap-2 rounded-lg border border-[color:var(--tone-critical)]/40 bg-[color:var(--card-bg)] p-2.5 text-xs"
+                >
+                  <span aria-hidden="true" style={{ color: "var(--tone-critical)" }}>
+                    &#9888;
+                  </span>
+                  <span>{warning}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* Opção À Vista */}
             {analysis.cashOfferAmount ? (

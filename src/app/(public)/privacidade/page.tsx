@@ -20,7 +20,7 @@ export default function Page() {
         <Bullets
           items={[
             "Suas informações financeiras nunca são enviadas a anunciantes ou redes de publicidade.",
-            "Nenhum dado financeiro é usado para segmentar anúncios.",
+            "Não existe publicidade no serviço, e nenhum dado seu é enviado a rede de anúncios.",
             "Ninguém fora do seu grupo familiar tem acesso aos seus dados.",
             "Você pode exportar ou excluir sua conta e seus dados a qualquer momento.",
             "Não vendemos dados pessoais.",
@@ -70,20 +70,15 @@ export default function Page() {
 
       <Section heading="Publicidade">
         <p>
-          A versão gratuita exibe anúncios do Google AdSense. Sobre isso, três compromissos
-          concretos:
+          Não há publicidade no Conta comigo, em nenhuma tela e em nenhum plano. Não carregamos
+          scripts de rede de anúncios, não há pixel de rastreamento de terceiros e nenhum domínio
+          publicitário consegue executar código, carregar imagem ou abrir conexão a partir das
+          páginas onde as suas finanças aparecem.
         </p>
-        <Bullets
-          items={[
-            "Nenhuma informação financeira sua é enviada à rede de anúncios: nem saldos, nem renda, nem dívidas, nem categorias, nem nomes de contas, nem valores de parcelas.",
-            "Nenhum comportamento financeiro individual é usado como parâmetro de segmentação.",
-            "Anúncios nunca são exibidos dentro de formulários, ao lado de botões de ação, entre um rótulo e seu campo, nem de forma que possa ser confundida com recomendação financeira.",
-          ]}
-        />
         <p>
-          O Google, como fornecedor terceiro, pode utilizar cookies para exibir anúncios com base em
-          visitas anteriores a este e a outros sites. Você pode desativar a publicidade
-          personalizada nas configurações de anúncios do Google.
+          O serviço se sustenta pelas assinaturas de quem escolhe o plano Premium. Isso é uma
+          decisão de produto, não só de privacidade: um aplicativo que ganha por impressão tem
+          interesse em manter você olhando a tela, e este tem interesse em resolver o seu problema.
         </p>
       </Section>
 
@@ -95,7 +90,7 @@ export default function Page() {
         <Bullets
           items={[
             "Google Firebase (autenticação, banco de dados e hospedagem), como operador dos dados.",
-            "Google AdSense, exclusivamente para exibição de anúncios e sem receber qualquer dado financeiro.",
+            "Asaas, apenas para processar o pagamento de quem assina, e apenas com os dados da cobrança.",
           ]}
         />
         <p>Não vendemos, alugamos nem cedemos dados pessoais a terceiros.</p>

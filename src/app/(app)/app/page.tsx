@@ -1,10 +1,8 @@
 "use client";
 
-import { AdSlot } from "@/components/ads/ad-slot";
 import { Callout, Spinner } from "@/components/ui/primitives";
 import { DashboardTabs } from "@/modules/dashboard/ui/dashboard-tabs";
 import { useFinance } from "@/modules/household/ui/finance-provider";
-import { useSession } from "@/modules/household/ui/session-provider";
 
 /**
  * The home screen.
@@ -18,7 +16,6 @@ import { useSession } from "@/modules/household/ui/session-provider";
  */
 export default function DashboardPage() {
   const finance = useFinance();
-  const { isPremium } = useSession();
 
   if (finance.loading) {
     return <Spinner label="Carregando suas finanças" />;
@@ -46,7 +43,6 @@ export default function DashboardPage() {
       <DashboardTabs />
 
       {/* Anúncio discreto para contas gratuitas */}
-      <AdSlot placement="dashboard-inline" hidden={isPremium} />
     </div>
   );
 }

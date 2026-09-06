@@ -48,11 +48,25 @@ test.describe("catálogo de planos", () => {
     expect(response.status()).toBe(200);
     const body = await response.json();
 
-    // Os preços vêm da configuração do servidor, não do código nem do cliente.
-    expect(body.plans).toEqual([
-      { cycle: "MONTHLY", label: "Mensal", amountCents: 500, currency: "BRL" },
-      { cycle: "YEARLY", label: "Anual", amountCents: 5000, currency: "BRL" },
-    ]);
+    // Os preços vêm da configuração do servidor, não do código nem do cliente
+    // (ADR 0010). Por isso este teste verifica a **forma** e não os valores:
+    // um teste que fixa "500" quebra no dia em que alguém reajusta o preço,
+    // que é uma decisão de negócio e não uma regressão. Foi o que aconteceu —
+    // ele ficou vermelho apontando para um preço que já não era o vigente.
+    expect(body.plans).toHaveLength(2);
+    expect(body.plans[0]).toMatchObject({ cycle: "MONTHLY", label: "Mensal", currency: "BRL" });
+    expect(body.plans[1]).toMatchObject({ cycle: "YEARLY", label: "Anual", currency: "BRL" });
+
+    for (const plan of body.plans) {
+      expect(Number.isInteger(plan.amountCents)).toBe(true);
+      expect(plan.amountCents).toBeGreaterThan(0);
+    }
+
+    // O anual precisa custar mais que um mês e menos que doze; fora disso
+    // alguém trocou os campos de lugar.
+    const [monthly, yearly] = body.plans;
+    expect(yearly.amountCents).toBeGreaterThan(monthly.amountCents);
+    expect(yearly.amountCents).toBeLessThan(monthly.amountCents * 12);
   });
 
   test("declara a venda fechada sem chave de provedor", async ({ request }) => {
@@ -66,8 +80,13 @@ test.describe("catálogo de planos", () => {
   test("informa a economia do plano anual como fato, não como propaganda", async ({ request }) => {
     const body = await (await request.get("/api/assinatura/planos")).json();
 
-    // 500/mês contra 5000/ano = 417/mês, logo 83 de diferença.
-    expect(body.yearlySavingPerMonthCents).toBe(83);
+    // A economia é derivada dos preços configurados, então o que se verifica é
+    // a relação: mensal menos (anual ÷ 12), em centavos inteiros.
+    const [monthly, yearly] = body.plans;
+    const expected = monthly.amountCents - Math.round(yearly.amountCents / 12);
+
+    expect(body.yearlySavingPerMonthCents).toBe(expected);
+    expect(Number.isInteger(body.yearlySavingPerMonthCents)).toBe(true);
   });
 });
 
@@ -133,11 +152,19 @@ test.describe("tela de assinatura", () => {
     await page.goto("/app/assinatura");
   });
 
-  test("mostra o plano gratuito sem apresentá-lo como defeito", async ({ page }) => {
+  // Toda conta nova entra no teste de 30 dias, e as contas semeadas são
+  // criadas agora — então a tela mostra "Premium (teste)", não "Gratuito".
+  // O teste antigo assumia que não existia período de teste, o que era
+  // verdade quando o site já o anunciava e o código não o implementava.
+  test("mostra o período de teste com os dias que faltam", async ({ page }) => {
     await expect(page.getByRole("heading", { name: "Assinatura" })).toBeVisible();
-    await expect(page.getByText("Gratuito", { exact: true })).toBeVisible();
+    await expect(page.getByText("Premium (teste)", { exact: true })).toBeVisible();
+    await expect(page.getByText(/dias restantes/)).toBeVisible();
+  });
+
+  test("diz que a conta continua funcionando quando o teste acabar", async ({ page }) => {
     await expect(
-      page.getByText("Todas as funções de planejamento estão disponíveis no plano gratuito."),
+      page.getByText(/passa para o plano gratuito e continua funcionando/),
     ).toBeVisible();
   });
 
@@ -149,9 +176,10 @@ test.describe("tela de assinatura", () => {
     await expect(page.getByRole("button", { name: "Pagar com cartão" })).toHaveCount(0);
   });
 
-  test("diz o que o Premium entrega, sem prometer função escondida", async ({ page }) => {
-    await expect(
-      page.getByText("Nenhuma função de planejamento fica atrás do pagamento"),
-    ).toBeVisible();
+  test("explica que o pagamento é avulso e não renova sozinho", async ({ page }) => {
+    // A tela prometia "cancele com 1 clique" e não havia o que cancelar: a
+    // cobrança no provedor é avulsa. O texto agora diz isso, e o teste guarda.
+    await expect(page.getByText(/não existe cobrança recorrente/)).toBeVisible();
+    await expect(page.getByText(/não há renovação automática/)).toBeVisible();
   });
 });

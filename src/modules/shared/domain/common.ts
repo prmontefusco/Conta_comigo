@@ -81,10 +81,34 @@ export interface FinancialDates {
   readonly transactionDate?: CalendarDate;
 }
 
-export const HOUSEHOLD_ROLES = ["OWNER", "ADMIN", "MEMBER", "VIEWER"] as const;
+/**
+ * `DEPENDENT` é uma pessoa da casa **sem acesso ao aplicativo**.
+ *
+ * Um filho de doze anos, um pai idoso, alguém que só precisa existir para a
+ * pergunta "de quem é este gasto". Antes disso, todo membro exigia conta
+ * própria e a troca manual de um identificador de 28 caracteres — o que
+ * deixava o caso mais comum de uma casa brasileira de fora, e com ele a
+ * atribuição de despesas.
+ *
+ * O papel não concede nada, e isso é garantido pela forma do dado, não por
+ * uma verificação: as Security Rules só reconhecem um membro quando o **id do
+ * documento é o uid de quem chama**, e o documento de um dependente tem id
+ * prefixado com `dep_` — que o Firebase Auth nunca emite.
+ */
+export const HOUSEHOLD_ROLES = ["OWNER", "ADMIN", "MEMBER", "VIEWER", "DEPENDENT"] as const;
 export type HouseholdRole = (typeof HOUSEHOLD_ROLES)[number];
 
+/** Prefixo que separa um perfil sem acesso de um uid real do Firebase Auth. */
+export const DEPENDENT_ID_PREFIX = "dep_";
+
+export function isDependentId(id: string): boolean {
+  return id.startsWith(DEPENDENT_ID_PREFIX);
+}
+
 const ROLE_RANK: Record<HouseholdRole, number> = {
+  // Abaixo de VIEWER: um dependente não vê nem altera nada. Ele aparece nas
+  // telas de quem tem acesso, e não tem acesso nenhum.
+  DEPENDENT: -1,
   VIEWER: 0,
   MEMBER: 1,
   ADMIN: 2,

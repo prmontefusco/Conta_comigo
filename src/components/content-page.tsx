@@ -1,12 +1,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { AdSlot } from "@/components/ads/ad-slot";
 
 /**
  * Layout for the public content pages.
  *
  * Advertising sits after the article, never inside it, so an ad can never be
- * mistaken for part of the guidance (docs/ADSENSE.md).
+ * mistaken for part of the guidance.
  */
 export function ContentPage({
   title,
@@ -41,9 +40,7 @@ export function ContentPage({
         </div>
       ) : null}
 
-      <div className="mt-12">
-        <AdSlot placement="content-footer" />
-      </div>
+      <div className="mt-12"></div>
     </div>
   );
 }

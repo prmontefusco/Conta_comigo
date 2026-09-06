@@ -7,7 +7,8 @@ import {
   parseDocumentReading,
 } from "@/modules/receipts/domain/document-reading";
 import { requireAuth } from "@/server/auth-guard";
-import { checkRateLimit } from "@/server/rate-limit";
+import { requirePremiumFeature } from "@/server/plan-guard";
+import { checkSharedRateLimit } from "@/server/rate-limit-store";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,7 +21,18 @@ export async function POST(request: Request) {
   const auth = await requireAuth(request);
   if ("errorResponse" in auth) return auth.errorResponse;
 
-  const limit = checkRateLimit(`document:${auth.caller.uid}`, RATE_LIMIT, RATE_WINDOW_MS);
+  const denied = await requirePremiumFeature(
+    auth.caller.uid,
+    "documentReading",
+    "A leitura automática de contas faz parte do Premium. Você tem 30 dias de teste ao criar a conta — depois disso, dá para cadastrar manualmente.",
+  );
+  if (denied) return denied;
+
+  const limit = await checkSharedRateLimit(
+    `document:${auth.caller.uid}`,
+    RATE_LIMIT,
+    RATE_WINDOW_MS,
+  );
 
   if (!limit.allowed) {
     return NextResponse.json(

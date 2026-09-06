@@ -164,6 +164,21 @@ export function anonymous(testEnv: RulesTestEnvironment): RulesTestContext {
   return testEnv.unauthenticatedContext();
 }
 
+/**
+ * Alguém autenticado com um e-mail, confirmado ou não.
+ *
+ * A confirmação é o que separa "digitou um e-mail" de "é o dono dele", e a
+ * aceitação de convite depende inteiramente disso — daí o parâmetro existir.
+ */
+export function asEmail(
+  testEnv: RulesTestEnvironment,
+  uid: string,
+  email: string,
+  emailVerified = true,
+): RulesTestContext {
+  return testEnv.authenticatedContext(uid, { email, email_verified: emailVerified });
+}
+
 /** A valid new transaction payload, so tests vary only what they care about. */
 export function transactionPayload(
   uid: string,

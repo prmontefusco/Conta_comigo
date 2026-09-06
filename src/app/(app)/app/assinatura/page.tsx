@@ -8,6 +8,7 @@ import {
   isWithinRenewalWindow,
   RENEWAL_WINDOW_DAYS,
 } from "@/modules/billing/domain/subscription";
+import { FREE_LIMITS, PREMIUM_LIMITS } from "@/modules/billing/domain/plan-limits";
 import { useSession } from "@/modules/household/ui/session-provider";
 
 /**
@@ -47,7 +48,7 @@ interface PixResult {
 const brl = (cents: number): string => formatMoney({ amount: cents, currency: "BRL" });
 
 export default function SubscriptionPage() {
-  const { user, subscription, isPremium, refreshProfile } = useSession();
+  const { user, subscription, isPremium, planSource, trialDaysLeft, refreshProfile } = useSession();
 
   const [catalogue, setCatalogue] = useState<PlansResponse | null>(null);
   const [cycle, setCycle] = useState<Cycle>("YEARLY");
@@ -192,25 +193,23 @@ export default function SubscriptionPage() {
       {notice ? <Callout tone={notice.tone}>{notice.text}</Callout> : null}
       {error ? <Callout tone="critical">{error}</Callout> : null}
 
-      {!isPremium ? (
-        <div className="rounded-2xl border border-teal-200/80 bg-teal-50/70 p-4 shadow-2xs backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-base">✨</span>
-            <p className="text-sm font-semibold text-teal-900">
-              Aproveite 30 dias grátis de teste do Plano Premium
-            </p>
-          </div>
-          <p className="mt-1 text-xs text-teal-700">
-            Apenas R$ 7,99/mês ou R$ 69,99/ano (menos de R$ 5,83/mês no plano anual). Cancele quando
-            quiser.
-          </p>
-        </div>
+      {planSource === "TRIAL" ? (
+        <Callout tone="info">
+          Você está no período de teste do Premium:{" "}
+          <strong>
+            {trialDaysLeft} {trialDaysLeft === 1 ? "dia restante" : "dias restantes"}
+          </strong>
+          . Quando acabar, a conta passa para o plano gratuito e continua funcionando — nada é
+          apagado e nada é cobrado sozinho.
+        </Callout>
       ) : null}
 
       <Card>
         <CardTitle>Seu plano</CardTitle>
         <p className="text-sm">
-          <span className="font-medium">{isPremium ? "Premium" : "Gratuito"}</span>
+          <span className="font-medium">
+            {planSource === "TRIAL" ? "Premium (teste)" : isPremium ? "Premium" : "Gratuito"}
+          </span>
           {isPremium && remainingDays !== null ? (
             <span style={{ color: "var(--muted-fg)" }}>
               {" — "}
@@ -220,8 +219,8 @@ export default function SubscriptionPage() {
         </p>
         <p className="mt-2 text-sm" style={{ color: "var(--muted-fg)" }}>
           {isPremium
-            ? "Você não vê anúncios e tem acesso irrestrito ao leitor com IA e projeções completas."
-            : "Você está no plano gratuito. O Premium libera motor de projeção de 12 meses, leitor inteligente de faturas e remove todos os anúncios."}
+            ? `Projeção de ${PREMIUM_LIMITS.forecastMonths} meses, leitura de faturas e boletos por foto, diagnóstico redigido por IA, até ${PREMIUM_LIMITS.members} pessoas no grupo e ${PREMIUM_LIMITS.creditCards} cartões.`
+            : `Você está no plano gratuito, e ele não tem prazo para acabar. Continuam liberados: contas e dívidas sem limite, modo emergência, cálculo de multa e juros, calculadora de acordo e roteiros de negociação. O Premium estende a projeção de ${FREE_LIMITS.forecastMonths} para ${PREMIUM_LIMITS.forecastMonths} meses, lê documentos por foto e abre espaço para ${PREMIUM_LIMITS.members} pessoas no grupo.`}
         </p>
       </Card>
 
@@ -359,10 +358,17 @@ export default function SubscriptionPage() {
       ) : null}
 
       <Card>
-        <CardTitle>O que muda com o Premium</CardTitle>
+        <CardTitle>Como a cobrança funciona</CardTitle>
         <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
-          O Premium remove os anúncios. Nenhuma função de planejamento fica atrás do pagamento: o
-          orçamento, a projeção e os relatórios são os mesmos nos dois planos.
+          O pagamento é avulso: cada compra vale por um período e termina nele. Não guardamos
+          cartão, não existe cobrança recorrente e não há renovação automática — por isso também não
+          existe nada para cancelar. Quando o prazo acaba, a conta volta ao plano gratuito com todos
+          os dados no lugar.
+        </p>
+        <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
+          O que decide sair da dívida — enxergar a situação, saber o que pagar primeiro, calcular o
+          que cabe num acordo — está no plano gratuito de propósito. Quem está apertado não deveria
+          precisar pagar para isso.
         </p>
       </Card>
     </div>

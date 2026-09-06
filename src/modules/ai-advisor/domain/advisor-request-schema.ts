@@ -33,8 +33,13 @@ export const advisorRequestSchema = z.object({
     overdueBillsCount: z.number().int().min(0).max(100_000),
     overdueBillsTotalFormatted: formattedMoney,
     emergencyFundMonths: z.number().finite().min(0).max(1_000),
-    monthsToDebtFree: z.number().finite().min(0).max(1_000),
-    debtFreeDateFormatted: z.string().trim().max(40),
+    // Null when the plan does not close. The advisor must be able to tell the
+    // difference between "long" and "impossible": promising a payoff to a
+    // household whose minimums do not fit is the failure mode this guards.
+    monthsToDebtFree: z.number().finite().min(0).max(1_000).nullable(),
+    debtFreeDateFormatted: z.string().trim().max(40).nullable(),
+    planViability: z.enum(["ON_TRACK", "TIGHT", "NOT_VIABLE"]),
+    monthlyShortfallFormatted: formattedMoney,
   }),
 });
 

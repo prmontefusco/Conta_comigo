@@ -27,7 +27,7 @@ import {
 } from "@/modules/cards/domain/credit-card";
 import type { Category } from "@/modules/categories/domain/category";
 import { buildOverview, type DashboardOverview } from "@/modules/dashboard/domain/overview";
-import type { Debt } from "@/modules/debts/domain/debt";
+import { settledInstallmentNumbers, type Debt } from "@/modules/debts/domain/debt";
 import { forecast } from "@/modules/forecast/domain/forecast";
 import type { ForecastInput, ForecastResult } from "@/modules/forecast/domain/forecast-types";
 import type { Obligation } from "@/modules/obligations/domain/obligation";
@@ -49,6 +49,8 @@ import {
   reserveSchema,
   transactionSchema,
 } from "@/modules/shared/infrastructure/schemas";
+import { limitsFor } from "@/modules/billing/domain/plan-limits";
+import type { UserPlan } from "@/modules/billing/domain/subscription";
 import { useSession } from "./session-provider";
 
 /**
@@ -65,7 +67,26 @@ import { useSession } from "./session-provider";
  * and the boundary is right here.
  */
 
-const FORECAST_HORIZON_MONTHS = 13;
+/**
+ * Até onde os dados são derivados, sempre.
+ *
+ * Faturas de cartão são projetadas para todo esse intervalo independente do
+ * plano: o horizonte do plano decide o que a tela **mostra**, não o que o
+ * aplicativo sabe. Cortar os dados na origem faria o total de dívida do
+ * gratuito ficar menor que o real, que é mentira de outro tipo.
+ */
+const DATA_HORIZON_MONTHS = 13;
+
+/**
+ * Até onde a projeção vai, por plano.
+ *
+ * Três meses no gratuito é o bastante para ver o mês virar e o seguinte
+ * chegar — que é a pergunta de quem está apertado. Treze meses é o que
+ * responde "quando isso acaba", e é o que o Premium acrescenta.
+ */
+function forecastHorizonMonths(plan: UserPlan): number {
+  return limitsFor(plan).forecastMonths;
+}
 
 export interface FinanceData {
   readonly loading: boolean;
@@ -153,7 +174,7 @@ const SUBSCRIPTIONS = [
 ] as const satisfies ReadonlyArray<readonly [keyof CollectionState, z.ZodType]>;
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
-  const { household } = useSession();
+  const { household, effectivePlan } = useSession();
   const [state, setState] = useState<CollectionState>(EMPTY_STATE);
   const [pending, setPending] = useState<number>(SUBSCRIPTIONS.length);
   const [error, setError] = useState<string | null>(null);
@@ -218,8 +239,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<FinanceData>(() => {
     const asOf = todayIn(timezone);
-    return deriveFinanceData(state, asOf, pending > 0, error);
-  }, [state, timezone, pending, error]);
+    return deriveFinanceData(state, asOf, pending > 0, error, effectivePlan);
+  }, [state, timezone, pending, error, effectivePlan]);
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
 }
@@ -235,6 +256,8 @@ export function deriveFinanceData(
   asOf: CalendarDate,
   loading: boolean,
   error: string | null,
+  /** Decide até onde a projeção é exibida. Os dados vão sempre até o fim. */
+  plan: UserPlan = "PREMIUM",
 ): FinanceData {
   /* --- Card statements are derived, never stored ---------------------- */
 
@@ -247,7 +270,7 @@ export function deriveFinanceData(
     }));
 
   const fromMonth = monthKeyOf(addMonths(asOf, -18));
-  const toMonth = monthKeyOf(addMonths(asOf, FORECAST_HORIZON_MONTHS));
+  const toMonth = monthKeyOf(addMonths(asOf, DATA_HORIZON_MONTHS));
 
   const cardStatements = state.creditCards.flatMap((card) =>
     projectStatements(card, state.cardPurchases, statementPayments, fromMonth, toMonth, asOf),
@@ -262,21 +285,23 @@ export function deriveFinanceData(
   /* --- Projection ----------------------------------------------------- */
 
   // Installments are paid in order, so N recorded payments settle installments
-  // 1..N. This holds for every ordinary repayment schedule; the day the app
-  // supports paying an installment out of order, the payment transaction gains
-  // an explicit installment number and this collapses to reading that field.
+  // 1..N, counting on from whatever the household said was already paid before
+  // it registered the debt. This holds for every ordinary repayment schedule;
+  // the day the app supports paying an installment out of order, the payment
+  // transaction gains an explicit installment number and this collapses to
+  // reading that field.
   const paidDebtInstallments = new Map(
     state.debts.map((debt) => {
       const paymentCount = state.transactions.filter(
         (transaction) => transaction.kind === "DEBT_PAYMENT" && transaction.debtId === debt.id,
       ).length;
-      return [debt.id, Array.from({ length: paymentCount }, (_unused, index) => index + 1)];
+      return [debt.id, settledInstallmentNumbers(debt, paymentCount)];
     }),
   );
 
   const forecastInput: ForecastInput = {
     asOf,
-    horizon: dateRange(asOf, addMonths(asOf, FORECAST_HORIZON_MONTHS)),
+    horizon: dateRange(asOf, addMonths(asOf, forecastHorizonMonths(plan))),
     openingBalance: cash,
     protectedReserve: reserved,
     obligations: state.obligations,

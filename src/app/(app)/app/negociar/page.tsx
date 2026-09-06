@@ -15,6 +15,7 @@ import {
 } from "@/modules/negotiation/domain/affordable-proposal";
 import { NEGOTIATION_SCRIPTS, type ScriptParams } from "@/modules/negotiation/domain/scripts";
 import { FeiraoCalculatorCard } from "@/modules/negotiation/ui/feirao-calculator-card";
+import { TermExtensionCard } from "@/modules/negotiation/ui/term-extension-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 
@@ -243,12 +244,13 @@ export default function NegotiatePage() {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}% a.m.`}
+
+                  <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
+                    {evaluation.impliedMonthlyRate === null
+                      ? "Informe o saldo devedor para calcular."
+                      : "Calculado a partir do saldo e das parcelas."}
+                  </p>
                 </dd>
-                <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
-                  {evaluation.impliedMonthlyRate === null
-                    ? "Informe o saldo devedor para calcular."
-                    : "Calculado a partir do saldo e das parcelas."}
-                </p>
               </div>
             </dl>
 
@@ -279,6 +281,8 @@ export default function NegotiatePage() {
           </p>
         )}
       </Card>
+
+      <TermExtensionCard />
 
       <FeiraoCalculatorCard
         capacity={capacity}

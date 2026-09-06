@@ -65,7 +65,7 @@ export function TodayBlock() {
             }
           />
           <Stat
-            label="Comprometido até o fim do mês"
+            label="Do seu saldo, já tem destino"
             value={{
               amount: Math.max(today.spendableCash.amount - today.uncommittedCash.amount, 0),
               currency: today.spendableCash.currency,
@@ -74,8 +74,8 @@ export function TodayBlock() {
             tone="outflow"
             hint={
               isNegative(today.uncommittedCash)
-                ? `Faltam ${formatMoney({ amount: -today.uncommittedCash.amount, currency: today.uncommittedCash.currency })} para cobrir as contas deste mês.`
-                : `Depois disso, restam ${formatMoney(today.uncommittedCash)}.`
+                ? `Falta ${formatMoney({ amount: -today.uncommittedCash.amount, currency: today.uncommittedCash.currency })} no saldo de hoje para cobrir o que ainda vence este mês.`
+                : `Do dinheiro que você tem hoje, sobram ${formatMoney(today.uncommittedCash)} sem destino.`
             }
           />
         </dl>

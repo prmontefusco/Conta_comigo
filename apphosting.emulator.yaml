@@ -23,9 +23,6 @@ env:
   - variable: NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST
     value: 127.0.0.1:8080
 
-  # No real advertising network is ever contacted from a developer machine.
-  - variable: NEXT_PUBLIC_ADS_ENABLED
-    value: "false"
   - variable: NEXT_PUBLIC_SITE_URL
     value: http://127.0.0.1:5002
 

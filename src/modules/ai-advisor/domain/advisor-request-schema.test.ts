@@ -21,6 +21,8 @@ function context(overrides: Record<string, unknown> = {}) {
     emergencyFundMonths: 0.5,
     monthsToDebtFree: 24,
     debtFreeDateFormatted: "01/09/2028",
+    planViability: "ON_TRACK",
+    monthlyShortfallFormatted: "R$ 0,00",
     ...overrides,
   };
 }
@@ -88,5 +90,17 @@ describe("advisorRequestSchema", () => {
     expect(
       advisorRequestSchema.safeParse({ context: context({ overdueBillsCount: 1.5 }) }).success,
     ).toBe(false);
+  });
+  it("aceita o caso sem horizonte de quitação, que é o do plano inviável", () => {
+    const result = advisorRequestSchema.safeParse({
+      context: context({
+        monthsToDebtFree: null,
+        debtFreeDateFormatted: null,
+        planViability: "NOT_VIABLE",
+        monthlyShortfallFormatted: "R$ 820,00",
+      }),
+    });
+
+    expect(result.success).toBe(true);
   });
 });

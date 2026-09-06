@@ -31,6 +31,7 @@ import {
   type DailyEntry,
 } from "@/modules/daily/domain/daily-entries";
 import { NewEntryDialog } from "@/modules/daily/ui/new-entry-dialog";
+import { QuickEntryBar } from "@/modules/daily/ui/quick-entry-bar";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useMembers } from "@/modules/household/ui/use-members";
 import { useSession } from "@/modules/household/ui/session-provider";
@@ -93,6 +94,8 @@ export default function DailyPage() {
           </div>
         ) : null}
       </div>
+
+      <QuickEntryBar onOpenFullForm={() => setCreating("EXPENSE")} />
 
       <Card>
         <div className="flex items-center justify-between gap-3">
