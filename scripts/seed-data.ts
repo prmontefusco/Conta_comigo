@@ -141,6 +141,7 @@ export interface SeedContent {
   readonly reserves: readonly Record<string, unknown>[];
   readonly goals: readonly Record<string, unknown>[];
   readonly budgets: readonly Record<string, unknown>[];
+  readonly decisions: readonly Record<string, unknown>[];
 }
 
 const emptyContent: SeedContent = {
@@ -154,6 +155,7 @@ const emptyContent: SeedContent = {
   reserves: [],
   goals: [],
   budgets: [],
+  decisions: [],
 };
 
 /** Category ids are deterministic so the fixtures can reference them. */
@@ -879,6 +881,32 @@ const scenarioC: SeedHousehold = {
             { categoryId: categoryId(h, "veiculo"), plannedAmount: brl(520) },
             { categoryId: categoryId(h, "lazer"), plannedAmount: brl(120) },
           ],
+        },
+      ],
+      // Duas decisões já registradas: uma cumprida e uma pendente. Sem
+      // histórico algum, a tela de decisões só mostraria o estado vazio e
+      // nunca a linha do tempo, que é o que ela existe para mostrar.
+      decisions: [
+        {
+          id: `${h}-decisao-reserva`,
+          householdId: h,
+          kind: "BUILD_RESERVE",
+          description: "Guardar R$ 100 por mês até a reserva de respiro chegar a R$ 1.000",
+          amount: brl(100),
+          decidedOn: anchors.threeMonthsAgo,
+          status: "DONE",
+          visibility: "HOUSEHOLD",
+          notes: "Combinado no domingo, com os dois de acordo.",
+        },
+        {
+          id: `${h}-decisao-renegociar`,
+          householdId: h,
+          kind: "RENEGOTIATE_DEBT",
+          description: "Procurar o banco para alongar o prazo do empréstimo pessoal",
+          decidedOn: anchors.lastMonth,
+          status: "PLANNED",
+          visibility: "HOUSEHOLD",
+          notes: "Levar o extrato dos últimos três meses no atendimento.",
         },
       ],
     };

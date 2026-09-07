@@ -638,6 +638,128 @@ describe("assinaturas", () => {
   });
 });
 
+/**
+ * Histórico de decisões.
+ *
+ * É dado da família como qualquer outro: entra pela mesma porta e responde às
+ * mesmas regras. O que estes testes guardam de específico é que uma casa não
+ * lê a linha do tempo da outra, que quem só assiste não escreve nela, e que o
+ * valor continua opcional — "adiar a troca da geladeira" não tem número, e
+ * exigir um transformaria metade das decisões em registros impossíveis.
+ */
+describe("decisions", () => {
+  const decisionPayload = (uid: string, overrides: Record<string, unknown> = {}) => ({
+    householdId: HOUSEHOLD_A,
+    kind: "RENEGOTIATE_DEBT",
+    description: "Ligar para a financeira e propor 12 parcelas",
+    decidedOn: "2026-08-28",
+    status: "PLANNED",
+    visibility: "HOUSEHOLD",
+    ...auditFor(uid),
+    ...overrides,
+  });
+
+  async function seedDecision() {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc(`households/${HOUSEHOLD_A}/decisions/decision-a`)
+        .set(decisionPayload(OWNER_A));
+    });
+  }
+
+  it("a MEMBER registra e edita uma decisão", async () => {
+    await seed();
+    const db = as(testEnv, MEMBER_A).firestore();
+
+    await assertSucceeds(
+      db.collection(`households/${HOUSEHOLD_A}/decisions`).add(decisionPayload(MEMBER_A)),
+    );
+
+    await seedDecision();
+    await assertSucceeds(
+      db.doc(`households/${HOUSEHOLD_A}/decisions/decision-a`).update({
+        status: "DONE",
+        updatedAt: "2026-08-29T10:00:00.000Z",
+      }),
+    );
+  });
+
+  it("aceita decisão com valor, e também sem", async () => {
+    await seed();
+    const db = as(testEnv, MEMBER_A).firestore();
+
+    await assertSucceeds(
+      db
+        .collection(`households/${HOUSEHOLD_A}/decisions`)
+        .add(decisionPayload(MEMBER_A, { amount: brl(18000) })),
+    );
+    await assertSucceeds(
+      db.collection(`households/${HOUSEHOLD_A}/decisions`).add(decisionPayload(MEMBER_A)),
+    );
+  });
+
+  it("recusa um valor que não seja em centavos inteiros", async () => {
+    await seed();
+    const db = as(testEnv, MEMBER_A).firestore();
+
+    await assertFails(
+      db
+        .collection(`households/${HOUSEHOLD_A}/decisions`)
+        .add(decisionPayload(MEMBER_A, { amount: { amount: 180.5, currency: "BRL" } })),
+    );
+  });
+
+  it("recusa uma situação fora das duas previstas", async () => {
+    await seed();
+    const db = as(testEnv, MEMBER_A).firestore();
+
+    await assertFails(
+      db
+        .collection(`households/${HOUSEHOLD_A}/decisions`)
+        .add(decisionPayload(MEMBER_A, { status: "EM_ANDAMENTO" })),
+    );
+  });
+
+  it("um VIEWER lê a linha do tempo e não escreve nela", async () => {
+    await seed();
+    await seedDecision();
+    const db = as(testEnv, VIEWER_A).firestore();
+
+    await assertSucceeds(db.doc(`households/${HOUSEHOLD_A}/decisions/decision-a`).get());
+    await assertFails(
+      db.collection(`households/${HOUSEHOLD_A}/decisions`).add(decisionPayload(VIEWER_A)),
+    );
+    await assertFails(
+      db.doc(`households/${HOUSEHOLD_A}/decisions/decision-a`).update({ status: "DONE" }),
+    );
+    await assertFails(db.doc(`households/${HOUSEHOLD_A}/decisions/decision-a`).delete());
+  });
+
+  it("uma casa não lê nem escreve a decisão da outra", async () => {
+    await seed();
+    await seedDecision();
+    const db = as(testEnv, OWNER_B).firestore();
+
+    await assertFails(db.doc(`households/${HOUSEHOLD_A}/decisions/decision-a`).get());
+    await assertFails(db.collection(`households/${HOUSEHOLD_A}/decisions`).get());
+    await assertFails(
+      db.collection(`households/${HOUSEHOLD_A}/decisions`).add(decisionPayload(OWNER_B)),
+    );
+  });
+
+  it("uma decisão não pode declarar outra casa", async () => {
+    await seed();
+    const db = as(testEnv, MEMBER_A).firestore();
+
+    await assertFails(
+      db
+        .collection(`households/${HOUSEHOLD_A}/decisions`)
+        .add(decisionPayload(MEMBER_A, { householdId: HOUSEHOLD_B })),
+    );
+  });
+});
+
 describe("undeclared collections", () => {
   it("denies anything not explicitly allowed", async () => {
     await seed();

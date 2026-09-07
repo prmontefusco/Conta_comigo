@@ -28,6 +28,7 @@ import {
 import type { Category } from "@/modules/categories/domain/category";
 import { buildOverview, type DashboardOverview } from "@/modules/dashboard/domain/overview";
 import { settledInstallmentNumbers, type Debt } from "@/modules/debts/domain/debt";
+import { sortDecisions, type Decision } from "@/modules/decisions/domain/decision";
 import { forecast } from "@/modules/forecast/domain/forecast";
 import type { ForecastInput, ForecastResult } from "@/modules/forecast/domain/forecast-types";
 import type { Obligation } from "@/modules/obligations/domain/obligation";
@@ -43,6 +44,7 @@ import {
   categorySchema,
   creditCardSchema,
   debtSchema,
+  decisionSchema,
   goalSchema,
   obligationSchema,
   recurringRuleSchema,
@@ -114,6 +116,11 @@ export interface FinanceData {
   readonly goals: readonly Goal[];
   readonly budgets: readonly Budget[];
   /**
+   * O que a família registrou ter decidido, do mais recente para o mais
+   * antigo. Não entra em nenhum cálculo: uma anotação nunca move um saldo.
+   */
+  readonly decisions: readonly Decision[];
+  /**
    * This month's budget standing, when there is a budget for it.
    *
    * Computed once here so the budget screen, the alerts and the guidance can
@@ -143,6 +150,7 @@ type CollectionState = {
   reserves: Reserve[];
   goals: Goal[];
   budgets: Budget[];
+  decisions: Decision[];
 };
 
 const EMPTY_STATE: CollectionState = {
@@ -157,6 +165,7 @@ const EMPTY_STATE: CollectionState = {
   reserves: [],
   goals: [],
   budgets: [],
+  decisions: [],
 };
 
 const SUBSCRIPTIONS = [
@@ -171,6 +180,7 @@ const SUBSCRIPTIONS = [
   ["reserves", reserveSchema],
   ["goals", goalSchema],
   ["budgets", budgetSchema],
+  ["decisions", decisionSchema],
 ] as const satisfies ReadonlyArray<readonly [keyof CollectionState, z.ZodType]>;
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
@@ -361,6 +371,7 @@ export function deriveFinanceData(
     reserves: state.reserves,
     goals: state.goals,
     budgets: state.budgets,
+    decisions: sortDecisions(state.decisions),
     budgetStatus,
     totalCash: cash,
     protectedReserve: reserved,

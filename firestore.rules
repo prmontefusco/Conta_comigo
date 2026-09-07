@@ -500,6 +500,28 @@ service cloud.firestore {
         allow delete: if canWrite(householdId);
       }
 
+      // O histórico de decisões da família.
+      //
+      // Mesmo contrato das demais: membro lê, quem escreve escreve, e o
+      // documento não muda de household. O valor é opcional aqui — nem toda
+      // decisão tem um número ("adiar a troca da geladeira" não tem) — então
+      // a checagem de dinheiro inteiro só se aplica quando o campo existe.
+      match /decisions/{decisionId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId)
+          && validNewDocument(householdId)
+          && request.resource.data.status in ['PLANNED', 'DONE']
+          && (!('amount' in request.resource.data.keys())
+              || isIntegerMoney(request.resource.data.amount));
+        allow update: if canWrite(householdId)
+          && immutableAudit()
+          && reasonableSize()
+          && request.resource.data.status in ['PLANNED', 'DONE']
+          && (!('amount' in request.resource.data.keys())
+              || isIntegerMoney(request.resource.data.amount));
+        allow delete: if canWrite(householdId);
+      }
+
       match /vehicles/{vehicleId} {
         allow read: if isMember(householdId);
         allow create: if canWrite(householdId) && validNewDocument(householdId);

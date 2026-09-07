@@ -24,6 +24,7 @@ households/{householdId}/recurringRules/{ruleId}
 households/{householdId}/budgets/{YYYY-MM}
 households/{householdId}/reserves/{reserveId}
 households/{householdId}/goals/{goalId}
+households/{householdId}/decisions/{decisionId}
 households/{householdId}/vehicles/{vehicleId}
 ```
 
@@ -31,6 +32,21 @@ Com a única exceção do perfil do usuário, **todo documento financeiro vive s
 `households/{householdId}`**. Esse fato isolado é o que torna as Security Rules
 curtas o bastante para serem auditadas, e o que garante que uma query não possa
 atravessar households por acidente.
+
+## `decisions`: o que a família decidiu
+
+O registro histórico das decisões da casa — renegociar, adiar uma compra,
+priorizar uma conta, reforçar a reserva. É a única coleção que **não entra em
+nenhum cálculo**: registrar "vou renegociar" não move saldo, projeção nem
+dívida. Os números mudam quando a dívida for editada ou o pagamento lançado, e
+manter as duas coisas separadas evita que uma anotação otimista vire um saldo
+que não existe.
+
+Por isso ela também não referencia `debts`, `obligations` nem `creditCards`. Um
+`debtId` aqui apontaria para um documento que pode ser apagado, e a linha do
+tempo passaria a ter buracos exatamente onde o histórico importa — na hora de
+provar, num atendimento, o que foi proposto e quando. A descrição em texto livre
+sobrevive a qualquer exclusão.
 
 ## Diferenças em relação à estrutura de referência
 

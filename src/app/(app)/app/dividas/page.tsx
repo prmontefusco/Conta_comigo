@@ -72,12 +72,12 @@ export default function DebtsPage() {
       </div>
 
       <FinancialInsightCard
-        tag="Estratégia de Quitação"
-        title="Dívida com Garantia Vem Sempre Antes"
-        description="Financiamento de veículo ou de imóvel tem o próprio bem como garantia: atrasar coloca o patrimônio da família em risco judicial imediato, enquanto empréstimos sem garantia não podem tomar sua casa."
+        tag="Estratégia de quitação"
+        title="Dívida com garantia pede atenção especial"
+        description="Financiamento de veículo ou imóvel envolve um bem da família. Quando há atraso, o risco é diferente de uma dívida comum, então vale olhar esse compromisso com prioridade."
         tips={[
-          "Proteja os bens da família primeiro: financiou carro ou moto para trabalhar? Essa parcela tem prioridade sobre cartão de crédito e empréstimo pessoal.",
-          "Método Avalanche (Mais Barato): pague o mínimo em todas e foque todo o dinheiro extra na dívida com maior taxa de juros (geralmente rotativo ou cheque especial).",
+          "Se o carro, a moto ou a casa entram na renda ou na segurança da família, essa parcela precisa aparecer no topo da análise.",
+          "Pelo método avalanche, a sobra vai para a dívida com maior taxa. Ele reduz custo, mas só funciona quando o mês fecha.",
           "Método Bola de Neve (Mais Motivador): se estiver desanimado, quite primeiro a dívida de menor valor para eliminar um boleto da sua frente rápido e ganhar alívio.",
         ]}
         helpTopic="Cadastre seus contratos, taxa de juros e parcelas. O sistema calcula a taxa real e orienta qual contrato quitar primeiro na aba 'Visão de Futuro'."

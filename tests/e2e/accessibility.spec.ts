@@ -109,6 +109,7 @@ test.describe("aplicação autenticada", () => {
 
   for (const path of [
     "/app",
+    "/app/avisos",
     "/app/contas",
     "/app/cartoes",
     "/app/projecao",
@@ -123,6 +124,8 @@ test.describe("aplicação autenticada", () => {
     "/app/assinatura",
     "/app/diagnostico-ia",
     "/app/visao-futuro",
+    "/app/plano",
+    "/app/decisoes",
     "/app/membros",
     "/app/configuracoes",
     "/app/comecar",

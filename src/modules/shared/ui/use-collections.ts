@@ -11,6 +11,7 @@ import {
   categorySchema,
   creditCardSchema,
   debtSchema,
+  decisionSchema,
   goalSchema,
   obligationSchema,
   recurringRuleSchema,
@@ -23,6 +24,7 @@ import {
   type CategoryDoc,
   type CreditCardDoc,
   type DebtDoc,
+  type DecisionDoc,
   type GoalDoc,
   type ObligationDoc,
   type RecurringRuleDoc,
@@ -53,6 +55,7 @@ export interface HouseholdCollections {
   readonly budgets: HouseholdCollection<BudgetDoc>;
   readonly reserves: HouseholdCollection<ReserveDoc>;
   readonly goals: HouseholdCollection<GoalDoc>;
+  readonly decisions: HouseholdCollection<DecisionDoc>;
   readonly vehicles: HouseholdCollection<VehicleDoc>;
 }
 
@@ -80,6 +83,7 @@ export function useCollections(): HouseholdCollections {
       budgets: householdCollection(context, "budgets", budgetSchema),
       reserves: householdCollection(context, "reserves", reserveSchema),
       goals: householdCollection(context, "goals", goalSchema),
+      decisions: householdCollection(context, "decisions", decisionSchema),
       vehicles: householdCollection(context, "vehicles", vehicleSchema),
     };
   }, [household, user]);

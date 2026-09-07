@@ -134,6 +134,170 @@ test.describe("avisos", () => {
     await expect(page.getByRole("dialog", { name: "Avisos" })).toBeVisible();
     await expect(bell).toHaveAttribute("aria-label", "Avisos: nenhum novo");
   });
+
+  test("a caixa de avisos lista alertas acionáveis e permite marcar como visto", async ({
+    page,
+  }) => {
+    await signIn(page, USERS.indebted.email);
+    await page.goto("/app/avisos");
+
+    await expect(page.getByRole("heading", { name: "Caixa de avisos" })).toBeVisible();
+    await expect(page.getByText("Alertas dentro do aplicativo")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ver contas vencidas" })).toBeVisible();
+
+    const filters = page.getByRole("group", { name: "Filtrar avisos" });
+    await filters.getByRole("button", { name: "Novos" }).click();
+    await expect(page.getByText("novo").first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Marcar tudo como visto" }).click();
+    await expect(page.getByText("Nada nesta lista")).toBeVisible();
+    await filters.getByRole("button", { name: "Todos" }).click();
+    await expect(page.getByText("visto").first()).toBeVisible();
+  });
+});
+
+test.describe("onboarding", () => {
+  test("guia quem está endividado pelo cadastro mínimo antes do plano", async ({ page }) => {
+    await signIn(page, USERS.indebted.email);
+    await page.goto("/app/comecar");
+
+    await expect(page.getByRole("heading", { name: "Vamos organizar o começo" })).toBeVisible();
+    await expect(page.getByText("Se a situação está apertada, siga esta ordem")).toBeVisible();
+    await expect(page.getByText("Cadastre sua renda")).toBeVisible();
+    await expect(page.getByText("Cadastre contas vencidas e próximas")).toBeVisible();
+    await expect(page.getByText("Cadastre cartões e faturas")).toBeVisible();
+    await expect(page.getByText("Veja seu plano de ação")).toBeVisible();
+  });
+});
+
+test.describe("plano de ação", () => {
+  test("reúne agenda, renda variável, prioridades, metas, negociação e relatório", async ({
+    page,
+  }) => {
+    await signIn(page, USERS.indebted.email);
+    await page.goto("/app/plano");
+
+    await expect(page.getByRole("heading", { name: "Plano de ação" })).toBeVisible();
+    await expect(page.getByText("Próximos passos")).toBeVisible();
+    await expect(page.getByText("Calendário financeiro")).toBeVisible();
+    await expect(page.getByText("Simulador de renda variável")).toBeVisible();
+    await expect(page.getByText("Priorização de dívidas")).toBeVisible();
+    await expect(page.getByText("Metas de curto prazo")).toBeVisible();
+    await expect(page.getByText("Central de negociação")).toBeVisible();
+    await expect(page.getByText("Relatório para atendimento")).toBeVisible();
+
+    await page.getByLabel("Queda de renda simulada (%)").fill("50");
+    await expect(page.getByText("Renda simulada", { exact: true })).toBeVisible();
+    await expect(page.getByText("Parcela máxima", { exact: true })).toBeVisible();
+  });
+});
+
+/**
+ * A rodada de teste com perfil realista.
+ *
+ * Um único caminho, do jeito que a pessoa percorre: entra, vê o que está
+ * pegando fogo, abre a ação, registra o que a família decidiu e confere que a
+ * decisão ficou guardada. Cada tela isolada já tem teste próprio; o que este
+ * bloco guarda é a **costura** entre elas — que é onde um produto costuma
+ * quebrar sem nenhum teste unitário reclamar.
+ *
+ * Roda nos dois projetos do Playwright, celular e desktop, e por isso a
+ * decisão registrada carrega um carimbo de tempo: a segunda execução encontra
+ * o banco com o que a primeira gravou, e um texto fixo tornaria a asserção
+ * ambígua.
+ */
+test.describe("rodada com perfil endividado", () => {
+  test("vê a prioridade, abre a ação, registra a decisão e a reencontra no histórico", async ({
+    page,
+  }) => {
+    const carimbo = Date.now();
+    const decisao = `Ligar para o banco sobre o empréstimo (${carimbo})`;
+
+    /* 1. Entra com a família endividada. */
+    await signIn(page, USERS.indebted.email);
+
+    /* 2. A tela inicial abre pelo que precisa de atenção. */
+    const atencao = page.getByRole("region", { name: "Atenção agora" });
+    await expect(atencao).toBeVisible();
+
+    /* 3. A prioridade crítica está nomeada, não escondida num número. */
+    await expect(atencao.getByText("Conta vencida").first()).toBeVisible();
+
+    /* 4. A ação leva direto à tela onde dá para resolver. */
+    await atencao.getByRole("link", { name: "Ver contas vencidas" }).click();
+    await page.waitForURL(/\/app\/contas/);
+
+    /* 5. Registra a decisão que a família tomou a respeito. */
+    await page.goto("/app/decisoes");
+    await expect(page.getByRole("heading", { name: "Decisões da família" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Registrar decisão" }).click();
+    const dialogo = page.getByRole("dialog", { name: "Registrar decisão" });
+    await expect(dialogo).toBeVisible();
+
+    await dialogo.getByLabel("O que foi decidido").fill(decisao);
+    await dialogo.getByLabel("Valor envolvido").fill("180,00");
+    await dialogo.getByRole("button", { name: "Salvar decisão" }).click();
+
+    /* 6. Ela aparece na linha do tempo, e continua lá depois de recarregar. */
+    await expect(dialogo).toBeHidden();
+    await expect(page.getByText(decisao)).toBeVisible({ timeout: 15_000 });
+
+    await page.reload();
+    await expect(page.getByText(decisao)).toBeVisible({ timeout: 15_000 });
+
+    /* 7. O plano de ação mostra o que foi combinado, junto do que falta. */
+    await page.goto("/app/plano");
+    await expect(page.getByRole("heading", { name: "Plano de ação" })).toBeVisible();
+    await expect(page.getByText("Decisões da família").first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Abrir histórico" })).toBeVisible();
+    // O cartão do plano lista o que está combinado; a asserção pelo texto
+    // exato da decisão fica no histórico, que é a lista completa.
+    await expect(page.getByText("Nenhuma decisão registrada ainda")).toHaveCount(0);
+  });
+
+  test("marca uma decisão como feita, e o estado sobrevive a um recarregamento", async ({
+    page,
+  }) => {
+    await signIn(page, USERS.indebted.email);
+    await page.goto("/app/decisoes");
+
+    // A decisão que o seed deixa pendente: procurar o banco para alongar o
+    // prazo. É dela que a linha é marcada como feita.
+    const linha = page
+      .getByRole("listitem")
+      .filter({ hasText: "alongar o prazo do empréstimo pessoal" })
+      .first();
+    await expect(linha).toBeVisible();
+
+    const botao = linha.getByRole("button", { name: /Marcar como/ });
+    const rotuloInicial = (await botao.textContent())?.trim();
+
+    await botao.click();
+    await expect(botao).not.toHaveText(rotuloInicial ?? "", { timeout: 15_000 });
+
+    const rotuloDepois = (await botao.textContent())?.trim();
+    await page.reload();
+    await expect(
+      page
+        .getByRole("listitem")
+        .filter({ hasText: "alongar o prazo do empréstimo pessoal" })
+        .first()
+        .getByRole("button", { name: /Marcar como/ }),
+    ).toHaveText(rotuloDepois ?? "", { timeout: 15_000 });
+  });
+
+  test("abre o histórico já com o botão de registrar para quem pode escrever", async ({ page }) => {
+    // A recusa a um VIEWER é garantida pelas Security Rules e está coberta em
+    // tests/rules. O que falta verificar contra a stack real é o outro lado:
+    // que uma casa recém-chegada — a Souza não tem nenhuma decisão gravada —
+    // encontra a tela pronta para receber a primeira, e não um beco sem saída.
+    await signIn(page, USERS.massMarket.email);
+    await page.goto("/app/decisoes");
+
+    await expect(page.getByRole("heading", { name: "Decisões da família" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Registrar decisão" }).first()).toBeVisible();
+  });
 });
 
 test.describe("importar extrato", () => {

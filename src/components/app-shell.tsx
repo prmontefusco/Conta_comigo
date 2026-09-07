@@ -18,8 +18,10 @@ import { AlertBell } from "@/modules/alerts/ui/alert-bell";
 
 const DESKTOP_NAV = [
   { href: "/app", label: "Início", icon: "🏠" },
+  { href: "/app/avisos", label: "Avisos", icon: "🔔" },
   { href: "/app/dia-a-dia", label: "Dia a dia", icon: "🧾" },
   { href: "/app/emergencia", label: "Pagar primeiro", icon: "🚨" },
+  { href: "/app/plano", label: "Plano de ação", icon: "🧭" },
   { href: "/app/comprar", label: "Antes de comprar", icon: "🛒" },
   { href: "/app/diagnostico-ia", label: "Diagnóstico IA", icon: "✨" },
   { href: "/app/visao-futuro", label: "Visão de Futuro", icon: "🚀" },
@@ -35,9 +37,10 @@ const DESKTOP_NAV = [
 // gasto is the most frequent of those; Diagnóstico is one tap further, in Mais.
 const MOBILE_NAV = [
   { href: "/app", label: "Início", icon: "🏠" },
+  { href: "/app/avisos", label: "Avisos", icon: "🔔" },
   { href: "/app/dia-a-dia", label: "Dia a dia", icon: "🧾" },
   { href: "/app/emergencia", label: "Pagar 1º", icon: "🚨" },
-  { href: "/app/contas", label: "Contas", icon: "📄" },
+  { href: "/app/plano", label: "Plano", icon: "🧭" },
   { href: "/app/mais", label: "Mais", icon: "⋯" },
 ] as const;
 

@@ -541,7 +541,8 @@ function simulateStrategy(
     return {
       strategy,
       strategyName: strategy === "SNOWBALL" ? "Método Bola de Neve" : "Método Avalanche",
-      description: "Você não possui dívidas ativas. Parabéns!",
+      description:
+        "Não há dívidas ativas registradas. O foco pode ir para reserva e próximos vencimentos.",
       estimatedMonths: 0,
       targetDate: asOf,
       closes: true,

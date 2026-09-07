@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { formatCalendarDate } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
+import { alertActionLabel, alertAppHref } from "@/modules/alerts/domain/alert-actions";
 import { buildAlertInbox, inboxStorageKey, markAllSeen } from "@/modules/alerts/domain/alert-inbox";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
@@ -116,11 +117,13 @@ export function AlertBell() {
         >
           <div className="flex items-center justify-between border-b border-[color:var(--card-border)] px-4 py-2.5">
             <p className="text-sm font-semibold">Avisos</p>
-            <span className="text-2xs" style={{ color: "var(--muted-fg)" }}>
-              {inbox.items.length === 0
-                ? "nada por aqui"
-                : `${inbox.items.length} ${inbox.items.length === 1 ? "item" : "itens"}`}
-            </span>
+            <Link
+              href="/app/avisos"
+              onClick={() => setOpen(false)}
+              className="text-2xs font-semibold text-[color:var(--color-brand-700)] underline-offset-2 hover:underline"
+            >
+              Ver todos
+            </Link>
           </div>
 
           {inbox.items.length === 0 ? (
@@ -160,6 +163,9 @@ export function AlertBell() {
                           </span>
                         ) : null}
                       </p>
+                      <p className="mt-1 text-xs font-semibold text-[color:var(--color-brand-700)]">
+                        {alertActionLabel(alert)}
+                      </p>
                     </div>
                   </div>
                 );
@@ -168,7 +174,7 @@ export function AlertBell() {
                   <li key={alert.id}>
                     {alert.href ? (
                       <Link
-                        href={`/app${alert.href}`}
+                        href={alertAppHref(alert)}
                         onClick={() => setOpen(false)}
                         className="block transition hover:bg-[color:var(--color-surface-sunken)]"
                       >

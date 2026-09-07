@@ -15,64 +15,76 @@ export default function OnboardingPage() {
   const finance = useFinance();
 
   /**
-   * Três etapas abrem uma tela útil; as outras três a deixam exata.
+   * O caminho para quem já chega endividado precisa começar pelo que muda a
+   * decisão de hoje: renda, contas vencidas, cartões e dívidas. Ver o plano no
+   * final fecha o ciclo e devolve uma próxima ação concreta.
    *
-   * `hasMinimumViableSetup` já sabia disso no domínio — contas, renda e o
-   * grupo — e a tela mostrava seis caixas iguais mesmo assim. Para quem tem
-   * carnê de loja e rotativo, seis etapas antes de ver qualquer coisa é onde
-   * a pessoa fecha o aplicativo.
-   *
-   * As três de baixo continuam ali, e continuam valendo. Elas só deixaram de
-   * bloquear a sensação de ter terminado.
+   * As etapas não bloqueiam uso: são uma trilha. Quem não tiver cartão ou
+   * empréstimo revisa o passo e segue.
    */
   const steps = [
     {
-      href: "/app/contas-bancarias",
-      title: "Cadastre suas contas e saldos",
+      id: "income",
+      href: "/app/recorrentes",
+      title: "Cadastre sua renda",
       essential: true,
-      description: "Onde seu dinheiro está hoje. Sem isso, não há de onde partir.",
-      unlocks: "Mostra quanto você tem agora.",
+      description:
+        "Salário, benefício, bico, comissão ou renda variável. Pode começar com uma estimativa.",
+      unlocks: "Mostra quanto costuma entrar e até onde um acordo pode ir sem estourar o mês.",
+      done: finance.recurringRules.some((rule) => rule.direction === "INFLOW"),
+    },
+    {
+      href: "/app/contas-bancarias",
+      title: "Informe onde está o dinheiro",
+      essential: true,
+      description: "Conta corrente, carteira ou poupança. Não precisa estar perfeito para começar.",
+      unlocks: "Separa saldo total, reserva e dinheiro livre para os próximos pagamentos.",
       done: finance.accounts.length > 0,
     },
     {
       href: "/app/contas",
-      title: "Informe sua renda",
+      title: "Cadastre contas vencidas e próximas",
       essential: true,
-      description: "Salário, benefício ou renda variável. Pode marcar como estimada.",
-      unlocks: "Permite projetar quanto vai entrar.",
-      done: finance.recurringRules.some((rule) => rule.direction === "INFLOW"),
-    },
-    {
-      href: "/app/contas",
-      title: "Cadastre as contas que se repetem",
-      essential: true,
-      description: "Aluguel, energia, internet, escola, plano de saúde.",
-      unlocks: "Revela quanto de cada mês já está comprometido.",
-      done: finance.recurringRules.some((rule) => rule.direction === "OUTFLOW"),
+      description:
+        "Comece pelas atrasadas, aluguel, energia, água, internet, escola e boletos deste mês.",
+      unlocks: "O app consegue mostrar o que pede atenção primeiro e o que pode esperar.",
+      done: finance.obligations.some((obligation) => obligation.direction === "OUTFLOW"),
     },
     {
       href: "/app/cartoes",
-      title: "Cadastre seus cartões",
-      essential: false,
-      description: "Com o dia de fechamento e o de vencimento.",
-      unlocks: "Coloca cada parcela no mês certo.",
-      done: finance.cards.length > 0,
+      title: "Cadastre cartões e faturas",
+      essential: true,
+      description:
+        "Informe limite, vencimento e faturas em aberto. Se você não usa cartão, pode revisar e seguir.",
+      unlocks: "Evita que parcelas futuras fiquem invisíveis na projeção.",
+      done: finance.cards.length > 0 || finance.cardStatements.length > 0,
     },
     {
       href: "/app/dividas",
-      title: "Cadastre empréstimos e parcelamentos",
+      title: "Cadastre empréstimos, carnês e financiamentos",
       essential: false,
-      description: "Se existirem. Se não existirem, pode pular.",
-      unlocks: "Separa o que é dívida do que é consumo.",
+      description:
+        "Inclua banco, loja, veículo, imóvel ou acordo já feito. O valor aproximado já ajuda.",
+      unlocks: "Mostra risco, juros e parcela máxima para negociar com mais segurança.",
       done: finance.debts.length > 0,
     },
     {
-      href: "/app/reservas",
-      title: "Separe sua reserva",
+      href: "/app/recorrentes",
+      title: "Cadastre contas que se repetem",
       essential: false,
-      description: "O que você já tem guardado e não pretende gastar.",
-      unlocks: "Diferencia saldo total de saldo realmente livre.",
-      done: finance.reserves.length > 0,
+      description:
+        "Aluguel, mercado estimado, internet, escola, transporte e outras despesas fixas.",
+      unlocks: "Deixa os próximos meses menos dependentes de memória.",
+      done: finance.recurringRules.some((rule) => rule.direction === "OUTFLOW"),
+    },
+    {
+      href: "/app/plano",
+      title: "Veja seu plano de ação",
+      essential: true,
+      description:
+        "Quando tiver o básico, abra o plano para ver prioridades, metas e roteiros de negociação.",
+      unlocks: "Transforma os dados cadastrados em próximos passos.",
+      done: finance.alerts.length > 0 || finance.forecast.months.length > 0,
     },
   ];
 
@@ -86,11 +98,11 @@ export default function OnboardingPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Vamos começar</h1>
+      <h1 className="text-xl font-semibold">Vamos organizar o começo</h1>
 
       <Card>
         <CardTitle hint="Dá para fazer aos poucos e voltar quando quiser.">
-          {essentialsDone} de {essentials.length} para começar
+          {essentialsDone} de {essentials.length} passos essenciais
         </CardTitle>
         <ProgressBar
           ratio={essentialsDone / essentials.length}
@@ -100,9 +112,17 @@ export default function OnboardingPage() {
         <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
           {readyToUse
             ? allDone
-              ? "Tudo cadastrado. A projeção reflete a sua situação real."
-              : "Pronto: o aplicativo já funciona com o que você cadastrou. O resto é para deixar a projeção mais exata, e pode esperar."
-            : "São três coisas para o aplicativo ter o que mostrar. O resto vem depois, sem pressa."}
+              ? "Você já tem dados suficientes para acompanhar alertas, projeção e plano de ação."
+              : "O aplicativo já consegue ajudar com o que foi informado. Os próximos passos deixam a projeção mais precisa."
+            : "Comece pelo essencial. Não precisa cadastrar a vida inteira hoje; cada passo já melhora a leitura da situação."}
+        </p>
+      </Card>
+
+      <Card className="border-l-4 border-l-[color:var(--color-brand-600)]">
+        <CardTitle>Se a situação está apertada, siga esta ordem</CardTitle>
+        <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
+          Primeiro entra a renda. Depois vêm as contas vencidas, os cartões e as dívidas. Com isso,
+          o app consegue mostrar alertas, prioridades e um plano mais honesto para o mês.
         </p>
       </Card>
 
@@ -150,7 +170,7 @@ export default function OnboardingPage() {
       <details className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-4">
         <summary className="cursor-pointer text-sm font-medium">
           Depois, quando der: mais {extras.length} {extras.length === 1 ? "etapa" : "etapas"} que
-          deixam a projeção exata
+          ajudam a refinar o plano
           {extras.filter((step) => step.done).length > 0
             ? ` (${extras.filter((step) => step.done).length} já ${
                 extras.filter((step) => step.done).length === 1 ? "feita" : "feitas"

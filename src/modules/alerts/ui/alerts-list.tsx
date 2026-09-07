@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Card, CardTitle } from "@/components/ui/primitives";
+import { alertActionLabel, alertAppHref } from "@/modules/alerts/domain/alert-actions";
 import type { Alert, AlertSeverity } from "@/modules/alerts/domain/alerts";
 
 const SEVERITY_STYLE: Record<AlertSeverity, { border: string; bg: string; label: string }> = {
@@ -42,7 +43,15 @@ export function AlertsList({ alerts, limit = 6 }: { alerts: readonly Alert[]; li
 
   return (
     <Card aria-labelledby="alertas-title">
-      <CardTitle id="alertas-title">Pontos de atenção</CardTitle>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <CardTitle id="alertas-title">Pontos de atenção</CardTitle>
+        <Link
+          href="/app/avisos"
+          className="text-sm font-semibold text-[color:var(--color-brand-700)] underline-offset-2 hover:underline"
+        >
+          Ver todos os avisos
+        </Link>
+      </div>
       <ul className="space-y-2">
         {alerts.slice(0, limit).map((alert) => {
           const style = SEVERITY_STYLE[alert.severity];
@@ -59,8 +68,11 @@ export function AlertsList({ alerts, limit = 6 }: { alerts: readonly Alert[]; li
               className={`rounded-lg border-l-4 p-3 text-sm text-[color:var(--color-ink-900)] ${style.border} ${style.bg}`}
             >
               {alert.href ? (
-                <Link href={alert.href} className="underline-offset-2 hover:underline">
+                <Link href={alertAppHref(alert)} className="underline-offset-2 hover:underline">
                   {content}
+                  <span className="mt-1 block text-xs font-semibold">
+                    {alertActionLabel(alert)}
+                  </span>
                 </Link>
               ) : (
                 content

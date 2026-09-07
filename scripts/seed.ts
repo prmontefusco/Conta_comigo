@@ -86,13 +86,24 @@ async function seedHousehold(household: (typeof SEED_HOUSEHOLDS)[number]) {
   /* --- Auth users --------------------------------------------------- */
 
   for (const user of household.users) {
-    await auth.createUser({
-      uid: user.uid,
-      email: user.email,
-      password: user.password,
-      displayName: user.displayName,
-      emailVerified: true,
-    });
+    await auth
+      .createUser({
+        uid: user.uid,
+        email: user.email,
+        password: user.password,
+        displayName: user.displayName,
+        emailVerified: true,
+      })
+      .catch(async (error: unknown) => {
+        if ((error as { code?: string }).code !== "auth/uid-already-exists") throw error;
+
+        await auth.updateUser(user.uid, {
+          email: user.email,
+          password: user.password,
+          displayName: user.displayName,
+          emailVerified: true,
+        });
+      });
 
     await db.doc(`users/${user.uid}`).set({
       uid: user.uid,
@@ -163,6 +174,7 @@ async function seedHousehold(household: (typeof SEED_HOUSEHOLDS)[number]) {
   await writeCollection(household.id, "reserves", content.reserves, audit);
   await writeCollection(household.id, "goals", content.goals, audit);
   await writeCollection(household.id, "budgets", content.budgets, audit);
+  await writeCollection(household.id, "decisions", content.decisions, audit);
 
   const counts = [
     ["contas", content.accounts.length],

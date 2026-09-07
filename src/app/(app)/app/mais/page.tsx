@@ -11,11 +11,14 @@ const SECTIONS = [
     items: [
       { href: "/app/diagnostico-ia", label: "Diagnóstico & Consultor IA", icon: "✨" },
       { href: "/app/visao-futuro", label: "Visão de Futuro e Quitação", icon: "🚀" },
+      { href: "/app/plano", label: "Plano de ação", icon: "🧭" },
     ],
   },
   {
     title: "Entender",
     items: [
+      { href: "/app/avisos", label: "Caixa de avisos", icon: "🔔" },
+      { href: "/app/decisoes", label: "Decisões da família", icon: "🗒️" },
       { href: "/app/relatorios", label: "Relatórios", icon: "📊" },
       { href: "/app/orcamento", label: "Orçamento do mês", icon: "🎯" },
     ],

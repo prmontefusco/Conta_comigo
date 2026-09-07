@@ -101,6 +101,44 @@ test.describe("resumo", () => {
   });
 });
 
+test.describe("atenção agora", () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, USERS.indebted.email);
+  });
+
+  test("abre a tela inicial pelo que é crítico, antes do bloco analítico", async ({ page }) => {
+    const atencao = page.getByRole("region", { name: "Atenção agora" });
+    await expect(atencao).toBeVisible();
+
+    // A ordem no documento é o ponto do bloco: quem entra com uma conta
+    // vencida não deveria precisar rolar o painel de saldo para descobrir.
+    const ordem = await page.evaluate(() => {
+      const prioridades = document.querySelector("#atencao-agora-title");
+      const hoje = document.querySelector("#hoje-title");
+      if (!prioridades || !hoje) return "faltando";
+      return prioridades.compareDocumentPosition(hoje) & Node.DOCUMENT_POSITION_FOLLOWING
+        ? "antes"
+        : "depois";
+    });
+    expect(ordem).toBe("antes");
+  });
+
+  test("nomeia a prioridade e oferece a ação correspondente", async ({ page }) => {
+    const atencao = page.getByRole("region", { name: "Atenção agora" });
+
+    await expect(atencao.getByText("Conta vencida").first()).toBeVisible();
+    await expect(atencao.getByRole("link", { name: "Ver contas vencidas" })).toBeVisible();
+  });
+
+  test("a ação leva à tela onde dá para resolver", async ({ page }) => {
+    const atencao = page.getByRole("region", { name: "Atenção agora" });
+    await atencao.getByRole("link", { name: "Ver contas vencidas" }).click();
+
+    await page.waitForURL(/\/app\/contas/);
+    await expect(page.getByRole("heading", { name: "Contas", level: 1 })).toBeVisible();
+  });
+});
+
 test.describe("navegação", () => {
   test.beforeEach(async ({ page }) => {
     await signIn(page, USERS.indebted.email);
@@ -108,12 +146,15 @@ test.describe("navegação", () => {
 
   test("chega a todas as telas principais", async ({ page }) => {
     for (const [path, heading] of [
+      ["/app/avisos", "Caixa de avisos"],
       ["/app/contas", "Contas"],
       ["/app/cartoes", "Cartões"],
       ["/app/projecao", "Projeção"],
       ["/app/dividas", "Empréstimos e financiamentos"],
       ["/app/reservas", "Reservas e metas"],
       ["/app/orcamento", "Orçamento"],
+      ["/app/plano", "Plano de ação"],
+      ["/app/decisoes", "Decisões da família"],
     ] as const) {
       await page.goto(path);
       await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();

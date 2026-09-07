@@ -379,6 +379,32 @@ export const goalSchema = base.extend({
   visibility: visibilitySchema,
 });
 
+/**
+ * Uma decisão registrada pela família.
+ *
+ * Deliberadamente sem referência a dívida, conta ou cartão: um `debtId` aqui
+ * criaria um registro que aponta para um documento que pode ser apagado, e a
+ * linha do tempo passaria a ter buracos exatamente onde o histórico importa.
+ * A descrição em texto livre sobrevive a qualquer exclusão.
+ */
+export const decisionSchema = base.extend({
+  kind: z.enum([
+    "RENEGOTIATE_DEBT",
+    "PAY_BILL",
+    "POSTPONE_PURCHASE",
+    "BUILD_RESERVE",
+    "ADJUST_BUDGET",
+    "OTHER_STEP",
+  ]),
+  description: descriptionSchema,
+  amount: moneySchema.optional(),
+  decidedOn: calendarDateSchema,
+  status: z.enum(["PLANNED", "DONE"]),
+  responsibleMemberId: idSchema.optional(),
+  visibility: visibilitySchema,
+  notes: notesSchema,
+});
+
 export const vehicleSchema = base.extend({
   name: labelSchema,
   plate: z.string().trim().max(10).optional(),
@@ -403,4 +429,5 @@ export type RecurringRuleDoc = z.infer<typeof recurringRuleSchema>;
 export type BudgetDoc = z.infer<typeof budgetSchema>;
 export type ReserveDoc = z.infer<typeof reserveSchema>;
 export type GoalDoc = z.infer<typeof goalSchema>;
+export type DecisionDoc = z.infer<typeof decisionSchema>;
 export type VehicleDoc = z.infer<typeof vehicleSchema>;

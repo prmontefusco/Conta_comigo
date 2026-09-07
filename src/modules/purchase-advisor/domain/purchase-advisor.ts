@@ -151,7 +151,7 @@ const VERDICT_RANK: Record<PathVerdict, number> = {
 
 export const VERDICT_LABELS: Record<PathVerdict, string> = {
   FITS: "Cabe no seu mês",
-  TIGHT: "Cabe apertado",
+  TIGHT: "Cabe com pouca folga",
   EATS_RESERVE: "Consome sua reserva",
   BREAKS_A_MONTH: "Quebra um mês à frente",
   DOES_NOT_FIT: "Não cabe hoje",

@@ -52,15 +52,15 @@ export function PlanViabilityNotice({ feasibility }: { feasibility: PlanFeasibil
       <p className="mt-2 text-sm" style={{ color: "var(--muted-fg)" }}>
         {tight ? (
           <>
-            Pagar só o mínimo faz a dívida andar devagar e qualquer imprevisto volta para o cartão.
-            Antes de apertar mais o mês, vale tentar prazo maior nas parcelas — sobra vira respiro,
-            não só antecipação.
+            Pagar só o mínimo deixa a dívida andar devagar e reduz a margem para imprevistos. Antes
+            de comprimir ainda mais o mês, vale tentar prazo maior nas parcelas — sobra vira
+            respiro, não só antecipação.
           </>
         ) : (
           <>
-            Não é falta de disciplina: a conta não fecha por aritmética. Apertar mais o mês não
-            resolve um buraco desse tamanho, e pagar uma parcela deixando outra vencer só troca a
-            dívida de lugar.{" "}
+            Não é julgamento: a conta não fecha por aritmética. Comprimir ainda mais o mês não
+            resolve uma diferença desse tamanho, e pagar uma parcela deixando outra vencer só troca
+            a dívida de lugar.{" "}
             <strong style={{ color: "var(--page-fg)" }}>
               O caminho aqui é renegociar prazo, não pagar mais rápido.
             </strong>

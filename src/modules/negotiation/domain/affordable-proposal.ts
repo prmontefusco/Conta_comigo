@@ -177,6 +177,6 @@ function verdictFor(capacity: ProposalCapacity, installment: Money): ProposalVer
 
 export const VERDICT_LABELS: Record<ProposalVerdict, string> = {
   FITS: "Cabe no seu mês",
-  TIGHT: "Cabe apertado",
+  TIGHT: "Cabe com pouca folga",
   DOES_NOT_FIT: "Não cabe",
 };

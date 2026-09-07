@@ -2,12 +2,18 @@
 
 import { Callout, Spinner } from "@/components/ui/primitives";
 import { DashboardTabs } from "@/modules/dashboard/ui/dashboard-tabs";
+import { TodayPrioritiesCard } from "@/modules/dashboard/ui/today-priorities-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 
 /**
  * The home screen.
  *
- * Organized into clear financial pillars:
+ * O primeiro bloco é "Atenção agora": o que está vencido, o mês que não fecha,
+ * a fatura chegando. Vem antes de qualquer painel analítico de propósito —
+ * quem abre o aplicativo com a luz para cortar não deveria ter de rolar um
+ * gráfico de saúde financeira para descobrir isso.
+ *
+ * Depois dele, os pilares:
  * - Visão Geral: Hero goal, Health Score, Today & 30-day forecast.
  * - Entradas: Income streams and received vs pending inflows.
  * - Despesas: Fixed bills, credit cards, variable spending.
@@ -38,6 +44,9 @@ export default function DashboardPage() {
           e a projeção comecem a fazer sentido. Dá para começar com o básico e completar depois.
         </Callout>
       ) : null}
+
+      {/* O que precisa de atenção hoje, antes de qualquer bloco analítico. */}
+      {hasData ? <TodayPrioritiesCard /> : null}
 
       {/* Dashboard Segmentado em Pilares */}
       <DashboardTabs />

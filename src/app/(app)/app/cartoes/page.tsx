@@ -63,13 +63,13 @@ export default function CardsPage() {
       </div>
 
       <FinancialInsightCard
-        tag="A Armadilha do Rotativo"
-        title="O Crédito Mais Caro do Brasil (~14,5% a.m.)"
-        description="Pagar apenas o valor mínimo da fatura do cartão é o caminho mais rápido para o descontrole financeiro. Os juros compostos do rotativo dobram a dívida em poucos meses."
+        tag="Atenção ao rotativo"
+        title="Quando a fatura não fecha, o custo cresce rápido"
+        description="Pagar só uma parte da fatura pode empurrar o restante para juros muito altos. O ponto aqui é enxergar cedo para negociar antes que a dívida cresça."
         tips={[
-          "Nunca pague apenas o mínimo: se não der para quitar a fatura inteira, ligue para o banco e peça o 'Parcelamento da Fatura' (que tem juros fixos muito menores que o rotativo).",
+          "Se não der para quitar a fatura inteira, vale falar com o banco antes do vencimento e pedir opções de parcelamento com CET por escrito.",
           "O limite do cartão não é renda: um limite de R$ 5.000 é um empréstimo pré-aprovado caro, e não dinheiro que pertence à família.",
-          "Cuidado com compras parceladas: cada compra de 10x de R$ 50 consome o fôlego dos seus próximos 10 meses sem você perceber.",
+          "Compras parceladas entram nos próximos meses. Cada parcela pequena conta quando várias aparecem juntas.",
         ]}
         helpTopic="Cadastre seus cartões, dias de fechamento e vencimento. O app calcula automaticamente o limite livre e quanto das suas rendas futuras já está comprometido com parcelas."
       />

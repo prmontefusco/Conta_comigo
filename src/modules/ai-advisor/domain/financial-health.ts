@@ -332,18 +332,18 @@ function buildSummaryText(
   debtRatio: number,
 ): string {
   if (overdueCount > 0) {
-    return `Seu índice está em ${score}/100 principalmente por conta de faturas ou contas pendentes. A prioridade absoluta é regularizar esses débitos para cessar multas diárias.`;
+    return `Seu índice está em ${score}/100 principalmente por conta de faturas ou contas pendentes. O próximo passo é olhar primeiro o que pode cortar serviço essencial ou crescer com juros diários.`;
   }
   if (debtRatio > 40) {
-    return `Seu score é ${score}/100. As dívidas e parcelamentos estão absorvendo uma fatia muito alta da sua renda (${debtRatio}%), reduzindo sua margem de segurança.`;
+    return `Seu score é ${score}/100. Dívidas e parcelamentos ocupam uma parte alta da renda (${debtRatio}%), então há pouca margem para imprevistos.`;
   }
   if (status === "CRITICAL" || status === "ATTENTION") {
-    return `Seu diagnóstico aponta vulnerabilidade financeira (${score}/100). Há risco de faltar caixa nos próximos meses se os gastos não forem ajustados.`;
+    return `Seu diagnóstico aponta um mês sensível (${score}/100). Há risco de faltar caixa nos próximos meses; vale revisar compromissos antes de assumir novas parcelas.`;
   }
   if (status === "BALANCED") {
     return `Você está equilibrado (${score}/100), mas pequenas surpresas podem desestabilizar o orçamento. O foco agora é aumentar a sobra mensal e criar a reserva de emergência.`;
   }
-  return `Parabéns! Sua pontuação é ${score}/100. Suas contas estão em dia, as dívidas sob controle e o fluxo de caixa opera no positivo.`;
+  return `Sua pontuação é ${score}/100. As contas estão em dia, as dívidas estão sob controle e o fluxo de caixa está positivo.`;
 }
 
 function buildActionPlan(params: {
@@ -361,8 +361,8 @@ function buildActionPlan(params: {
       priority: priority++,
       category: "EMERGENCY",
       title: "Estancar juros e regularizar contas vencidas",
-      description: `Negocie ou quite imediatamente as ${params.overdueCount} contas em atraso para evitar bloqueio de serviços e cobranças abusivas.`,
-      impact: "Elimina multas de mora e recupera sua tranquilidade.",
+      description: `Olhe as ${params.overdueCount} contas em atraso e comece pelas que cortam serviço essencial, têm garantia ou crescem com juros diários.`,
+      impact: "Reduz multa, juros e risco de interrupção de serviço.",
       estimatedDaysToComplete: 7,
     });
   }
@@ -371,10 +371,10 @@ function buildActionPlan(params: {
     steps.push({
       priority: priority++,
       category: "DEBT",
-      title: "Plano de Quitação Acelerada de Dívidas",
+      title: "Plano de redução das dívidas",
       description:
-        "Aplique o Método Bola de Neve (pagar as menores primeiro para liberar fluxo) ou Avalanche (as de maior juros primeiro).",
-      impact: `Libera até ${params.debtCommitmentRatio}% da sua renda mensal.`,
+        "Compare o método bola de neve, que tira boletos pequenos da frente, com o avalanche, que prioriza juros maiores.",
+      impact: `Ajuda a reorganizar os ${params.debtCommitmentRatio}% da renda hoje comprometidos.`,
       estimatedDaysToComplete: 90,
     });
   }
@@ -383,9 +383,9 @@ function buildActionPlan(params: {
     steps.push({
       priority: priority++,
       category: "EXPENSE_CUT",
-      title: "Revisão e corte de despesas não essenciais",
+      title: "Revisão de gastos que podem esperar",
       description:
-        "Identifique assinaturas não utilizadas, compras por impulso e renegocie planos de internet, telefonia e tarifas bancárias.",
+        "Procure assinaturas pouco usadas, compras que podem esperar e serviços fixos com margem de negociação.",
       impact: "Evita o uso de cheque especial ou rotativo de cartão de crédito.",
       estimatedDaysToComplete: 15,
     });
@@ -433,7 +433,7 @@ function buildFinancialTips(debtRatio: number, reserveMonths: number): string[] 
 
   if (reserveMonths < 1) {
     tips.push(
-      "Comece pequeno: Guardar mesmo R$ 50 ou R$ 100 por semana cria o hábito e constrói sua barreira contra dívidas futuras.",
+      "Comece pequeno: mesmo R$ 50 ou R$ 100 por semana já cria uma barreira contra imprevistos.",
     );
   }
 

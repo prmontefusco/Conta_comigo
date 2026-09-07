@@ -72,13 +72,13 @@ export default function ObligationsPage() {
       </div>
 
       <FinancialInsightCard
-        tag="Contas Essenciais & Sobrevivência"
-        title="Prioridade Absoluta: Água, Luz e Moradia"
-        description="Contas de serviços essenciais nunca devem ser deixadas para depois de dívidas bancárias comuns. Se o dinheiro faltar no mês, proteja sempre o teto e os serviços básicos da sua família."
+        tag="Serviços essenciais"
+        title="Água, luz e moradia precisam aparecer primeiro"
+        description="Quando o dinheiro não cobre tudo, contas que mantêm a casa funcionando merecem atenção antes de dívidas sem garantia. A tela ajuda a enxergar essas escolhas sem misturar tudo."
         tips={[
-          "Ligue para a concessionária antes do corte: negociar antes do corte evita taxas de religação e permite parcelamento do saldo atrasado.",
+          "Se uma conta essencial atrasou, falar com a concessionária antes do corte pode evitar taxa de religação e abrir parcelamento.",
           "Verifique se você tem direito à Tarifa Social de Energia Elétrica (descontos de até 65% na conta de luz para famílias inscritas no CadÚnico).",
-          "Boletos pagos em atraso acumulam 2% de multa + juros diários. Pague no vencimento sempre que possível.",
+          "Boletos atrasados costumam ter multa e juros por dia. Ver o custo ajuda a decidir o que resolver primeiro.",
         ]}
         helpTopic="Use o botão 'Importar Conta / Fatura' para ler o PDF ou foto do boleto pela câmera sem digitar nada, ou clique em 'Nova conta' para lançar manualmente."
       />
