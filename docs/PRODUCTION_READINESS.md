@@ -17,7 +17,15 @@
 Registro da revisão da Fase 12. Escrito para ser lido antes de qualquer deploy,
 e atualizado quando alguma linha deixar de ser verdade.
 
-**Nenhum deploy foi feito.** O produto roda apenas em emuladores.
+> **Atualização — 7 de setembro de 2026.** A frase abaixo deixou de ser
+> verdadeira. O backend do App Hosting está conectado ao repositório e um push
+> para `main` dispara rollout; a primeira implantação aconteceu nessa data, no
+> endereço provisório, com indexação desligada e assinatura fechada. O ambiente
+> serve para **validação**, não para atender famílias reais — a lista em
+> [`PRODUCTION_OPERATIONS.md`](PRODUCTION_OPERATIONS.md) diz o que falta, e
+> backup encabeça essa lista.
+
+~~**Nenhum deploy foi feito.** O produto roda apenas em emuladores.~~
 
 ---
 
@@ -228,23 +236,23 @@ espaço vazio do placeholder para usuário real.
 
 ## Estado dos itens
 
-| Item                                          | Estado                                   |
-| --------------------------------------------- | ---------------------------------------- |
-| Índices conferidos contra as consultas reais  | ✔                                        |
-| Estimativa de custo do Firestore              | ✔ (abaixo)                               |
-| Auditoria de acessibilidade                   | ✔ 29 páginas, WCAG 2.1 AA, sem violações |
-| Exportação e exclusão de dados pela interface | ✔ `/app/meus-dados`                      |
-| Observabilidade sem vazar dados financeiros   | ✔ `lib/observability/logger.ts`          |
-| App Check                                     | ✔ preparado; falta a chave em produção   |
-| Revisão do posicionamento de anúncios         | ✔ (abaixo)                               |
-| Revisão de segurança independente             | ✖ **pendente**                           |
-| Rate limiting na criação de conta             | ✖ **pendente** — exige Cloud Functions   |
-| Rotas de API autenticadas e com cota          | ✔ ver SECURITY.md                        |
-| Cabeçalhos de segurança                       | ✔                                        |
-| CSP                                           | ⚠ em `Report-Only`, com teste E2E        |
-| Logs estruturados e consultáveis              | ✔ JSON com `severity` em produção        |
-| Alerta de taxa de erro                        | ✖ **pendente** — criar no console        |
-| Auditoria de performance com dados reais      | ⚠ parcial (abaixo)                       |
+| Item                                          | Estado                                    |
+| --------------------------------------------- | ----------------------------------------- |
+| Índices conferidos contra as consultas reais  | ✔                                         |
+| Estimativa de custo do Firestore              | ✔ (abaixo)                                |
+| Auditoria de acessibilidade                   | ✔ 29 páginas, WCAG 2.1 AA, sem violações  |
+| Exportação e exclusão de dados pela interface | ✔ `/app/meus-dados`                       |
+| Observabilidade sem vazar dados financeiros   | ✔ `lib/observability/logger.ts`           |
+| App Check                                     | ✔ preparado; falta a chave em produção    |
+| Revisão do posicionamento de anúncios         | — não se aplica: publicidade foi removida |
+| Revisão de segurança independente             | ✖ **pendente**                            |
+| Rate limiting na criação de conta             | ✖ **pendente** — exige Cloud Functions    |
+| Rotas de API autenticadas e com cota          | ✔ ver SECURITY.md                         |
+| Cabeçalhos de segurança                       | ✔                                         |
+| CSP                                           | ⚠ em `Report-Only`, com teste E2E         |
+| Logs estruturados e consultáveis              | ✔ JSON com `severity` em produção         |
+| Alerta de taxa de erro                        | ✖ **pendente** — criar no console         |
+| Auditoria de performance com dados reais      | ⚠ parcial (abaixo)                        |
 
 ---
 
@@ -333,7 +341,13 @@ interessa aqui.
 
 ---
 
-## Publicidade
+## Publicidade — seção obsoleta
+
+> Mantida como registro do que foi verificado na época. **O AdSense foi removido
+> por completo**: não há `AdSlot`, nem rota `ads.txt`, nem variável de ambiente,
+> nem domínio de anúncio na CSP. A assinatura é a única receita, e o teste E2E
+> que sobrou verifica a **ausência** de qualquer script de rede de anúncios.
+> Nada abaixo desta linha descreve o produto atual.
 
 Verificado em telas reais, mobile e desktop:
 

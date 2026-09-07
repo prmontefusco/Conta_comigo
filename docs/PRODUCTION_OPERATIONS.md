@@ -4,6 +4,56 @@ Este documento separa o que o repositório consegue validar sozinho do que
 precisa ser ligado no console do Firebase ou Google Cloud antes de atender
 famílias reais.
 
+## O que o push NÃO leva junto
+
+O backend do App Hosting está conectado ao repositório: **um push para `main`
+dispara um rollout**. Isso vale para o código do Next.js e para nada mais.
+
+**As Security Rules não sobem com o push.** `firestore.rules` é publicado por um
+comando separado:
+
+```bash
+npx firebase deploy --only firestore:rules --project prod
+```
+
+Isso não é detalhe de configuração, é a ordem de uma implantação. Quando uma
+versão do aplicativo passa a ler uma coleção nova, subir o código antes das
+regras deixa a produção num estado pior que o anterior: a assinatura falha com
+`permission-denied`, e o `FinanceProvider` mostra **"Você não tem acesso a estes
+dados"** em cima de toda tela do aplicativo — não só na tela nova. Para um
+público que já está ansioso com dinheiro, é a pior frase possível, e ela aparece
+para quem não fez nada de errado.
+
+A regra prática: **regras primeiro, código depois.** Uma regra publicada antes
+do código que a usa não quebra nada — ela apenas permite algo que ninguém ainda
+pede. O contrário quebra.
+
+O mesmo vale para `firestore.indexes.json`.
+
+## Estado dos itens de console — setembro de 2026
+
+Conferido contra `apphosting.yaml` e `next.config.ts`. Nenhum destes é código:
+todos dependem de alguém ligar algo num console.
+
+| Item                              | Estado atual                                                   |
+| --------------------------------- | -------------------------------------------------------------- |
+| Backup do Firestore (PITR/export) | ✖ **inexistente** — o mais grave da lista                      |
+| Revisão de segurança independente | ✖ pendente                                                     |
+| App Check                         | ✖ `NEXT_PUBLIC_APPCHECK_SITE_KEY` ainda é `REPLACE_WITH_...`   |
+| Assinatura paga                   | ✖ `ASAAS_API_KEY` e `PAYMENT_WEBHOOK_SECRET` comentados → 503  |
+| Consultoria com IA                | ⚠ `GEMINI_API_KEY` comentada → cai no motor local, em silêncio |
+| CSP                               | ⚠ `Report-Only`; só `frame-ancestors` é obrigatório            |
+| Alerta de taxa de erro            | ✖ pendente — os logs já saem estruturados, falta a métrica     |
+| Rate limiting na criação de conta | ✖ pendente — exige Cloud Functions                             |
+| Indexação por buscadores          | ✔ desligada de propósito (`NEXT_PUBLIC_ALLOW_INDEXING=false`)  |
+| Performance em aparelho real      | ✖ nunca medida — 417 kB de First Load JS na área autenticada   |
+
+**Backup é o único que eu trataria como impeditivo antes de qualquer família
+real cadastrar dados.** Todo o resto degrada de forma recuperável; perda de
+dados digitados à mão ao longo de meses, não. Enquanto o ambiente servir apenas
+para validação com os usuários de seed, o risco é outro — e é por isso que a
+distinção entre "no ar para testar" e "no ar para atender" precisa ficar escrita.
+
 ## Antes do primeiro deploy
 
 1. Rodar a verificação local:
