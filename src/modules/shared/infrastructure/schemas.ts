@@ -35,6 +35,25 @@ const base = auditSchema.extend({
 /* Identity and household                                              */
 /* ------------------------------------------------------------------ */
 
+export const familyMemberItemSchema = z.object({
+  id: idSchema,
+  name: z.string().trim().min(1).max(120),
+  relationship: z.string().trim().min(1).max(50),
+  birthDate: z.string().max(10).optional(),
+  isDependent: z.boolean().default(true),
+  notes: z.string().max(250).optional(),
+});
+
+export const userAddressSchema = z.object({
+  cep: z.string().trim().max(10).optional(),
+  street: z.string().trim().max(150).optional(),
+  number: z.string().trim().max(20).optional(),
+  complement: z.string().trim().max(100).optional(),
+  neighborhood: z.string().trim().max(100).optional(),
+  city: z.string().trim().max(100).optional(),
+  state: z.string().trim().max(2).optional(),
+});
+
 export const userProfileSchema = auditSchema.extend({
   id: idSchema,
   uid: idSchema,
@@ -55,6 +74,17 @@ export const userProfileSchema = auditSchema.extend({
     )
     .default([]),
   acceptedTermsAt: instantSchema.optional(),
+  cpf: z.string().trim().max(18).optional(),
+  phone: z.string().trim().max(25).optional(),
+  birthDate: z.string().max(10).optional(),
+  occupation: z.string().trim().max(100).optional(),
+  declaredMonthlyIncome: moneySchema.optional(),
+  address: userAddressSchema.optional(),
+  familyMembers: z.array(familyMemberItemSchema).optional().default([]),
+  financialGoal: z
+    .enum(["ORGANIZATION", "SUPERENDIVIDAMENTO", "INVESTMENT"])
+    .optional()
+    .default("ORGANIZATION"),
 });
 
 export const householdSettingsSchema = z.object({

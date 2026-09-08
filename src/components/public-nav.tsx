@@ -203,6 +203,13 @@ export function PublicHeader() {
             Planos
           </Link>
 
+          <Link
+            href="/contato"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-[color:var(--color-ink-700)] transition-colors hover:bg-slate-100/80 hover:text-[color:var(--color-ink-900)]"
+          >
+            Contato
+          </Link>
+
           <div className="mx-2 h-4 w-px bg-slate-200" aria-hidden="true" />
 
           <Link
@@ -265,6 +272,13 @@ export function PublicHeader() {
               className="rounded-lg bg-teal-50/60 px-3 py-2 text-base font-medium text-teal-800 hover:bg-teal-50"
             >
               💎 Planos (30 dias grátis)
+            </Link>
+
+            <Link
+              href="/contato"
+              className="rounded-lg px-3 py-2 text-base font-medium text-slate-800 hover:bg-slate-50"
+            >
+              💬 Fale Conosco / Contato
             </Link>
 
             <div className="mt-2 border-t border-slate-100 pt-2">
@@ -542,6 +556,9 @@ export function PublicFooter() {
             <Link href="/como-funciona" className="hover:text-teal-700">
               Como Funciona
             </Link>
+            <Link href="/contato" className="font-medium text-teal-700 hover:text-teal-800">
+              Fale Conosco / Contato
+            </Link>
             <Link href="/educacao-financeira" className="hover:text-teal-700">
               Educação Financeira
             </Link>
@@ -551,6 +568,17 @@ export function PublicFooter() {
             <Link href="/termos" className="hover:text-teal-700">
               Termos de Uso
             </Link>
+          </div>
+          <div className="text-xs text-slate-500">
+            Dúvidas? Fale com <strong>Paulo Roberto</strong> no WhatsApp:{" "}
+            <a
+              href="https://wa.me/5567992753760"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-teal-700 font-medium hover:underline"
+            >
+              (67) 99275-3760
+            </a>
           </div>
         </div>
 

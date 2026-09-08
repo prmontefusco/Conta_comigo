@@ -39,10 +39,98 @@ export default function DashboardPage() {
       {finance.error ? <Callout tone="attention">{finance.error}</Callout> : null}
 
       {!hasData ? (
-        <Callout tone="info" title="Ainda não há dados suficientes">
-          Cadastre suas contas, sua renda e suas despesas recorrentes para que o diagnóstico com IA
-          e a projeção comecem a fazer sentido. Dá para começar com o básico e completar depois.
-        </Callout>
+        <div className="rounded-2xl border-2 border-dashed border-[color:var(--color-brand-600)]/40 bg-[color:var(--color-brand-50)]/30 dark:bg-[color:var(--color-brand-950)]/20 p-5 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-[color:var(--color-brand-600)]">
+                Primeiros Passos
+              </span>
+              <h2 className="text-base font-bold text-[color:var(--page-fg)]">
+                Vamos calibrar o Conta Comigo para a sua realidade
+              </h2>
+            </div>
+            <span className="text-xs font-medium text-[color:var(--muted-fg)]">
+              Leva menos de 3 minutos
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-[color:var(--muted-fg)]">
+            Para que o diagnóstico de saúde financeira, a projeção de 12 meses e a linha do tempo comecem a fazer sentido, cadastre os dados básicos da sua casa:
+          </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <a
+              href="/app/contas-bancarias"
+              className="flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3.5 shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:shadow-xs"
+            >
+              <div>
+                <span className="text-xl">🏦</span>
+                <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
+                  1. Onde está seu dinheiro
+                </h3>
+                <p className="mt-1 text-2xs" style={{ color: "var(--muted-fg)" }}>
+                  Cadastre contas bancárias ou saldo em carteira.
+                </p>
+              </div>
+              <span className="mt-3 text-xs font-bold text-[color:var(--color-brand-600)]">
+                Cadastrar contas &rarr;
+              </span>
+            </a>
+
+            <a
+              href="/app/recorrentes"
+              className="flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3.5 shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:shadow-xs"
+            >
+              <div>
+                <span className="text-xl">💰</span>
+                <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
+                  2. Sua Renda Mensal
+                </h3>
+                <p className="mt-1 text-2xs" style={{ color: "var(--muted-fg)" }}>
+                  Salário, pró-labore ou renda extra que entra todo mês.
+                </p>
+              </div>
+              <span className="mt-3 text-xs font-bold text-[color:var(--color-brand-600)]">
+                Adicionar renda &rarr;
+              </span>
+            </a>
+
+            <a
+              href="/app/contas"
+              className="flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3.5 shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:shadow-xs"
+            >
+              <div>
+                <span className="text-xl">📄</span>
+                <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
+                  3. Contas do Mês
+                </h3>
+                <p className="mt-1 text-2xs" style={{ color: "var(--muted-fg)" }}>
+                  Aluguel, luz, água, condomínio e boletos essenciais.
+                </p>
+              </div>
+              <span className="mt-3 text-xs font-bold text-[color:var(--color-brand-600)]">
+                Cadastrar contas &rarr;
+              </span>
+            </a>
+
+            <a
+              href="/app/dividas"
+              className="flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3.5 shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:shadow-xs"
+            >
+              <div>
+                <span className="text-xl">🏛️</span>
+                <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
+                  4. Dívidas & Empréstimos
+                </h3>
+                <p className="mt-1 text-2xs" style={{ color: "var(--muted-fg)" }}>
+                  Se possuir parcelas de empréstimos, consignados ou cartões.
+                </p>
+              </div>
+              <span className="mt-3 text-xs font-bold text-[color:var(--color-brand-600)]">
+                Mapear passivos &rarr;
+              </span>
+            </a>
+          </div>
+        </div>
       ) : null}
 
       {/* O que precisa de atenção hoje, antes de qualquer bloco analítico. */}

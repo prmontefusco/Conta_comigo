@@ -1,6 +1,6 @@
 import type { Money } from "@/core/money/money";
 
-export type HealthTier = "CRITICAL" | "ATTENTION" | "HEALTHY" | "EXCELLENT";
+export type HealthTier = "CRITICAL" | "ATTENTION" | "HEALTHY" | "EXCELLENT" | "CALIBRATING";
 
 export interface PillarScore {
   readonly current: number;
@@ -40,6 +40,8 @@ export interface HealthScoreInput {
   readonly totalDebtsBalance: Money;
   readonly impulseSavingsCount?: number;
   readonly hasBudgetsConfigured?: boolean;
+  readonly hasRegisteredBills?: boolean;
+  readonly hasActiveAccounts?: boolean;
 }
 
 /**
@@ -229,6 +231,11 @@ export function evaluateBadges(input: HealthScoreInput): readonly BadgeItem[] {
       ? input.reserveBalance.amount / input.monthlyEssentialOutflows.amount
       : 0;
 
+  // Só desbloqueia pontualidade se houver contas cadastradas
+  const hasBills = input.hasRegisteredBills ?? (input.monthlyEssentialOutflows.amount > 0);
+  // Só desbloqueia livre das amarras se houver alguma conta, renda ou conta bancária
+  const hasActivity = input.hasActiveAccounts ?? (input.monthlyIncome.amount > 0 || hasBills);
+
   return [
     {
       id: "SHIELD",
@@ -242,14 +249,14 @@ export function evaluateBadges(input: HealthScoreInput): readonly BadgeItem[] {
       title: "Pontualidade Britânica",
       icon: "⚡",
       description: "Zero contas ou boletos em atraso no momento.",
-      unlocked: input.overdueBillsCount === 0,
+      unlocked: Boolean(hasBills && input.overdueBillsCount === 0),
     },
     {
       id: "DEBT_FREE",
       title: "Livre das Amarras",
       icon: "📉",
       description: "Sem dívidas financeiras ativas registradas.",
-      unlocked: input.totalDebtsBalance.amount <= 0,
+      unlocked: Boolean(hasActivity && input.totalDebtsBalance.amount <= 0),
     },
     {
       id: "SELF_CONTROL",
@@ -274,6 +281,32 @@ export function evaluateBadges(input: HealthScoreInput): readonly BadgeItem[] {
 export function calculateFinancialHealthScore(
   input: HealthScoreInput,
 ): FinancialHealthScore {
+  const hasInitialData = Boolean(
+    (input.hasActiveAccounts ?? false) ||
+    (input.hasRegisteredBills ?? false) ||
+    input.monthlyIncome.amount > 0 ||
+    input.monthlyEssentialOutflows.amount > 0 ||
+    input.totalDebtsBalance.amount > 0 ||
+    input.reserveBalance.amount > 0,
+  );
+
+  if (!hasInitialData) {
+    return {
+      totalScore: 0,
+      tier: "CALIBRATING",
+      tierLabel: "Aguardando Dados",
+      tierDescription: "Cadastre suas contas e rendas para calcular sua pontuação de saúde financeira.",
+      pillars: {
+        incomeCommitment: { current: 0, max: 300, label: "Comprometimento de Renda", feedback: "Cadastre sua renda para iniciar o cálculo." },
+        emergencyReserve: { current: 0, max: 250, label: "Reserva de Emergência", feedback: "Registre sua reserva ou contas com saldo." },
+        punctuality: { current: 0, max: 250, label: "Pontualidade de Contas", feedback: "Cadastre contas fixas para acompanhar pontualidade." },
+        debtTrajectory: { current: 0, max: 200, label: "Trajetória da Dívida", feedback: "Cadastre empréstimos ou dívidas se houver." },
+      },
+      badges: evaluateBadges(input),
+      topRecommendation: "Cadastre sua renda mensal e contas fixas para ativar a pontuação de saúde financeira.",
+    };
+  }
+
   const incomePillar = calculateIncomeCommitmentPillar(
     input.monthlyIncome,
     input.monthlyEssentialOutflows,

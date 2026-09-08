@@ -7,7 +7,7 @@ import { isOpen, remainingAmount, type Obligation } from "@/modules/obligations/
 import type { RecurringRule } from "@/modules/recurring/domain/recurring-rule";
 import type { Reserve } from "@/modules/reserves/domain/reserve";
 
-export type HealthStatus = "CRITICAL" | "ATTENTION" | "BALANCED" | "HEALTHY" | "EXCELLENT";
+export type HealthStatus = "CRITICAL" | "ATTENTION" | "BALANCED" | "HEALTHY" | "EXCELLENT" | "AWAITING_DATA";
 
 export interface HealthPillar {
   readonly id: string;
@@ -90,17 +90,94 @@ export function evaluateFinancialHealth(
 
   // Fallback monthly base income from the recurring rules, when the projection
   // has too few events to average.
-  //
-  // What is deliberately *not* in this maximum any more is `totalCash`. A
-  // balance is not a salary: counting it as one divided the debt-commitment
-  // ratio by money that arrives once, so someone with a lump sum in the
-  // account and a small wage was told their debts were under control. The
-  // floor is 1 centavo only to keep the ratio from dividing by zero.
   const recurringIncomes = input.recurringRules
     .filter((r) => r.direction === "INFLOW")
     .reduce((acc, r) => acc + r.amount.amount, 0);
 
   const baseMonthlyIncomeAmount = Math.max(monthlyInflows.amount, recurringIncomes, 1);
+
+  // Verificação de ausência de dados: se não há contas, rendas, dívidas nem saldo,
+  // não calcula pontuação cheia (evita falso diagnóstico positivo de 73 pts sem dados).
+  const hasNoData =
+    input.totalCash.amount === 0 &&
+    input.obligations.length === 0 &&
+    input.recurringRules.length === 0 &&
+    input.debts.length === 0 &&
+    input.cards.length === 0 &&
+    monthlyInflows.amount === 0 &&
+    monthlyOutflows.amount === 0;
+
+  if (hasNoData) {
+    const emptyMoney: Money = { amount: 0, currency };
+    const awaitingPillars: readonly HealthPillar[] = [
+      {
+        id: "punctuality",
+        title: "Pontualidade e Contas em Dia",
+        score: 0,
+        weight: 0.25,
+        status: "AWAITING_DATA",
+        message: "Nenhuma conta ou boleto cadastrado ainda.",
+        recommendation: "Cadastre suas contas fixas e vencimentos para acompanhar a pontualidade.",
+      },
+      {
+        id: "debt_burden",
+        title: "Comprometimento com Dívidas",
+        score: 0,
+        weight: 0.3,
+        status: "AWAITING_DATA",
+        message: "Sem dados de renda ou dívidas para calcular comprometimento.",
+        recommendation: "Informe sua renda mensal e empréstimos/parcelas se houver.",
+      },
+      {
+        id: "cash_flow",
+        title: "Fluxo de Caixa e Superávit",
+        score: 0,
+        weight: 0.25,
+        status: "AWAITING_DATA",
+        message: "Projeção aguardando suas entradas e saídas previstas.",
+        recommendation: "Cadastre sua renda e contas para projetar os próximos meses.",
+      },
+      {
+        id: "emergency_reserve",
+        title: "Colchão de Proteção (Reserva)",
+        score: 0,
+        weight: 0.2,
+        status: "AWAITING_DATA",
+        message: "Nenhuma reserva financeira ou saldo registrado.",
+        recommendation: "Cadastre suas contas bancárias para iniciar o acompanhamento.",
+      },
+    ];
+
+    return {
+      score: 0,
+      status: "AWAITING_DATA",
+      statusLabel: "Aguardando Primeiros Dados",
+      summary:
+        "Cadastre suas contas, rendas e saldos para que a inteligência do sistema avalie sua saúde financeira real.",
+      monthlyIncome: monthlyInflows,
+      monthlyExpenses: monthlyOutflows,
+      monthlyNet,
+      debtCommitmentRatio: 0,
+      totalDebtOutstanding: emptyMoney,
+      emergencyFundMonths: 0,
+      overdueBillsCount: 0,
+      overdueBillsTotal: emptyMoney,
+      pillars: awaitingPillars,
+      actionPlan: [
+        {
+          priority: 1,
+          category: "EXPENSE_CUT",
+          title: "Cadastre suas primeiras informações",
+          description: "Adicione sua renda e contas fixas para começar a ver sua projeção e diagnóstico.",
+          impact: "Permite ao sistema calcular sua margem mensal e pontualidade.",
+        },
+      ],
+      tips: [
+        "Comece cadastrando sua renda e despesas fixas para calibrar o diagnóstico.",
+        "Com as contas cadastradas, você descobre com meses de antecedência se o mês vai fechar positivo.",
+      ],
+    };
+  }
 
   // 2. Overdue bills
   const overdueObligations = input.obligations.filter((o) => isOpen(o) && o.dueDate < input.asOf);
@@ -312,6 +389,8 @@ const getHealthStatus = getPillarStatus;
 
 export function getHealthStatusLabel(status: HealthStatus): string {
   switch (status) {
+    case "AWAITING_DATA":
+      return "Aguardando Primeiros Dados";
     case "EXCELLENT":
       return "Excelente Saúde Financeira";
     case "HEALTHY":

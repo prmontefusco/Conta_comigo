@@ -79,6 +79,11 @@ export function DashboardTabs() {
     totalDebtsBalance: totalDebtBalance,
     impulseSavingsCount,
     hasBudgetsConfigured: finance.budgets.length > 0,
+    hasRegisteredBills: finance.obligations.length > 0,
+    hasActiveAccounts:
+      finance.accounts.length > 0 ||
+      finance.transactions.length > 0 ||
+      finance.recurringRules.length > 0,
   });
 
   return (

@@ -16,6 +16,7 @@ export function HealthScoreCard({ score }: HealthScoreCardProps) {
     HEALTHY: "text-[color:var(--color-brand-600)]",
     ATTENTION: "text-[color:var(--color-attention-600)]",
     CRITICAL: "text-[color:var(--color-critical-600)]",
+    CALIBRATING: "text-[color:var(--muted-fg)]",
   }[score.tier];
 
   const tierTone = {
@@ -23,6 +24,7 @@ export function HealthScoreCard({ score }: HealthScoreCardProps) {
     HEALTHY: "brand",
     ATTENTION: "attention",
     CRITICAL: "critical",
+    CALIBRATING: "neutral",
   } as const;
 
   const unlockedCount = score.badges.filter((b) => b.unlocked).length;
@@ -34,7 +36,9 @@ export function HealthScoreCard({ score }: HealthScoreCardProps) {
           Saúde Financeira
         </CardTitle>
         <Badge tone={tierTone[score.tier]}>
-          {score.tierLabel} &bull; {score.totalScore}/1000
+          {score.tier === "CALIBRATING"
+            ? score.tierLabel
+            : `${score.tierLabel} • ${score.totalScore}/1000`}
         </Badge>
       </div>
 
@@ -42,7 +46,7 @@ export function HealthScoreCard({ score }: HealthScoreCardProps) {
       <div className="mt-4 flex flex-col items-center justify-center rounded-2xl bg-[color:var(--color-ink-50)] dark:bg-[color:var(--color-ink-900)]/40 p-6 text-center">
         <div className="relative flex items-center justify-center">
           <span className={`text-5xl font-black tracking-tight ${tierColor}`}>
-            {score.totalScore}
+            {score.tier === "CALIBRATING" ? "--" : score.totalScore}
           </span>
           <span className="text-xs font-bold text-[color:var(--muted-fg)] ml-1 self-end mb-2">
             / 1000
@@ -55,7 +59,9 @@ export function HealthScoreCard({ score }: HealthScoreCardProps) {
         <div className="mt-4 h-2 w-full max-w-md overflow-hidden rounded-full bg-[color:var(--color-ink-200)]">
           <div
             className="h-full bg-[color:var(--color-brand-600)] transition-all duration-700"
-            style={{ width: `${Math.min(100, Math.round((score.totalScore / 1000) * 100))}%` }}
+            style={{
+              width: `${score.tier === "CALIBRATING" ? 0 : Math.min(100, Math.round((score.totalScore / 1000) * 100))}%`,
+            }}
           />
         </div>
 

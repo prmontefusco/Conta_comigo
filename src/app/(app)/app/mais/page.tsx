@@ -50,8 +50,9 @@ const SECTIONS = [
     ],
   },
   {
-    title: "Sobre",
+    title: "Sobre & Contato",
     items: [
+      { href: "/contato", label: "Fale conosco / Suporte", icon: "💬" },
       { href: "/privacidade", label: "Política de privacidade", icon: "🔒" },
       { href: "/termos", label: "Termos de uso", icon: "📄" },
       { href: "/educacao-financeira", label: "Educação financeira", icon: "📚" },

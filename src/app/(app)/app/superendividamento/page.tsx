@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { formatMoney } from "@/core/money/format";
 import { fromDecimalString, money } from "@/core/money/money";
 import { Badge, Button, Card, CardTitle, Spinner, Stat } from "@/components/ui/primitives";
@@ -35,8 +36,36 @@ export default function SuperendividamentoPage() {
   const initialInflow = currentMonth?.expectedInflows ?? money(400000, currency);
 
   // Estados do Formulário
-  const [rendaText, setRendaText] = useState((initialInflow.amount / 100).toString());
-  const [dependentes, setDependentes] = useState(1);
+  const [rendaText, setRendaText] = useState(() => {
+    if (profile?.declaredMonthlyIncome && profile.declaredMonthlyIncome.amount > 0) {
+      return (profile.declaredMonthlyIncome.amount / 100).toString();
+    }
+    return (initialInflow.amount / 100).toString();
+  });
+  const [dependentes, setDependentes] = useState(() => {
+    if (profile?.familyMembers && profile.familyMembers.length > 0) {
+      const deps = profile.familyMembers.filter((m) => m.isDependent !== false).length;
+      return deps > 0 ? deps : 1;
+    }
+    return 1;
+  });
+
+  // Atualizar quando o perfil carregar
+  useEffect(() => {
+    if (profile?.declaredMonthlyIncome && profile.declaredMonthlyIncome.amount > 0) {
+      setRendaText((profile.declaredMonthlyIncome.amount / 100).toString());
+    }
+  }, [profile?.declaredMonthlyIncome]);
+
+  useEffect(() => {
+    if (profile?.familyMembers && profile.familyMembers.length > 0) {
+      const deps = profile.familyMembers.filter((m) => m.isDependent !== false).length;
+      if (deps > 0) {
+        setDependentes(deps);
+      }
+    }
+  }, [profile?.familyMembers]);
+
   const [motivoCrise, setMotivoCrise] = useState(
     "Aumento abusivo de encargos bancários e juros de cartão rotativo, somado à inflação de itens básicos de subsistência.",
   );
@@ -475,6 +504,78 @@ export default function SuperendividamentoPage() {
                 Requerente: <strong>{profile?.displayName ?? household?.name ?? "Consumidor"}</strong> | Emissão:{" "}
                 {new Date().toLocaleDateString("pt-BR")}
               </p>
+            </div>
+
+            {/* Qualificação do Requerente & Domicílio */}
+            <div className="mt-5 rounded-lg border border-neutral-200 bg-neutral-50/70 p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-800">
+                  I. Qualificação do Requerente & Núcleo Familiar
+                </h3>
+                {(!profile?.cpf || !profile?.address?.street) && (
+                  <Link
+                    href="/app/meus-dados"
+                    className="print:hidden text-2xs font-semibold text-amber-700 hover:underline bg-amber-100 px-2 py-0.5 rounded border border-amber-300"
+                  >
+                    ⚠️ Completar CPF e Endereço em Meus Dados
+                  </Link>
+                )}
+              </div>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-xs text-neutral-700">
+                <div>
+                  <span className="font-semibold text-neutral-900">Nome Completo:</span>{" "}
+                  {profile?.displayName ?? household?.name ?? "Consumidor"}
+                </div>
+                <div>
+                  <span className="font-semibold text-neutral-900">CPF:</span>{" "}
+                  {profile?.cpf || "Não informado (preencha em Meus Dados)"}
+                </div>
+                <div>
+                  <span className="font-semibold text-neutral-900">Profissão / Ocupação:</span>{" "}
+                  {profile?.occupation || "Não informada"}
+                </div>
+                <div>
+                  <span className="font-semibold text-neutral-900">Contato / WhatsApp:</span>{" "}
+                  {profile?.phone || "Não informado"}
+                </div>
+                <div className="sm:col-span-2">
+                  <span className="font-semibold text-neutral-900">Endereço Residencial:</span>{" "}
+                  {profile?.address?.street
+                    ? `${profile.address.street}, nº ${profile.address.number || "S/N"}${profile.address.complement ? ` (${profile.address.complement})` : ""}, Bairro ${profile.address.neighborhood || ""}, ${profile.address.city || ""} - ${profile.address.state || ""}, CEP ${profile.address.cep || ""}`
+                    : "Endereço não cadastrado (preencha na aba Meus Dados para constar na petição oficial)"}
+                </div>
+              </div>
+
+              {/* Composição Familiar */}
+              {profile?.familyMembers && profile.familyMembers.length > 0 && (
+                <div className="mt-4 border-t border-neutral-200 pt-3">
+                  <p className="text-2xs font-bold uppercase tracking-wider text-neutral-700 mb-2">
+                    Composição do Núcleo Familiar & Dependentes Financeiros:
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {profile.familyMembers.map((member) => (
+                      <div
+                        key={member.id}
+                        className="rounded border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-800 flex items-center justify-between"
+                      >
+                        <div>
+                          <strong className="text-neutral-900">{member.name}</strong>
+                          <span className="text-neutral-500 text-2xs ml-1">({member.relationship})</span>
+                        </div>
+                        <span
+                          className={`text-2xs font-medium px-1.5 py-0.5 rounded ${
+                            member.isDependent !== false
+                              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                              : "bg-neutral-100 text-neutral-600"
+                          }`}
+                        >
+                          {member.isDependent !== false ? "Dependente Legal" : "Não dependente"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Declaração Formal de Boa-Fé */}

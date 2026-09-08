@@ -16,23 +16,63 @@ import { AlertBell } from "@/modules/alerts/ui/alert-bell";
  * link, so the browser's back button and keyboard navigation behave normally.
  */
 
-const DESKTOP_NAV = [
-  { href: "/app", label: "Início", icon: "🏠" },
-  { href: "/app/avisos", label: "Avisos", icon: "🔔" },
-  { href: "/app/dia-a-dia", label: "Dia a dia", icon: "🧾" },
-  { href: "/app/emergencia", label: "Pagar primeiro", icon: "🚨" },
-  { href: "/app/plano", label: "Plano de ação", icon: "🧭" },
-  { href: "/app/comprar", label: "Antes de comprar", icon: "🛒" },
-  { href: "/app/diagnostico-ia", label: "Diagnóstico IA", icon: "✨" },
-  { href: "/app/visao-futuro", label: "Visão de Futuro", icon: "🚀" },
-  { href: "/app/contas", label: "Contas a Pagar", icon: "📄" },
-  { href: "/app/cartoes", label: "Cartões", icon: "💳" },
-  { href: "/app/dividas", label: "Dívidas & Empréstimos", icon: "🏛️" },
-  { href: "/app/superendividamento", label: "Superendividamento", icon: "⚖️" },
-  { href: "/app/projecao", label: "Projeção & Fluxo", icon: "📈" },
-  { href: "/app/importar", label: "Importar extrato", icon: "📥" },
-  { href: "/app/mais", label: "Mais Opções", icon: "⋯" },
-] as const;
+interface NavItem {
+  readonly href: string;
+  readonly label: string;
+  readonly icon: string;
+  readonly restrictedForDependent?: boolean;
+}
+
+interface NavSection {
+  readonly title: string;
+  readonly items: readonly NavItem[];
+}
+
+const DESKTOP_NAV_SECTIONS: readonly NavSection[] = [
+  {
+    title: "Visão Geral",
+    items: [
+      { href: "/app", label: "Início", icon: "🏠" },
+      { href: "/app/avisos", label: "Avisos", icon: "🔔" },
+    ],
+  },
+  {
+    title: "Dia a Dia & Contas",
+    items: [
+      { href: "/app/dia-a-dia", label: "Lançamentos", icon: "🧾" },
+      { href: "/app/contas", label: "Contas a Pagar", icon: "📄" },
+      { href: "/app/cartoes", label: "Cartões", icon: "💳", restrictedForDependent: true },
+      { href: "/app/importar", label: "Importar extrato", icon: "📥", restrictedForDependent: true },
+    ],
+  },
+  {
+    title: "Planejamento & Futuro",
+    items: [
+      { href: "/app/emergencia", label: "Pagar primeiro", icon: "🚨" },
+      { href: "/app/plano", label: "Plano de ação", icon: "🧭" },
+      { href: "/app/comprar", label: "Antes de comprar", icon: "🛒" },
+      { href: "/app/projecao", label: "Projeção & Fluxo", icon: "📈", restrictedForDependent: true },
+      { href: "/app/visao-futuro", label: "Visão de Futuro", icon: "🚀" },
+      { href: "/app/diagnostico-ia", label: "Diagnóstico IA", icon: "✨" },
+    ],
+  },
+  {
+    title: "Dívidas & Recuperação",
+    items: [
+      { href: "/app/dividas", label: "Dívidas & Empréstimos", icon: "🏛️", restrictedForDependent: true },
+      { href: "/app/superendividamento", label: "Superendividamento", icon: "⚖️", restrictedForDependent: true },
+    ],
+  },
+  {
+    title: "Minha Conta",
+    items: [
+      { href: "/app/meus-dados", label: "Meus Dados & Família", icon: "👤" },
+      { href: "/contato", label: "Fale Conosco / Suporte", icon: "💬" },
+      { href: "/app/configuracoes", label: "Configurações", icon: "⚙️" },
+      { href: "/app/mais", label: "Mais Opções", icon: "⋯" },
+    ],
+  },
+];
 
 // The bottom bar holds what someone opens standing in a queue. Registering a
 // gasto is the most frequent of those; Diagnóstico is one tap further, in Mais.
@@ -63,6 +103,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const [emailSent, setEmailSent] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      window.location.href = "/";
+    }
+  }
 
   async function handleResendEmail() {
     setSendingEmail(true);
@@ -91,22 +141,19 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }, [isDependent, pathname, router]);
 
-  const desktopNav = DESKTOP_NAV.filter((item) => {
-    if (isDependent) {
-      return ![
-        "/app/dividas",
-        "/app/superendividamento",
-        "/app/projecao",
-        "/app/cartoes",
-        "/app/importar",
-      ].includes(item.href);
-    }
-    return true;
-  });
+  const desktopSections = DESKTOP_NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => {
+      if (isDependent && item.restrictedForDependent) return false;
+      return true;
+    }),
+  })).filter((section) => section.items.length > 0);
 
   useEffect(() => {
-    if (status === "unauthenticated") router.replace("/entrar");
-  }, [status, router]);
+    if (status === "unauthenticated" && !loggingOut) {
+      router.replace("/entrar");
+    }
+  }, [status, router, loggingOut]);
 
   if (status === "loading") {
     return <Spinner label="Carregando sua conta" />;
@@ -173,8 +220,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </select>
               </label>
             ) : null}
-            <Button variant="ghost" onClick={() => void logout()}>
-              Sair
+            <Button variant="ghost" onClick={() => void handleLogout()} disabled={loggingOut}>
+              {loggingOut ? "Saindo…" : "Sair"}
             </Button>
           </div>
         </div>
@@ -209,23 +256,32 @@ export function AppShell({ children }: { children: ReactNode }) {
       ) : null}
 
       <div className="mx-auto flex max-w-6xl gap-6 px-4 py-4 md:py-6">
-        <nav aria-label="Navegação principal" className="hidden w-52 shrink-0 md:block">
-          <ul className="sticky top-20 space-y-1">
-            {desktopNav.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={isActive(pathname, item.href) ? "page" : undefined}
-                  className={navLinkClass(isActive(pathname, item.href))}
-                >
-                  <span aria-hidden="true" className="text-base">
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </Link>
-              </li>
+        <nav aria-label="Navegação principal" className="hidden w-56 shrink-0 md:block">
+          <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pr-1 space-y-4">
+            {desktopSections.map((section) => (
+              <div key={section.title} className="space-y-1">
+                <p className="px-3 text-2xs font-bold uppercase tracking-wider text-[color:var(--muted-fg)]">
+                  {section.title}
+                </p>
+                <ul className="space-y-0.5">
+                  {section.items.map((item) => (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={isActive(pathname, item.href) ? "page" : undefined}
+                        className={navLinkClass(isActive(pathname, item.href))}
+                      >
+                        <span aria-hidden="true" className="text-base">
+                          {item.icon}
+                        </span>
+                        <span>{item.label}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         </nav>
 
         <main id="conteudo" className="min-w-0 flex-1 pb-24 md:pb-6">

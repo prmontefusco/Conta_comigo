@@ -70,7 +70,7 @@ export function HealthScoreCard() {
           </p>
           <div className="my-2 flex items-baseline justify-center gap-1">
             <span className={`tabular text-4xl font-extrabold ${badgeConfig.textClass}`}>
-              {report.score}
+              {report.status === "AWAITING_DATA" ? "--" : report.score}
             </span>
             <span className="text-sm font-semibold" style={{ color: "var(--muted-fg)" }}>
               / 100
@@ -80,13 +80,30 @@ export function HealthScoreCard() {
           <div className="h-2 w-full overflow-hidden rounded-full bg-[color:var(--color-ink-100)]">
             <div
               className={`h-full rounded-full transition-all duration-500 ${badgeConfig.bgClass}`}
-              style={{ width: `${Math.max(5, report.score)}%` }}
+              style={{ width: `${report.status === "AWAITING_DATA" ? 0 : Math.max(5, report.score)}%` }}
             />
           </div>
 
           <p className="mt-2 text-xs font-medium text-balance" style={{ color: "var(--muted-fg)" }}>
             {report.summary}
           </p>
+
+          {report.status === "AWAITING_DATA" ? (
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <Link
+                href="/app/contas"
+                className="inline-flex items-center rounded-lg bg-[color:var(--color-brand-600)] px-2.5 py-1 text-xs font-semibold text-white shadow-2xs hover:bg-[color:var(--color-brand-700)]"
+              >
+                + Contas do Mês
+              </Link>
+              <Link
+                href="/app/dia-a-dia"
+                className="inline-flex items-center rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-2.5 py-1 text-xs font-semibold hover:bg-[color:var(--color-ink-100)]"
+              >
+                + Renda / Saldo
+              </Link>
+            </div>
+          ) : null}
         </div>
 
         {/* Pillars preview */}
@@ -103,7 +120,7 @@ export function HealthScoreCard() {
                     {pillar.title}
                   </span>
                   <span className={`tabular text-xs font-bold ${pillarBadge.textClass}`}>
-                    {pillar.score} pts
+                    {pillar.status === "AWAITING_DATA" ? "Calibrando" : `${pillar.score} pts`}
                   </span>
                 </div>
                 <p className="mt-1 line-clamp-2 text-xs" style={{ color: "var(--muted-fg)" }}>
@@ -124,6 +141,13 @@ function getStatusBadge(status: HealthStatus): {
   textClass: string;
 } {
   switch (status) {
+    case "AWAITING_DATA":
+      return {
+        classes:
+          "bg-[color:var(--color-ink-100)] text-[color:var(--muted-fg)] border border-[color:var(--card-border)]",
+        bgClass: "bg-[color:var(--color-ink-200)]",
+        textClass: "text-[color:var(--muted-fg)]",
+      };
     case "EXCELLENT":
       return {
         classes:

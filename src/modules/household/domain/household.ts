@@ -1,5 +1,5 @@
 import type { Instant } from "@/core/date/calendar-date";
-import type { CurrencyCode } from "@/core/money/money";
+import type { CurrencyCode, Money } from "@/core/money/money";
 import type {
   AuditFields,
   HouseholdId,
@@ -66,6 +66,27 @@ export interface HouseholdMembership extends AuditFields {
 
 export type UserPlan = "FREE" | "PREMIUM";
 
+export type FinancialGoal = "ORGANIZATION" | "SUPERENDIVIDAMENTO" | "INVESTMENT";
+
+export interface UserAddress {
+  readonly cep?: string;
+  readonly street?: string;
+  readonly number?: string;
+  readonly complement?: string;
+  readonly neighborhood?: string;
+  readonly city?: string;
+  readonly state?: string;
+}
+
+export interface FamilyMemberItem {
+  readonly id: string;
+  readonly name: string;
+  readonly relationship: string;
+  readonly birthDate?: string;
+  readonly isDependent: boolean;
+  readonly notes?: string;
+}
+
 export interface UserProfile extends AuditFields {
   readonly id: UserId;
   readonly uid: UserId;
@@ -75,6 +96,14 @@ export interface UserProfile extends AuditFields {
   readonly defaultHouseholdId?: HouseholdId;
   readonly onboardingCompletedSteps: readonly OnboardingStep[];
   readonly acceptedTermsAt?: Instant;
+  readonly cpf?: string;
+  readonly phone?: string;
+  readonly birthDate?: string;
+  readonly occupation?: string;
+  readonly declaredMonthlyIncome?: Money;
+  readonly address?: UserAddress;
+  readonly familyMembers?: readonly FamilyMemberItem[];
+  readonly financialGoal?: FinancialGoal;
 }
 
 /**

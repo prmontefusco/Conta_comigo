@@ -3,13 +3,20 @@
 import Link from "next/link";
 import { formatCalendarDate } from "@/core/date/calendar-date";
 import { Card, CardTitle, Stat } from "@/components/ui/primitives";
+import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useRecoveryTimeline } from "./use-recovery-timeline";
 import { HorizonStat, PlanViabilityNotice } from "./plan-viability-notice";
 
 export function FutureTimelineCard() {
   const timeline = useRecoveryTimeline();
+  const finance = useFinance();
 
-  const hasDebts = timeline.totalDebtAmount.amount > 0;
+  const hasDebts = finance.debts.some((d) => d.status !== "SETTLED");
+  const hasFinancialData =
+    finance.accounts.length > 0 ||
+    finance.obligations.length > 0 ||
+    finance.recurringRules.length > 0 ||
+    finance.transactions.length > 0;
 
   return (
     <Card className="relative overflow-hidden border-2 border-[color:var(--card-border)] bg-gradient-to-br from-[color:var(--card-bg)] to-[color:var(--color-surface-sunken)] p-5 shadow-sm">
@@ -22,7 +29,9 @@ export function FutureTimelineCard() {
             </CardTitle>
           </div>
           <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
-            Previsão com base no seu fluxo de caixa e compromissos cadastrados
+            {hasFinancialData
+              ? "Previsão com base no seu fluxo de caixa e compromissos cadastrados"
+              : "Cadastre suas contas e rendas para calibrar sua linha do tempo"}
           </p>
         </div>
 
@@ -57,11 +66,15 @@ export function FutureTimelineCard() {
               Dívidas Ativas
             </dt>
             <dd className="mt-1">
-              <span className="tabular text-xl font-bold text-[color:var(--color-positive-700)]">
-                Zeradas! 🎉
+              <span className="tabular text-xl font-bold">
+                {hasFinancialData ? (
+                  <span className="text-[color:var(--color-positive-700)]">Zeradas! 🎉</span>
+                ) : (
+                  <span className="text-[color:var(--page-fg)]">Sem dívidas</span>
+                )}
               </span>
               <p className="text-2xs mt-0.5" style={{ color: "var(--muted-fg)" }}>
-                Nenhum passivo pendente
+                {hasFinancialData ? "Nenhum passivo pendente" : "Nenhum empréstimo cadastrado"}
               </p>
             </dd>
           </div>
