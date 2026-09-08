@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Badge, Button, Callout, Card, CardTitle, Spinner } from "@/components/ui/primitives";
 import { FormError, SelectField, TextField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
@@ -16,7 +16,14 @@ import { INVITE_VALID_DAYS, createInvite } from "@/modules/household/application
 import { ROLE_DESCRIPTIONS, ROLE_LABELS } from "@/modules/household/domain/household";
 import { useMembers } from "@/modules/household/ui/use-members";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { useFinance } from "@/modules/household/ui/finance-provider";
 import { InviteFamilyModal } from "@/modules/household/ui/invite-family-modal";
+import { AuditFeedCard } from "@/modules/household/ui/audit-feed-card";
+import {
+  createFamilyAuditEvent,
+  sortAuditEventsDescending,
+  type FamilyAuditEvent,
+} from "@/modules/household/domain/audit-log";
 import type { HouseholdRole } from "@/modules/shared/domain/common";
 
 /**
@@ -32,11 +39,68 @@ import type { HouseholdRole } from "@/modules/shared/domain/common";
 export default function MembersPage() {
   const { household, user, canAdminister } = useSession();
   const { active, loading } = useMembers();
+  const finance = useFinance();
   const [adding, setAdding] = useState(false);
   const [addingDependent, setAddingDependent] = useState(false);
   const [invitingByEmail, setInvitingByEmail] = useState(false);
   const [invitingFamily, setInvitingFamily] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const auditEvents = useMemo(() => {
+    if (!household) return [];
+    const memberMap = new Map(active.map((m) => [m.uid, m.displayName]));
+    const events: FamilyAuditEvent[] = [];
+
+    for (const t of finance.transactions.slice(0, 20)) {
+      const actorName = memberMap.get(t.createdBy) ?? "Membro da casa";
+      events.push(
+        createFamilyAuditEvent({
+          id: `tx_${t.id}`,
+          householdId: t.householdId,
+          actorId: t.createdBy,
+          actorName,
+          actionType: t.kind === "EXPENSE" ? "EXPENSE_CREATED" : "INCOME_CREATED",
+          entityName: t.description,
+          amount: t.amount,
+          timestamp: t.createdAt,
+        }),
+      );
+    }
+
+    for (const o of finance.obligations.filter((o) => o.status === "SETTLED").slice(0, 10)) {
+      const actorName = memberMap.get(o.createdBy) ?? "Membro da casa";
+      events.push(
+        createFamilyAuditEvent({
+          id: `ob_${o.id}`,
+          householdId: o.householdId,
+          actorId: o.createdBy,
+          actorName,
+          actionType: "BILL_PAID",
+          entityName: o.description,
+          amount: o.amount,
+          timestamp: o.updatedAt,
+        }),
+      );
+    }
+
+    for (const m of active) {
+      if (m.joinedAt) {
+        events.push(
+          createFamilyAuditEvent({
+            id: `mb_${m.id}`,
+            householdId: m.householdId,
+            actorId: m.uid,
+            actorName: m.displayName,
+            actionType: "MEMBER_INVITED",
+            entityName: m.displayName,
+            timestamp: m.joinedAt,
+          }),
+        );
+      }
+    }
+
+    return sortAuditEventsDescending(events);
+  }, [household, finance.transactions, finance.obligations, active]);
 
   if (loading) return <Spinner label="Carregando membros" />;
 
@@ -82,6 +146,8 @@ export default function MembersPage() {
           ))}
         </ul>
       </Card>
+
+      <AuditFeedCard events={auditEvents} />
 
       <Card>
         <CardTitle hint="Passe este código para quem for entrar no seu grupo.">
@@ -260,7 +326,7 @@ function MemberRow({
                 }}
                 className="min-h-11 rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-2 text-sm"
               >
-                {(["ADMIN", "MEMBER", "VIEWER"] as const).map((option) => (
+                {(["ADMIN", "MEMBER", "OPERATOR", "VIEWER", "DEPENDENT"] as const).map((option) => (
                   <option key={option} value={option}>
                     {ROLE_LABELS[option]}
                   </option>
@@ -604,9 +670,11 @@ function AddMemberDialog({ open, onClose }: { open: boolean; onClose: () => void
           value={role}
           onChange={(event) => setRole(event.target.value as Exclude<HouseholdRole, "OWNER">)}
           options={[
-            { value: "MEMBER", label: "Membro — registra e edita informações" },
-            { value: "ADMIN", label: "Administrador — também gerencia o grupo" },
-            { value: "VIEWER", label: "Visualizador — só vê, não altera" },
+            { value: "MEMBER", label: "Membro — registra e edita informações financeiras" },
+            { value: "OPERATOR", label: "Operador — lança comprovantes/gastos (sem excluir registros ou alterar orçamentos)" },
+            { value: "ADMIN", label: "Administrador — gerencia membros e configurações do grupo" },
+            { value: "VIEWER", label: "Visualizador — consulta relatórios sem alterar dados" },
+            { value: "DEPENDENT", label: "Dependente — visão restrita aos próprios lançamentos e mesada" },
           ]}
         />
 

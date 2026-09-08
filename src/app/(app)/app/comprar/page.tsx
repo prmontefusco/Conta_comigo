@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatMonthKey } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
-import { fromDecimalString, money } from "@/core/money/money";
+import { fromDecimalString, money, multiply } from "@/core/money/money";
 import { Badge, Callout, Card, CardTitle, Spinner } from "@/components/ui/primitives";
 import { MoneyField, SelectField, TextField } from "@/components/ui/form";
 import {
@@ -17,6 +17,8 @@ import {
 } from "@/modules/purchase-advisor/domain/purchase-advisor";
 import { starterReserveStatus } from "@/modules/reserves/domain/starter-reserve";
 import { useFinance } from "@/modules/household/ui/finance-provider";
+import { useSession } from "@/modules/household/ui/session-provider";
+import { ImpulseLockCard } from "@/modules/purchase-advisor/ui/impulse-lock-card";
 
 /**
  * Antes de comprar.
@@ -29,6 +31,7 @@ import { useFinance } from "@/modules/household/ui/finance-provider";
  * geladeira quebrada ou um celular que morreu, não pedindo permissão.
  */
 export default function BuyAdvisorPage() {
+  const session = useSession();
   const finance = useFinance();
 
   const [urgency, setUrgency] = useState<PurchaseUrgency>("BROKEN_ESSENTIAL");
@@ -96,6 +99,15 @@ export default function BuyAdvisorPage() {
         inclusive consertar e esperar, que loja nenhuma oferece. A escolha é sua, e o motivo dela
         pode ser um que nenhuma conta captura.
       </Callout>
+
+      <ImpulseLockCard
+        householdId={session.household?.id ?? "default"}
+        suggestedItemName={what.trim() || undefined}
+        suggestedAmount={
+          fromDecimalString(cashText) ??
+          (offers[0] ? multiply(offers[0].installmentAmount, offers[0].installmentCount) : undefined)
+        }
+      />
 
       <Card>
         <CardTitle hint="Isto muda a leitura de tudo o que vem abaixo.">

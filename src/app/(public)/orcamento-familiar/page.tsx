@@ -1,20 +1,69 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Bullets, ContentPage, Section } from "@/components/content-page";
+import {
+  JsonLd,
+  buildArticleSchema,
+  buildFaqSchema,
+  type FaqItem,
+} from "@/lib/json-ld";
 
 export const metadata: Metadata = {
   title: "Orçamento familiar: dividir contas sem transformar dinheiro em briga",
   description:
-    "Como separar despesas da casa das despesas pessoais, o que compartilhar entre membros da " +
-    "família e por que planejado, comprometido e realizado são três números diferentes.",
+    "Como separar despesas da casa das despesas pessoais, o que compartilhar entre membros da família e por que planejado, comprometido e realizado são três números diferentes.",
+  keywords: [
+    "orçamento familiar",
+    "gestão financeira familiar",
+    "divisão de contas de casal",
+    "como dividir contas em casa",
+    "planejamento financeiro familiar",
+    "controle de gastos família",
+    "aplicativo financeiro para casal",
+    "reunião financeira familiar",
+  ],
   alternates: { canonical: "/orcamento-familiar" },
 };
 
+const FAMILIAR_FAQS: readonly FaqItem[] = [
+  {
+    question: "Como dividir as contas do casal de forma justa?",
+    answer:
+      "A divisão mais saudável e sustentável é a proporcional à renda líquida: quem ganha 60% da renda do casal assume 60% das despesas fixas da casa. Isso preserva a autonomia e capacidade de poupança individual de ambos.",
+  },
+  {
+    question: "Como evitar brigas por dinheiro na família?",
+    answer:
+      "Separando com clareza os gastos 'da casa' dos gastos 'pessoais'. Os gastos da casa são compartilhados e decididos em conjunto; os gastos pessoais pertencem exclusivamente a cada um, sem necessidade de justificativas minuciosas.",
+  },
+  {
+    question: "Qual a diferença entre saldo planejado, comprometido e realizado?",
+    answer:
+      "Planejado é a estimativa inicial; realizado é o que já saiu da conta; comprometido são contas e parcelas que já existem e vencerão no mês. Ignorar o saldo comprometido é a razão número 1 para orçamentos estourarem de surpresa.",
+  },
+  {
+    question: "Os filhos devem ter acesso ao orçamento dos pais?",
+    answer:
+      "É recomendável envolver filhos em decisões educativas sobre metas da casa, mas com níveis de permissão adequados: eles podem lançar pequenos gastos diários sem ter acesso irrestrito ao salário integral ou a dívidas complexas dos pais.",
+  },
+];
+
 export default function Page() {
   return (
-    <ContentPage
-      title="Orçamento familiar"
-      intro="Duas pessoas com a mesma renda e as mesmas contas podem discordar profundamente sobre dinheiro — quase sempre porque estão olhando números diferentes."
-    >
+    <>
+      <JsonLd
+        data={buildArticleSchema({
+          title: "Orçamento familiar: dividir contas sem transformar dinheiro em briga",
+          description:
+            "Como separar despesas da casa das despesas pessoais e dominar a gestão financeira familiar.",
+          urlPath: "/orcamento-familiar",
+        })}
+      />
+      <JsonLd data={buildFaqSchema(FAMILIAR_FAQS)} />
+      <ContentPage
+        title="Orçamento familiar"
+        intro="Duas pessoas com a mesma renda e as mesmas contas podem discordar profundamente sobre dinheiro — quase sempre porque estão olhando números diferentes."
+      >
       <Section heading="Nem tudo precisa ser compartilhado">
         <p>
           Numa casa existem gastos que são de todos e gastos que são de um. A conta de energia é da
@@ -94,6 +143,69 @@ export default function Page() {
           só deixaram de estar em jogo.
         </p>
       </Section>
+
+      <Section heading="Perguntas frequentes sobre Orçamento Familiar">
+        <div className="mt-4 space-y-3">
+          {FAMILIAR_FAQS.map((faq) => (
+            <details
+              key={faq.question}
+              className="group rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-4 open:bg-[color:var(--color-surface-sunken)]"
+            >
+              <summary className="flex cursor-pointer items-center justify-between font-medium text-sm text-[color:var(--color-foreground)]">
+                <span>{faq.question}</span>
+                <span className="ml-2 text-base text-[color:var(--muted-fg)] transition-transform group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <p className="mt-2 text-sm leading-relaxed text-[color:var(--muted-fg)]">
+                {faq.answer}
+              </p>
+            </details>
+          ))}
+        </div>
+      </Section>
+
+      <Section heading="Leituras recomendadas">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/financas-para-casais"
+            className="rounded-lg border border-[color:var(--card-border)] p-4 transition-colors hover:border-[color:var(--color-brand-600)]"
+          >
+            <strong className="block text-sm font-semibold">Finanças para Casais</strong>
+            <span className="text-xs text-[color:var(--muted-fg)]">
+              Modelos de conta conjunta, proporcionalidade e autonomia.
+            </span>
+          </Link>
+          <Link
+            href="/regra-50-30-20"
+            className="rounded-lg border border-[color:var(--card-border)] p-4 transition-colors hover:border-[color:var(--color-brand-600)]"
+          >
+            <strong className="block text-sm font-semibold">Regra 50-30-20 na Prática</strong>
+            <span className="text-xs text-[color:var(--muted-fg)]">
+              Como equilibrar necessidades, desejos e reservas familiares.
+            </span>
+          </Link>
+          <Link
+            href="/como-sair-das-dividas"
+            className="rounded-lg border border-[color:var(--card-border)] p-4 transition-colors hover:border-[color:var(--color-brand-600)]"
+          >
+            <strong className="block text-sm font-semibold">Como Sair das Dívidas</strong>
+            <span className="text-xs text-[color:var(--muted-fg)]">
+              Estratégias para quitar dívidas e proteger o orçamento familiar.
+            </span>
+          </Link>
+          <Link
+            href="/lei-do-superendividamento"
+            className="rounded-lg border border-[color:var(--card-border)] p-4 transition-colors hover:border-[color:var(--color-brand-600)]"
+          >
+            <strong className="block text-sm font-semibold">Lei do Superendividamento</strong>
+            <span className="text-xs text-[color:var(--muted-fg)]">
+              Proteção jurídica contra o comprometimento da sobrevivência da casa.
+            </span>
+          </Link>
+        </div>
+      </Section>
     </ContentPage>
+    </>
   );
 }

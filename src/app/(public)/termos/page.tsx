@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Bullets, ContentPage, Section } from "@/components/content-page";
 
 export const metadata: Metadata = {
@@ -59,9 +60,9 @@ export default function Page() {
         </p>
         <p>
           Você pode exportar ou excluir seus dados a qualquer momento, como descrito na{" "}
-          <a href="/privacidade" className="underline underline-offset-2">
+          <Link href="/privacidade" className="underline underline-offset-2">
             Política de Privacidade
-          </a>
+          </Link>
           .
         </p>
       </Section>

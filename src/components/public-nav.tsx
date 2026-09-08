@@ -15,42 +15,63 @@ export interface ContentGuide {
 
 export const CONTENT_GUIDES: readonly ContentGuide[] = [
   {
+    href: "/como-sair-das-dividas",
+    title: "Como Sair das Dívidas",
+    shortDesc: "Métodos práticos (Bola de Neve e Avalanche) para estancar os juros.",
+    icon: "🛑",
+    tag: "Urgente",
+  },
+  {
+    href: "/negociar-dividas",
+    title: "Negociar com Bancos",
+    shortDesc: "Como conseguir até 90% de desconto em feirões e acordos justos.",
+    icon: "🤝",
+    tag: "Economia",
+  },
+  {
+    href: "/como-provar-superendividamento",
+    title: "Provar Superendividamento",
+    shortDesc: "Como demonstrar boa-fé, gastos essenciais e evitar indeferimento pelo juiz.",
+    icon: "⚖️",
+    tag: "Justiça",
+  },
+  {
+    href: "/reserva-de-emergencia",
+    title: "Reserva de Emergência",
+    shortDesc: "Como construir seu escudo financeiro mesmo começando do zero.",
+    icon: "🛡️",
+    tag: "Essencial",
+  },
+  {
+    href: "/regra-50-30-20",
+    title: "Regra 50-30-20",
+    shortDesc: "Como dividir seu salário na prática para o custo de vida no Brasil.",
+    icon: "⚖️",
+  },
+  {
+    href: "/como-fazer-curriculo",
+    title: "Como Fazer Currículo",
+    shortDesc: "Modelo moderno e criação gratuita na ferramenta CV Livre.",
+    icon: "📄",
+    tag: "Carreira",
+  },
+  {
+    href: "/como-procurar-emprego",
+    title: "Procurar Emprego",
+    shortDesc: "Rotina, plataformas de vagas e networking para se recolocar.",
+    icon: "💼",
+  },
+  {
+    href: "/mudanca-de-carreira",
+    title: "Mudança de Carreira",
+    shortDesc: "Como fazer uma transição profissional com colchão de segurança.",
+    icon: "🚀",
+  },
+  {
     href: "/organizar-financas",
     title: "Organizar as Finanças",
     shortDesc: "O passo a passo prático para sair da confusão sem pânico.",
     icon: "🧭",
-    tag: "Essencial",
-  },
-  {
-    href: "/controle-de-cartao",
-    title: "Controle de Cartão",
-    shortDesc: "Como desarmar o efeito bola de neve de faturas e parcelas.",
-    icon: "💳",
-    tag: "Prático",
-  },
-  {
-    href: "/controle-de-contas",
-    title: "Controle de Contas",
-    shortDesc: "Organize vencimentos e nunca mais pague juros por atraso.",
-    icon: "📄",
-  },
-  {
-    href: "/orcamento-familiar",
-    title: "Orçamento Familiar",
-    shortDesc: "Como alinhar as contas da casa sem brigas e com transparência.",
-    icon: "👨‍👩‍👧‍👦",
-  },
-  {
-    href: "/planejamento-financeiro",
-    title: "Planejamento Futuro",
-    shortDesc: "Enxergue seus próximos 3, 6 e 12 meses antes que cheguem.",
-    icon: "📈",
-  },
-  {
-    href: "/educacao-financeira",
-    title: "Educação Financeira",
-    shortDesc: "Conceitos simples que mudam suas decisões do dia a dia.",
-    icon: "💡",
   },
 ] as const;
 
@@ -314,26 +335,115 @@ export function PublicFooter() {
             </div>
           </div>
 
-          {/* Coluna 2: Guias e Conteúdos */}
+          {/* Coluna 2: Sair das Dívidas */}
           <div>
             <h3 className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-              Guias Práticos
+              Sair das Dívidas
             </h3>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
                 <Link
-                  href="/organizar-financas"
+                  href="/como-sair-das-dividas"
                   className="text-slate-600 transition-colors hover:text-teal-700"
                 >
-                  Organizar as Finanças
+                  Passo a Passo Quitação
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/controle-de-cartao"
+                  href="/negociar-dividas"
                   className="text-slate-600 transition-colors hover:text-teal-700"
                 >
-                  Controle de Cartão
+                  Negociar com Bancos
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/rotativo-e-cheque-especial"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Rotativo e Cheque Especial
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/lei-do-superendividamento"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Lei do Superendividamento
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/como-provar-superendividamento"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Como Provar na Justiça
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/minimo-existencial"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Mínimo Existencial (Decreto 11.567)
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/acao-de-repactuacao-de-dividas"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Ação de Repactuação
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/portabilidade-de-credito"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Portabilidade de Crédito
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/score-de-credito"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Score de Crédito
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Coluna 3: Orçamento & Segurança */}
+          <div>
+            <h3 className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+              Poupança & Futuro
+            </h3>
+            <ul className="mt-3 space-y-2 text-sm">
+              <li>
+                <Link
+                  href="/reserva-de-emergencia"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Reserva de Emergência
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/regra-50-30-20"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Regra 50-30-20
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/seguranca-financeira"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Segurança a Longo Prazo
                 </Link>
               </li>
               <li>
@@ -346,79 +456,101 @@ export function PublicFooter() {
               </li>
               <li>
                 <Link
-                  href="/educacao-financeira"
+                  href="/financas-para-autonomos"
                   className="text-slate-600 transition-colors hover:text-teal-700"
                 >
-                  Educação Financeira
+                  Finanças para Autônomos
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/corte-inteligente-de-gastos"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Corte Inteligente de Gastos
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Coluna 3: Planejamento & Rotina */}
+          {/* Coluna 4: Carreira, Renda & Currículo */}
           <div>
             <h3 className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-              Planejamento
+              Carreira & Currículo
             </h3>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
                 <Link
-                  href="/planos"
+                  href="/como-fazer-curriculo"
                   className="font-medium text-teal-700 transition-colors hover:text-teal-800"
                 >
-                  Planos & Assinatura (30 dias grátis)
+                  Criar Currículo (CV Livre)
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/como-funciona"
+                  href="/como-procurar-emprego"
                   className="text-slate-600 transition-colors hover:text-teal-700"
                 >
-                  Como Funciona
+                  Como Procurar Emprego
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/planejamento-financeiro"
+                  href="/mudanca-de-carreira"
                   className="text-slate-600 transition-colors hover:text-teal-700"
                 >
-                  Visão de Futuro
+                  Mudança de Carreira
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/controle-de-contas"
+                  href="/renda-extra"
                   className="text-slate-600 transition-colors hover:text-teal-700"
                 >
-                  Contas a Pagar
+                  Ideias de Renda Extra
                 </Link>
+              </li>
+              <li>
+                <Link
+                  href="/preparacao-para-entrevistas"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Entrevistas de Emprego
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="https://cvlivre.com.br/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-teal-700"
+                >
+                  cvlivre.com.br ↗
+                </a>
               </li>
             </ul>
           </div>
+        </div>
 
-          {/* Coluna 4: Transparência & Segurança */}
-          <div>
-            <h3 className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-              Transparência
-            </h3>
-            <ul className="mt-3 space-y-2 text-sm">
-              <li>
-                <Link
-                  href="/privacidade"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
-                >
-                  Política de Privacidade
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/termos"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
-                >
-                  Termos de Uso
-                </Link>
-              </li>
-            </ul>
+        {/* Linha adicional: Institucional & Planos */}
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-slate-200/80 pt-6 text-xs text-slate-500">
+          <div className="flex flex-wrap items-center gap-4">
+            <Link href="/planos" className="font-medium text-teal-700 hover:text-teal-800">
+              Planos & Preços (30 dias grátis)
+            </Link>
+            <Link href="/como-funciona" className="hover:text-teal-700">
+              Como Funciona
+            </Link>
+            <Link href="/educacao-financeira" className="hover:text-teal-700">
+              Educação Financeira
+            </Link>
+            <Link href="/privacidade" className="hover:text-teal-700">
+              Privacidade
+            </Link>
+            <Link href="/termos" className="hover:text-teal-700">
+              Termos de Uso
+            </Link>
           </div>
         </div>
 

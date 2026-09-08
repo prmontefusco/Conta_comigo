@@ -16,6 +16,8 @@ import {
   type TriageTier,
 } from "@/modules/obligations/domain/triage";
 import { useFinance } from "@/modules/household/ui/finance-provider";
+import { RunwayCard } from "@/modules/dashboard/ui/runway-card";
+import { ReserveTiersCard } from "@/modules/reserves/ui/reserve-tiers-card";
 
 /**
  * O que pagar quando o dinheiro não dá para tudo.
@@ -208,6 +210,12 @@ export default function EmergencyPage() {
             >
               Ver os roteiros de negociação
             </Link>
+            <Link
+              href="/app/superendividamento"
+              className="inline-flex min-h-10 items-center rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-4 text-sm font-semibold text-[color:var(--page-fg)] transition hover:bg-[color:var(--color-surface-sunken)]"
+            >
+              ⚖️ Dossiê da Lei do Superendividamento
+            </Link>
           </div>
 
           <p className="text-2xs mt-4" style={{ color: "var(--muted-fg)" }}>
@@ -217,6 +225,11 @@ export default function EmergencyPage() {
           </p>
         </Card>
       ) : null}
+
+      <div className="space-y-4 pt-2">
+        <RunwayCard />
+        <ReserveTiersCard />
+      </div>
     </div>
   );
 }

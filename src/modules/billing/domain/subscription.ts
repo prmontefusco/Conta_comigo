@@ -103,17 +103,24 @@ export function freeSubscription(userId: UserId, now: Instant): Subscription {
  * Uma assinatura vencida vira FREE aqui, na leitura. Isso evita depender de um
  * job agendado para rebaixar planos — e evita o bug em que uma assinatura
  * expirada continua sem anúncios para sempre porque ninguém rodou o job.
+ *
+ * O período de teste de 30 dias exige que o e-mail da conta esteja verificado
+ * (`emailVerified: true`). Sem isso, contas criadas com e-mails descartáveis ou
+ * fictícios permanecem no plano FREE até a confirmação do e-mail.
  */
 export function resolveEffectivePlan(
   subscription: Subscription | null | undefined,
   now: Date = new Date(),
   /** Quando a conta foi criada, para o período de teste. */
   accountCreatedAt?: Instant,
+  /** Se o e-mail da conta foi verificado (padrão true para retrocompatibilidade). */
+  emailVerified: boolean = true,
 ): UserPlan {
   if (isSubscriptionActive(subscription, now)) return "PREMIUM";
   // Uma assinatura paga que venceu não volta a ser teste: o teste é dos
   // primeiros trinta dias da conta, e esses já passaram há muito.
-  if (isWithinTrial(accountCreatedAt, now)) return "PREMIUM";
+  // O teste também exige e-mail confirmado contra abusos de e-mails descartáveis.
+  if (emailVerified && isWithinTrial(accountCreatedAt, now)) return "PREMIUM";
   return "FREE";
 }
 
@@ -131,8 +138,9 @@ export function isPremium(
   subscription: Subscription | null | undefined,
   now: Date = new Date(),
   accountCreatedAt?: Instant,
+  emailVerified: boolean = true,
 ): boolean {
-  return resolveEffectivePlan(subscription, now, accountCreatedAt) === "PREMIUM";
+  return resolveEffectivePlan(subscription, now, accountCreatedAt, emailVerified) === "PREMIUM";
 }
 
 /** Como a pessoa chegou ao Premium: assinatura paga, teste, ou nenhum. */
@@ -142,10 +150,22 @@ export function planSource(
   subscription: Subscription | null | undefined,
   accountCreatedAt: Instant | undefined,
   now: Date = new Date(),
+  emailVerified: boolean = true,
 ): PlanSource {
   if (isSubscriptionActive(subscription, now)) return "PAID";
-  if (isWithinTrial(accountCreatedAt, now)) return "TRIAL";
+  if (emailVerified && isWithinTrial(accountCreatedAt, now)) return "TRIAL";
   return "NONE";
+}
+
+/** Se a conta é recente e precisa apenas confirmar o e-mail para desbloquear o teste de 30 dias. */
+export function isPendingEmailVerificationForTrial(
+  subscription: Subscription | null | undefined,
+  accountCreatedAt: Instant | undefined,
+  emailVerified: boolean,
+  now: Date = new Date(),
+): boolean {
+  if (isSubscriptionActive(subscription, now)) return false;
+  return !emailVerified && isWithinTrial(accountCreatedAt, now);
 }
 
 /** Dias que faltam para vencer. Negativo se já venceu, null se não há prazo. */

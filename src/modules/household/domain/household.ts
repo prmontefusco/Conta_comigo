@@ -133,15 +133,18 @@ export const ROLE_LABELS: Record<HouseholdRole, string> = {
   OWNER: "Responsável",
   ADMIN: "Administrador",
   MEMBER: "Membro",
+  OPERATOR: "Operador (Acesso Diário)",
   VIEWER: "Visualizador",
-  DEPENDENT: "Sem acesso",
+  DEPENDENT: "Dependente / Sem Acesso",
 };
 
 export const ROLE_DESCRIPTIONS: Record<HouseholdRole, string> = {
   OWNER: "Criou o grupo. Pode fazer tudo, inclusive excluir o grupo.",
   ADMIN: "Gerencia membros, convites e configurações.",
-  MEMBER: "Registra e edita informações financeiras.",
-  VIEWER: "Vê as informações, sem alterar nada.",
+  MEMBER: "Registra e edita informações financeiras da casa.",
+  OPERATOR:
+    "Lança despesas e comprovantes do dia a dia, sem permissão para excluir registros ou alterar limites.",
+  VIEWER: "Vê as informações da casa, sem alterar nada.",
   DEPENDENT:
-    "Aparece nos lançamentos como pessoa da casa, mas não entra no aplicativo. Para filhos, pais e quem não precisa de acesso.",
+    "Para dependentes ou filhos. Tem visão restrita apenas aos próprios lançamentos pessoais, sem acesso a dívidas ou salários.",
 };

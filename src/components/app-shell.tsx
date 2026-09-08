@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button, Spinner } from "@/components/ui/primitives";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { AlertBell } from "@/modules/alerts/ui/alert-bell";
@@ -28,6 +28,7 @@ const DESKTOP_NAV = [
   { href: "/app/contas", label: "Contas a Pagar", icon: "📄" },
   { href: "/app/cartoes", label: "Cartões", icon: "💳" },
   { href: "/app/dividas", label: "Dívidas & Empréstimos", icon: "🏛️" },
+  { href: "/app/superendividamento", label: "Superendividamento", icon: "⚖️" },
   { href: "/app/projecao", label: "Projeção & Fluxo", icon: "📈" },
   { href: "/app/importar", label: "Importar extrato", icon: "📥" },
   { href: "/app/mais", label: "Mais Opções", icon: "⋯" },
@@ -45,9 +46,63 @@ const MOBILE_NAV = [
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { status, household, households, selectHousehold, logout, profile } = useSession();
+  const {
+    status,
+    role,
+    household,
+    households,
+    selectHousehold,
+    logout,
+    profile,
+    user,
+    isEmailVerified,
+    sendVerificationEmail,
+  } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+
+  const [emailSent, setEmailSent] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  async function handleResendEmail() {
+    setSendingEmail(true);
+    try {
+      await sendVerificationEmail();
+      setEmailSent(true);
+    } finally {
+      setSendingEmail(false);
+    }
+  }
+
+  const isDependent = role === "DEPENDENT";
+
+  useEffect(() => {
+    if (
+      isDependent &&
+      [
+        "/app/dividas",
+        "/app/superendividamento",
+        "/app/projecao",
+        "/app/cartoes",
+        "/app/importar",
+      ].some((p) => pathname.startsWith(p))
+    ) {
+      router.replace("/app/dia-a-dia");
+    }
+  }, [isDependent, pathname, router]);
+
+  const desktopNav = DESKTOP_NAV.filter((item) => {
+    if (isDependent) {
+      return ![
+        "/app/dividas",
+        "/app/superendividamento",
+        "/app/projecao",
+        "/app/cartoes",
+        "/app/importar",
+      ].includes(item.href);
+    }
+    return true;
+  });
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/entrar");
@@ -125,10 +180,38 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
+      {!isEmailVerified && user?.email ? (
+        <aside
+          aria-label="Confirmação de e-mail"
+          className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-950 dark:text-amber-200"
+        >
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span aria-hidden="true" className="text-base">
+                📧
+              </span>
+              <span>
+                <strong>Confirme seu e-mail ({user.email})</strong> para validar sua conta e ativar seus 30 dias de teste grátis do Premium.
+              </span>
+            </div>
+            <div>
+              <button
+                type="button"
+                disabled={sendingEmail || emailSent}
+                onClick={handleResendEmail}
+                className="cursor-pointer rounded-lg bg-amber-600 px-3 py-1 font-semibold text-white shadow-2xs transition hover:bg-amber-700 disabled:opacity-60"
+              >
+                {emailSent ? "E-mail enviado! Verifique sua caixa" : sendingEmail ? "Enviando…" : "Reenviar confirmação"}
+              </button>
+            </div>
+          </div>
+        </aside>
+      ) : null}
+
       <div className="mx-auto flex max-w-6xl gap-6 px-4 py-4 md:py-6">
         <nav aria-label="Navegação principal" className="hidden w-52 shrink-0 md:block">
           <ul className="sticky top-20 space-y-1">
-            {DESKTOP_NAV.map((item) => (
+            {desktopNav.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}

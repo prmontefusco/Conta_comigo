@@ -50,7 +50,7 @@ service cloud.firestore {
     // VIEWER can see everything in the household and change nothing.
     function canWrite(householdId) {
       return isMember(householdId)
-        && memberRole(householdId) in ['OWNER', 'ADMIN', 'MEMBER'];
+        && memberRole(householdId) in ['OWNER', 'ADMIN', 'MEMBER', 'OPERATOR'];
     }
 
     function canAdminister(householdId) {
@@ -178,6 +178,16 @@ service cloud.firestore {
       // escrever não seria um limite. Só o Admin SDK toca aqui, pelo mesmo
       // caminho privilegiado de `subscriptions`
       // (src/server/rate-limit-store.ts).
+      allow read, write: if false;
+    }
+
+    /* ------------------------------------------------------------ */
+    /* Registros de Dispositivos (Anti-Fraude e Anti-Burlar)         */
+    /* ------------------------------------------------------------ */
+
+    match /deviceRegistrations/{deviceHash} {
+      // Escrita e leitura apenas pelo Admin SDK no servidor para controle
+      // de cooldown e prevenção de criação de contas repetidas.
       allow read, write: if false;
     }
 
@@ -313,7 +323,7 @@ service cloud.firestore {
           && request.resource.data.householdId == householdId
           && resource.data.role != 'OWNER'
           && (resource.data.role == 'DEPENDENT') == (request.resource.data.role == 'DEPENDENT')
-          && request.resource.data.role in ['ADMIN', 'MEMBER', 'VIEWER', 'DEPENDENT']
+          && request.resource.data.role in ['ADMIN', 'MEMBER', 'OPERATOR', 'VIEWER', 'DEPENDENT']
           && !(memberUid == request.auth.uid && request.resource.data.role != resource.data.role);
 
         // Leaving is always your own right, owner included: without it, the
@@ -349,7 +359,7 @@ service cloud.firestore {
           && validNewDocument(householdId)
           && inviteId == request.resource.data.email.lower()
           && request.resource.data.status == 'PENDING'
-          && request.resource.data.role in ['ADMIN', 'MEMBER', 'VIEWER'];
+          && request.resource.data.role in ['ADMIN', 'MEMBER', 'OPERATOR', 'VIEWER'];
 
         // Quem convidou cancela; o convidado só pode marcar o próprio como
         // aceito, e uma vez só — depois disso ele não serve mais para entrar.

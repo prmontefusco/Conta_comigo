@@ -73,7 +73,7 @@ const securityHeaders = [
   // que nenhuma dependência vá pedir.
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    value: "camera=(self), microphone=(), geolocation=(), payment=(), usb=()",
   },
   { key: "Content-Security-Policy-Report-Only", value: CSP_REPORT_ONLY },
 ];

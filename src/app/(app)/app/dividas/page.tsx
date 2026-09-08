@@ -38,6 +38,8 @@ import { MemberField } from "@/modules/household/ui/member-field";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
+import { PayoffStrategyComparator } from "@/modules/recovery-timeline/ui/payoff-strategy-comparator";
+import { Callout } from "@/components/ui/primitives";
 
 /**
  * Loans and financings.
@@ -110,6 +112,19 @@ export default function DebtsPage() {
           </div>
         </dl>
       </Card>
+
+      {/* Destaque para a Lei do Superendividamento */}
+      <Callout tone="info" title="As parcelas das dívidas estão sufocando o salário da família?">
+        Se o total de parcelas consome sua renda e falta dinheiro para alimentação, aluguel ou remédios, você pode se enquadrar na <strong>Lei do Superendividamento (Lei 14.181/2021)</strong>. Monte seu plano de repactuação em 5 anos com carência de 180 dias.
+        <div className="mt-2">
+          <Link href="/app/superendividamento" className="text-xs font-bold underline">
+            ⚖️ Acessar Dossiê de Superendividamento &rarr;
+          </Link>
+        </div>
+      </Callout>
+
+      {/* Comparador Interativo: Bola de Neve vs. Avalanche */}
+      <PayoffStrategyComparator />
 
       {active.length === 0 ? (
         <Card>

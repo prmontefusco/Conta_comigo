@@ -376,4 +376,30 @@ describe("período de teste", () => {
     expect(resolveEffectivePlan(null, new Date(), undefined)).toBe("FREE");
     expect(trialDaysRemaining(undefined)).toBe(0);
   });
+
+  it("exige e-mail verificado para liberar o teste de 30 dias", () => {
+    const dezDiasDepois = new Date("2026-09-11T12:00:00.000Z");
+
+    // E-mail não verificado permanece FREE
+    expect(resolveEffectivePlan(null, dezDiasDepois, criacao, false)).toBe("FREE");
+    expect(planSource(null, criacao, dezDiasDepois, false)).toBe("NONE");
+
+    // Assim que o e-mail é verificado, vira PREMIUM (TRIAL)
+    expect(resolveEffectivePlan(null, dezDiasDepois, criacao, true)).toBe("PREMIUM");
+    expect(planSource(null, criacao, dezDiasDepois, true)).toBe("TRIAL");
+  });
+
+  it("uma assinatura paga não é bloqueada por e-mail não verificado", () => {
+    const paga: Subscription = {
+      userId: "u1",
+      plan: "PREMIUM",
+      status: "ACTIVE",
+      expiresAt: "2027-09-01T00:00:00.000Z" as Instant,
+      updatedAt: criacao,
+    };
+
+    expect(resolveEffectivePlan(paga, new Date("2026-09-10T00:00:00.000Z"), criacao, false)).toBe(
+      "PREMIUM",
+    );
+  });
 });

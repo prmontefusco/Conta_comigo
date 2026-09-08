@@ -35,6 +35,7 @@ const SECTIONS = [
     title: "Compromissos",
     items: [
       { href: "/app/dividas", label: "Empréstimos e financiamentos", icon: "🏛️" },
+      { href: "/app/superendividamento", label: "Superendividamento (Lei 14.181)", icon: "⚖️" },
       { href: "/app/negociar", label: "Negociar e renegociar dívidas", icon: "🤝" },
       { href: "/app/recorrentes", label: "Contas que se repetem", icon: "🔁" },
     ],

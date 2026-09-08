@@ -26,13 +26,16 @@ export interface CallerPlan {
   readonly limits: PlanLimits;
 }
 
-export async function resolveCallerPlan(uid: string): Promise<CallerPlan> {
+export async function resolveCallerPlan(
+  uid: string,
+  emailVerified: boolean = true,
+): Promise<CallerPlan> {
   const [subscription, createdAt] = await Promise.all([
     new SubscriptionRepository().find(uid),
     accountCreatedAt(uid),
   ]);
 
-  const plan = resolveEffectivePlan(subscription, new Date(), createdAt);
+  const plan = resolveEffectivePlan(subscription, new Date(), createdAt, emailVerified);
   return { plan, limits: limitsFor(plan) };
 }
 
@@ -63,8 +66,9 @@ export async function requirePremiumFeature(
   uid: string,
   feature: "documentReading" | "aiAdvisor",
   message: string,
+  emailVerified: boolean = true,
 ): Promise<NextResponse | null> {
-  const { limits } = await resolveCallerPlan(uid);
+  const { limits } = await resolveCallerPlan(uid, emailVerified);
   if (limits[feature]) return null;
 
   return NextResponse.json({ error: "PLAN_REQUIRED", message }, { status: 402 });

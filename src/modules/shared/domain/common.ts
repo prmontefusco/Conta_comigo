@@ -95,7 +95,14 @@ export interface FinancialDates {
  * documento é o uid de quem chama**, e o documento de um dependente tem id
  * prefixado com `dep_` — que o Firebase Auth nunca emite.
  */
-export const HOUSEHOLD_ROLES = ["OWNER", "ADMIN", "MEMBER", "VIEWER", "DEPENDENT"] as const;
+export const HOUSEHOLD_ROLES = [
+  "OWNER",
+  "ADMIN",
+  "MEMBER",
+  "OPERATOR",
+  "VIEWER",
+  "DEPENDENT",
+] as const;
 export type HouseholdRole = (typeof HOUSEHOLD_ROLES)[number];
 
 /** Prefixo que separa um perfil sem acesso de um uid real do Firebase Auth. */
@@ -106,21 +113,30 @@ export function isDependentId(id: string): boolean {
 }
 
 const ROLE_RANK: Record<HouseholdRole, number> = {
-  // Abaixo de VIEWER: um dependente não vê nem altera nada. Ele aparece nas
-  // telas de quem tem acesso, e não tem acesso nenhum.
+  // Abaixo de VIEWER: dependente tem visão restrita apenas aos próprios lançamentos.
   DEPENDENT: -1,
   VIEWER: 0,
-  MEMBER: 1,
-  ADMIN: 2,
-  OWNER: 3,
+  OPERATOR: 1,
+  MEMBER: 2,
+  ADMIN: 3,
+  OWNER: 4,
 };
 
 export function roleAtLeast(role: HouseholdRole, minimum: HouseholdRole): boolean {
   return ROLE_RANK[role] >= ROLE_RANK[minimum];
 }
 
-/** VIEWER can read everything in the household but change nothing. */
-export const canWrite = (role: HouseholdRole): boolean => roleAtLeast(role, "MEMBER");
+/** OPERATOR, MEMBER, ADMIN e OWNER podem registrar e lançar movimentações. */
+export const canWrite = (role: HouseholdRole): boolean => roleAtLeast(role, "OPERATOR");
+
+/** Somente MEMBER, ADMIN e OWNER podem excluir registros do sistema. */
+export const canDeleteRecords = (role: HouseholdRole): boolean => roleAtLeast(role, "MEMBER");
+
+/** Somente MEMBER, ADMIN e OWNER podem definir e alterar limites orçamentários. */
+export const canManageBudget = (role: HouseholdRole): boolean => roleAtLeast(role, "MEMBER");
 
 /** ADMIN and OWNER manage members, invites and household settings. */
 export const canAdminister = (role: HouseholdRole): boolean => roleAtLeast(role, "ADMIN");
+
+/** Se este papel tem permissão para visualizar dívidas, empréstimos e superendividamento da casa. */
+export const canViewDebts = (role: HouseholdRole): boolean => role !== "DEPENDENT";

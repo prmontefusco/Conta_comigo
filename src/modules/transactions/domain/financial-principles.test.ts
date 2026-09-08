@@ -13,8 +13,10 @@ import {
   cashEffect,
   debtEffect,
   incomeEffect,
+  involvedAccountIds,
   netCashEffect,
   netWorthEffect,
+  settledObligationId,
   spendingEffect,
   type Transaction,
 } from "./transaction";
@@ -291,4 +293,55 @@ describe("a month of mixed activity", () => {
       fromDecimal(1000 + 6000 - 450 - 2000 - 1800 + 3000),
     );
   });
+
+  it("calcula efeitos de transações de ajuste (ADJUSTMENT)", () => {
+    const adjPositivo: Transaction = {
+      ...audit,
+      id: "adj-1",
+      householdId: "household-a",
+      kind: "ADJUSTMENT",
+      direction: "INCREASE",
+      amount: brl(50),
+      reason: "Diferença de conciliação",
+      transactionDate: on("2026-08-31"),
+      competenceDate: on("2026-08-31"),
+      description: "Ajuste de saldo",
+      visibility: "HOUSEHOLD",
+      accountId: "account-1",
+    };
+    const adjNegativo: Transaction = {
+      ...audit,
+      id: "adj-2",
+      householdId: "household-a",
+      kind: "ADJUSTMENT",
+      direction: "DECREASE",
+      amount: brl(30),
+      reason: "Correção de lançamento",
+      transactionDate: on("2026-08-31"),
+      competenceDate: on("2026-08-31"),
+      description: "Ajuste de saldo",
+      visibility: "HOUSEHOLD",
+      accountId: "account-1",
+    };
+
+    expect(netWorthEffect(adjPositivo)).toEqual(brl(50));
+    expect(netWorthEffect(adjNegativo)).toEqual(brl(-30));
+    expect(netCashEffect(adjPositivo)).toEqual(brl(50));
+    expect(netCashEffect(adjNegativo)).toEqual(brl(-30));
+  });
+
+  it("extrai contas envolvidas e obrigação liquidada", () => {
+    const despesaComObrigacao = anExpense({
+      settlesObligationId: "ob-1",
+      accountId: "account-1",
+    });
+    expect(settledObligationId(despesaComObrigacao)).toBe("ob-1");
+    expect(involvedAccountIds(despesaComObrigacao)).toEqual(["account-1"]);
+
+    const transf = aTransfer({ fromAccountId: "account-1", toAccountId: "account-2" });
+    expect(settledObligationId(transf)).toBeUndefined();
+    expect(involvedAccountIds(transf)).toEqual(["account-1", "account-2"]);
+    expect(netCashEffect(transf)).toEqual(brl(0));
+  });
 });
+

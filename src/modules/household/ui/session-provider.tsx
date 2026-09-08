@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { onAuthStateChanged, signOut, type User } from "firebase/auth";
+import { onAuthStateChanged, sendEmailVerification, signOut, type User } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import { getAuthClient, getDb } from "@/lib/firebase/client";
 import {
@@ -66,9 +66,12 @@ interface SessionValue {
   readonly planSource: PlanSource;
   /** Dias que ainda faltam do teste de 30 dias. Zero quando acabou. */
   readonly trialDaysLeft: number;
+  /** Se o e-mail da conta já foi confirmado. */
+  readonly isEmailVerified: boolean;
   selectHousehold(householdId: string): void;
   logout(): Promise<void>;
   refreshProfile(): Promise<void>;
+  sendVerificationEmail(): Promise<void>;
 }
 
 const SessionContext = createContext<SessionValue | null>(null);
@@ -216,12 +219,26 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (user) await loadProfile(user.uid);
   }, [user, loadProfile]);
 
+  const sendVerificationEmail = useCallback(async () => {
+    if (user && !user.emailVerified) {
+      await sendEmailVerification(user);
+    }
+  }, [user]);
+
   const household = households.find((item) => item.id === selectedId) ?? null;
   const role = membership?.status === "ACTIVE" ? membership.role : null;
-  // O teste de 30 dias sai daqui: `profile.createdAt` é a data da conta, e
-  // `resolveEffectivePlan` decide sozinho se ela ainda está dentro do período.
-  const effectivePlan = resolveEffectivePlan(subscription, new Date(), profile?.createdAt);
-  const source = planSource(subscription, profile?.createdAt);
+  const isEmailVerified = user?.emailVerified ?? false;
+
+  // O teste de 30 dias sai daqui: `profile.createdAt` é a data da conta,
+  // `isEmailVerified` comprova que a conta é legítima e não descartável,
+  // e `resolveEffectivePlan` decide sozinho se ela ainda está dentro do período.
+  const effectivePlan = resolveEffectivePlan(
+    subscription,
+    new Date(),
+    profile?.createdAt,
+    isEmailVerified,
+  );
+  const source = planSource(subscription, profile?.createdAt, new Date(), isEmailVerified);
 
   const value = useMemo<SessionValue>(
     () => ({
@@ -239,9 +256,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       isPremium: effectivePlan === "PREMIUM",
       planSource: source,
       trialDaysLeft: trialDaysRemaining(profile?.createdAt),
+      isEmailVerified,
       selectHousehold,
       logout,
       refreshProfile,
+      sendVerificationEmail,
     }),
     [
       status,
@@ -254,9 +273,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       subscription,
       source,
       effectivePlan,
+      isEmailVerified,
       selectHousehold,
       logout,
       refreshProfile,
+      sendVerificationEmail,
     ],
   );
 

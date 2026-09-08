@@ -1,15 +1,31 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import {
+  JsonLd,
+  buildSoftwareAppSchema,
+  buildFaqSchema,
+  type FaqItem,
+} from "@/lib/json-ld";
 
 export const metadata: Metadata = {
   // `absolute` evita o sufixo do template do layout raiz, que aqui produziria
   // "Conta comigo — ... | Conta comigo".
   title: {
-    absolute: "Conta comigo — quanto tenho, quanto já comprometi, para onde estou indo",
+    absolute: "Conta comigo — Gestão Financeira Familiar, Dívidas e Mínimo Existencial",
   },
   description:
-    "Uma ferramenta de planejamento financeiro pessoal e familiar que mostra o saldo real, " +
-    "o que já está comprometido e como serão os próximos meses. Sem julgamento.",
+    "Aplicativo gratuito de controle de gastos, gestão financeira familiar, renegociação de dívidas e proteção pelo superendividamento (Lei 14.181/2021). Projete suas finanças com clareza.",
+  keywords: [
+    "controle de gastos",
+    "gestão financeira familiar",
+    "planejamento financeiro",
+    "lei do superendividamento",
+    "como sair das dívidas",
+    "mínimo existencial",
+    "organização de finanças",
+    "aplicativo financeiro gratuito",
+    "repactuação de dívidas",
+  ],
   alternates: { canonical: "/" },
 };
 
@@ -50,9 +66,62 @@ const PRINCIPLES = [
   },
 ] as const;
 
+const HOME_FAQS: readonly FaqItem[] = [
+  {
+    question: "O que é a Lei do Superendividamento (Lei 14.181/2021)?",
+    answer:
+      "A Lei 14.181/2021 protege cidadãos que não conseguem pagar suas dívidas de consumo sem comprometer a sobrevivência da família. Ela permite reunir todos os credores em uma audiência conjunta no Procon ou na Justiça para aprovar um plano de repactuação em até 5 anos com carência de até 180 dias.",
+  },
+  {
+    question: "O que é o Mínimo Existencial e como ele protege meu salário?",
+    answer:
+      "O Mínimo Existencial (Decreto nº 11.567/2023) garante que descontos de empréstimos consignados, cartões e débitos automáticos não podem confiscar o valor necessário para alimentação básica, moradia, remédios essenciais e luz. O piso federal de referência é R$ 600 por pessoa, podendo ser superior conforme os gastos essenciais comprovados.",
+  },
+  {
+    question: "Como o Conta Comigo ajuda no controle de gastos e na gestão financeira familiar?",
+    answer:
+      "O Conta Comigo centraliza contas, cartões e receitas com projeção futura dos próximos meses. Você sabe com antecedência se um mês vai fechar no vermelho, divide despesas compartilhadas sem atrito com permissões granulares para a família e calcula se sua renda está protegida contra o superendividamento.",
+  },
+  {
+    question: "O Conta Comigo é gratuito?",
+    answer:
+      "Sim. O plano gratuito oferece todas as funcionalidades essenciais de controle de contas, projeção mensal, divisão básica familiar e diagnóstico do superendividamento. O plano Premium adiciona geração de dossiês com IA, auditoria avançada e suporte prioritário.",
+  },
+];
+
+const GUIDES = [
+  {
+    title: "Lei do Superendividamento (Lei 14.181/2021)",
+    description: "Como funciona a repactuação de dívidas em bloco, carência de 180 dias e prazo de até 5 anos.",
+    href: "/lei-do-superendividamento",
+    tag: "Legislação e Direitos",
+  },
+  {
+    title: "Mínimo Existencial: Decreto nº 11.567/2023",
+    description: "Impeça bancos de confiscarem seu salário e saiba quais despesas são protegidas por lei.",
+    href: "/minimo-existencial",
+    tag: "Proteção Salarial",
+  },
+  {
+    title: "Como Sair das Dívidas Passo a Passo",
+    description: "Estanque os juros e escolha entre o Método Bola de Neve e Avalanche para quitar tudo.",
+    href: "/como-sair-das-dividas",
+    tag: "Estratégia Prática",
+  },
+  {
+    title: "Orçamento e Gestão Financeira Familiar",
+    description: "Divida despesas da casa sem conflitos, com níveis de privacidade e permissões para o casal.",
+    href: "/orcamento-familiar",
+    tag: "Família e Casal",
+  },
+] as const;
+
 export default function HomePage() {
   return (
     <>
+      <JsonLd data={buildSoftwareAppSchema()} />
+      <JsonLd data={buildFaqSchema(HOME_FAQS)} />
+
       <section className="mx-auto max-w-5xl px-4 py-14 sm:py-20">
         <p className="text-sm font-medium text-[color:var(--color-brand-700)]">
           Planejamento financeiro pessoal e familiar
@@ -196,6 +265,85 @@ export default function HomePage() {
               </div>
             ))}
           </dl>
+        </div>
+      </section>
+
+      {/* SEO Topic Clusters / Educational Guides */}
+      <section className="border-t border-[color:var(--card-border)] bg-[color:var(--color-surface-sunken)]">
+        <div className="mx-auto max-w-5xl px-4 py-14">
+          <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight">
+                Guias Práticos e Educação Financeira Gratuita
+              </h2>
+              <p className="mt-2 max-w-xl text-sm" style={{ color: "var(--muted-fg)" }}>
+                Aprenda a exercer seus direitos legais, estancar juros de dívidas e organizar as
+                finanças da sua casa com os nossos conteúdos aprofundados.
+              </p>
+            </div>
+            <Link
+              href="/educacao-financeira"
+              className="mt-3 text-sm font-medium text-[color:var(--color-brand-700)] hover:underline sm:mt-0"
+            >
+              Ver todos os guias &rarr;
+            </Link>
+          </div>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {GUIDES.map((guide) => (
+              <Link
+                key={guide.href}
+                href={guide.href}
+                className="group flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-5 transition-all hover:border-[color:var(--color-brand-600)] hover:shadow-sm"
+              >
+                <div>
+                  <span className="inline-block rounded bg-[color:var(--color-brand-50)] px-2 py-0.5 text-xs font-medium text-[color:var(--color-brand-700)]">
+                    {guide.tag}
+                  </span>
+                  <h3 className="mt-2 text-base font-semibold group-hover:text-[color:var(--color-brand-600)]">
+                    {guide.title}
+                  </h3>
+                  <p className="mt-1.5 text-sm" style={{ color: "var(--muted-fg)" }}>
+                    {guide.description}
+                  </p>
+                </div>
+                <span className="mt-4 inline-flex items-center text-xs font-semibold text-[color:var(--color-brand-600)]">
+                  Ler guia completo &rarr;
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Frequently Asked Questions (FAQ) Section */}
+      <section className="border-t border-[color:var(--card-border)]">
+        <div className="mx-auto max-w-5xl px-4 py-14">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            Perguntas Frequentes sobre Finanças e Superendividamento
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm" style={{ color: "var(--muted-fg)" }}>
+            Respostas diretas para as dúvidas mais comuns de quem quer organizar a vida financeira.
+          </p>
+
+          <div className="mt-8 grid gap-4">
+            {HOME_FAQS.map((faq) => (
+              <details
+                key={faq.question}
+                className="group rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-5 open:bg-[color:var(--color-surface-sunken)]"
+              >
+                <summary className="flex cursor-pointer items-center justify-between font-semibold text-base">
+                  <span>{faq.question}</span>
+                  <span className="ml-4 text-xl text-[color:var(--muted-fg)] transition-transform group-open:rotate-45">
+                    +
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--muted-fg)" }}>
+                  {faq.answer}
+                </p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 

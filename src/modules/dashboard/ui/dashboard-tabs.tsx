@@ -18,6 +18,14 @@ import { DocumentImportButton } from "@/modules/receipts/ui/document-import-butt
 import { CurrentGoalHeroCard } from "@/modules/recovery-timeline/ui/current-goal-hero-card";
 import { FutureTimelineCard } from "@/modules/recovery-timeline/ui/future-timeline-card";
 import { StarterReserveCard } from "@/modules/reserves/ui/starter-reserve-card";
+import { RunwayCard } from "@/modules/dashboard/ui/runway-card";
+import { GhostSubscriptionsCard } from "@/modules/recurring/ui/ghost-subscriptions-card";
+import { ReserveTiersCard } from "@/modules/reserves/ui/reserve-tiers-card";
+import { PayoffStrategyComparator } from "@/modules/recovery-timeline/ui/payoff-strategy-comparator";
+import { calculateFinancialHealthScore } from "@/modules/health-score/domain/health-score";
+import { HealthScoreCard as QuantitativeHealthScoreCard } from "@/modules/health-score/ui/health-score-card";
+import { loadLocalReflections } from "@/modules/purchase-advisor/domain/impulse-lock";
+import { useSession } from "@/modules/household/ui/session-provider";
 
 export type DashboardTab = "GERAL" | "ENTRADAS" | "DESPESAS" | "RESERVAS" | "DIVIDAS";
 
@@ -50,6 +58,28 @@ export function DashboardTabs() {
     activeDebts.map((d) => outstandingPrincipal(d, finance.paidDebtInstallments.get(d.id) ?? [])),
     currency,
   );
+
+  const session = useSession();
+  const householdId = session.household?.id ?? "default";
+  const overdueCount = finance.obligations.filter(
+    (o) =>
+      o.direction === "OUTFLOW" &&
+      (o.status === "SCHEDULED" || o.status === "PARTIALLY_SETTLED") &&
+      o.dueDate < finance.asOf,
+  ).length;
+
+  const reflections = loadLocalReflections(householdId);
+  const impulseSavingsCount = reflections.filter((r) => r.status === "ABANDONED").length;
+
+  const quantitativeHealthScore = calculateFinancialHealthScore({
+    monthlyIncome: monthlyInflows,
+    monthlyEssentialOutflows: monthlyOutflows,
+    reserveBalance: finance.protectedReserve,
+    overdueBillsCount: overdueCount,
+    totalDebtsBalance: totalDebtBalance,
+    impulseSavingsCount,
+    hasBudgetsConfigured: finance.budgets.length > 0,
+  });
 
   return (
     <div className="space-y-6">
@@ -129,10 +159,12 @@ export function DashboardTabs() {
       {/* 1. VISÃO GERAL */}
       {activeTab === "GERAL" && (
         <div className="animate-in fade-in space-y-5 duration-200">
+          <QuantitativeHealthScoreCard score={quantitativeHealthScore} />
           <HealthScoreCard />
           <TodayBlock />
           <AlertsList alerts={finance.alerts} />
           <MonthBlock />
+          <RunwayCard />
           <Next30DaysBlock />
           <MonthsTable months={finance.forecast.months} limit={6} />
           <EducationPillsCard />
@@ -300,6 +332,7 @@ export function DashboardTabs() {
               </div>
             )}
           </Card>
+          <GhostSubscriptionsCard />
         </div>
       )}
 
@@ -307,6 +340,7 @@ export function DashboardTabs() {
       {activeTab === "RESERVAS" && (
         <div className="animate-in fade-in space-y-5 duration-200">
           <StarterReserveCard />
+          <ReserveTiersCard />
 
           <Card className="border-l-4 border-l-[color:var(--color-brand-600)]">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--card-border)] pb-4">
@@ -364,8 +398,13 @@ export function DashboardTabs() {
                 </h3>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Link href="/app/superendividamento">
+                  <Button className="px-3 py-1.5 text-xs bg-[color:var(--color-critical-600)] text-white hover:bg-[color:var(--color-critical-700)]">
+                    ⚖️ Superendividamento (Lei 14.181)
+                  </Button>
+                </Link>
                 <Link href="/app/negociar">
-                  <Button className="px-3 py-1.5 text-xs">Simular Acordo / Feirão &rarr;</Button>
+                  <Button variant="secondary" className="px-3 py-1.5 text-xs">Simular Acordo / Feirão</Button>
                 </Link>
                 <Link href="/app/dividas">
                   <Button variant="secondary" className="px-3 py-1.5 text-xs">
@@ -397,6 +436,7 @@ export function DashboardTabs() {
           </Card>
 
           <FutureTimelineCard />
+          <PayoffStrategyComparator />
         </div>
       )}
     </div>

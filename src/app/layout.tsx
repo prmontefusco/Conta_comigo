@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { isIndexable } from "@/lib/seo";
+import { JsonLd, buildOrganizationSchema, buildWebSiteSchema } from "@/lib/json-ld";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 
@@ -47,13 +48,26 @@ export const metadata: Metadata = {
     "orçamento familiar",
     "controle de cartão de crédito",
     "projeção financeira",
+    "superendividamento",
+    "lei do superendividamento",
+    "lei 14181",
+    "mínimo existencial",
+    "como sair das dívidas",
+    "renegociação de dívidas",
+    "gestão financeira familiar",
+    "controle de gastos",
+    "repactuação de dívidas",
   ],
+  alternates: {
+    canonical: siteUrl,
+  },
   openGraph: {
     type: "website",
     locale: "pt_BR",
     siteName: "Conta comigo",
     title: "Conta comigo — planejamento financeiro pessoal e familiar",
     description: "Quanto tenho, quanto já comprometi e para onde minhas finanças estão indo.",
+    url: siteUrl,
   },
   appleWebApp: {
     capable: true,
@@ -67,7 +81,22 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/apple-icon.png", type: "image/png" }],
   },
-  robots: { index: isIndexable(), follow: isIndexable() },
+  robots: {
+    index: isIndexable(),
+    follow: isIndexable(),
+    googleBot: {
+      index: isIndexable(),
+      follow: isIndexable(),
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    google:
+      process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ??
+      "8wthYwMneAEpCHlAPegGy5TZixSp8EvZ2iaQVTddnWk",
+  },
 };
 
 export const viewport: Viewport = {
@@ -81,6 +110,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="pt-BR" className={inter.variable}>
       <body className="min-h-dvh antialiased">
+        <JsonLd data={buildOrganizationSchema()} />
+        <JsonLd data={buildWebSiteSchema()} />
         <a href="#conteudo" className="skip-link">
           Ir para o conteúdo
         </a>

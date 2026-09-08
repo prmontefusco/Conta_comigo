@@ -19,6 +19,7 @@ import { describeError, logger } from "@/lib/observability/logger";
 export interface AuthenticatedCaller {
   readonly uid: string;
   readonly email?: string;
+  readonly emailVerified?: boolean;
   readonly name?: string;
 }
 
@@ -45,6 +46,7 @@ export async function requireAuth(request: Request): Promise<AuthResult> {
       caller: {
         uid: decoded.uid,
         ...(typeof decoded.email === "string" ? { email: decoded.email } : {}),
+        emailVerified: decoded.email_verified === true,
         ...(typeof decoded.name === "string" ? { name: decoded.name } : {}),
       },
     };

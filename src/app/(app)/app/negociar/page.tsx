@@ -16,6 +16,8 @@ import {
 import { NEGOTIATION_SCRIPTS, type ScriptParams } from "@/modules/negotiation/domain/scripts";
 import { FeiraoCalculatorCard } from "@/modules/negotiation/ui/feirao-calculator-card";
 import { TermExtensionCard } from "@/modules/negotiation/ui/term-extension-card";
+import Link from "next/link";
+import { PortabilidadeCard } from "@/modules/negotiation/ui/portabilidade-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 
@@ -99,7 +101,23 @@ export default function NegotiatePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Negociar dívidas</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">Negociar dívidas</h1>
+        <Link href="/app/superendividamento">
+          <Button variant="secondary" className="text-xs">
+            ⚖️ Acessar Lei do Superendividamento
+          </Button>
+        </Link>
+      </div>
+
+      <Callout tone="info" title="Muitas dívidas ao mesmo tempo?">
+        Se você está lidando com vários bancos e a soma das parcelas invade o seu sustento básico, a <strong>Lei do Superendividamento (Lei 14.181/2021)</strong> permite negociar todas em bloco com carência de 180 dias e prazo de até 5 anos.
+        <div className="mt-1.5">
+          <Link href="/app/superendividamento" className="text-xs font-bold underline">
+            Abrir Dossiê de Superendividamento &rarr;
+          </Link>
+        </div>
+      </Callout>
 
       <Card>
         <CardTitle hint="Comece por aqui, antes de qualquer ligação.">
@@ -289,6 +307,8 @@ export default function NegotiatePage() {
         availableCash={finance.totalCash}
         minimumReserveCushion={finance.protectedReserve}
       />
+
+      <PortabilidadeCard />
 
       <Card>
         <CardTitle hint="Leia em voz alta. Não precisa improvisar.">

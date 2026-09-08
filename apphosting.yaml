@@ -43,12 +43,14 @@ env:
   # enquanto indexar é rápido. As oito páginas públicas existem para descoberta
   # orgânica; vale fazer isso uma vez, no endereço certo.
   #
-  # Ligue quando NEXT_PUBLIC_SITE_URL já for o domínio definitivo.
   - variable: NEXT_PUBLIC_ALLOW_INDEXING
-    value: "false"
+    value: "true"
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_SITE_URL
-    value: https://conta-comigo--conta-comigo-a318a.us-east4.hosted.app
+    value: https://contacomigo.api.br
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    value: 8wthYwMneAEpCHlAPegGy5TZixSp8EvZ2iaQVTddnWk
     availability: [BUILD, RUNTIME]
 
   # Firebase App Check. Raises the cost of automated abuse; it never replaces
@@ -72,12 +74,12 @@ env:
   # O mesmo segredo precisa ser cadastrado no painel do Asaas, em
   # Integrações → Webhooks, como cabeçalho `asaas-access-token`.
   #
-  # - variable: ASAAS_API_KEY
-  #   secret: ASAAS_API_KEY
-  #   availability: [RUNTIME]
-  # - variable: PAYMENT_WEBHOOK_SECRET
-  #   secret: PAYMENT_WEBHOOK_SECRET
-  #   availability: [RUNTIME]
+  - variable: ASAAS_API_KEY
+    secret: ASAAS_API_KEY
+    availability: [RUNTIME]
+  - variable: PAYMENT_WEBHOOK_SECRET
+    secret: PAYMENT_WEBHOOK_SECRET
+    availability: [RUNTIME]
   #
   # Sandbox: https://api-sandbox.asaas.com/v3
   - variable: ASAAS_API_BASE_URL
