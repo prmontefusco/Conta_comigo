@@ -56,7 +56,7 @@ env:
   # Firebase App Check. Raises the cost of automated abuse; it never replaces
   # the Security Rules. Leave empty to keep it off; see docs/SECURITY.md.
   - variable: NEXT_PUBLIC_APPCHECK_SITE_KEY
-    value: REPLACE_WITH_RECAPTCHA_V3_SITE_KEY
+    value: 6Lc_l7EtAAAAAL1kLMF0EUGYmz2wJAfo7dPdxnzz
     availability: [BUILD, RUNTIME]
 
   # ── Pagamentos ─────────────────────────────────────────────────────────────

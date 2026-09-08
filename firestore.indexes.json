@@ -17,5 +17,12 @@
     "Adicione um índice junto com a consulta que precisa dele, nunca antes."
   ],
   "indexes": [],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "rateLimits",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    }
+  ]
 }

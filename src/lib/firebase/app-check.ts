@@ -45,10 +45,12 @@ export async function initialiseAppCheck(): Promise<void> {
   started = true;
 
   try {
-    const { initializeAppCheck, ReCaptchaV3Provider } = await import("firebase/app-check");
+    const { initializeAppCheck, ReCaptchaEnterpriseProvider } = await import(
+      "firebase/app-check"
+    );
 
     initializeAppCheck(getFirebaseApp(), {
-      provider: new ReCaptchaV3Provider(siteKey),
+      provider: new ReCaptchaEnterpriseProvider(siteKey),
       // Refreshes the token in the background so a long session does not start
       // failing writes halfway through someone entering a month of bills.
       isTokenAutoRefreshEnabled: true,
