@@ -68,10 +68,22 @@ export function PlanStatusCard({ status }: { status: PlanStatus }) {
       </div>
 
       {/*
+        A garantia vale mais durante o teste do que depois dele: é ali que a
+        pessoa se pergunta se vai ser cobrada sem perceber quando os trinta
+        dias acabarem. A frase é a mesma que existia antes deste cartão.
+      */}
+      {status.kind === "TRIAL" ? (
+        <Callout tone="info" title="Quando o teste acabar, nada acontece sozinho">
+          A conta passa para o plano gratuito e continua funcionando — nada é apagado e nada é
+          cobrado sozinho. O que muda é o alcance da projeção e a leitura de documentos por foto.
+        </Callout>
+      ) : null}
+
+      {/*
         Não há botão de cancelar, e a ausência é deliberada. O pagamento é
         avulso: sem cartão guardado e sem cobrança recorrente, cancelar só
         poderia encurtar o que já foi pago — sugerindo que a pessoa evita uma
-        cobrança que nunca aconteceria.
+        cobrança que nunca aconteceria. O texto abaixo diz isso.
       */}
       {status.kind === "PAID" ? (
         <Callout tone="positive" title="Nada será cobrado de novo">

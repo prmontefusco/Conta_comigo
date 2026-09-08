@@ -249,7 +249,10 @@ test.describe("rodada com perfil endividado", () => {
     /* 7. O plano de ação mostra o que foi combinado, junto do que falta. */
     await page.goto("/app/plano");
     await expect(page.getByRole("heading", { name: "Plano de ação" })).toBeVisible();
-    await expect(page.getByText("Decisões da família").first()).toBeVisible();
+    // Pelo papel, e não pelo texto: o menu lateral tem um link com este mesmo
+    // nome, e no celular ele fica no DOM mas escondido (`hidden md:block`).
+    // `getByText(...).first()` casava com o link invisível, não com o cartão.
+    await expect(page.getByRole("heading", { name: "Decisões da família" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Abrir histórico" })).toBeVisible();
     // O cartão do plano lista o que está combinado; a asserção pelo texto
     // exato da decisão fica no histórico, que é a lista completa.

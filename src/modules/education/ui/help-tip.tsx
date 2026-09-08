@@ -104,10 +104,14 @@ export function HelpTip({
           open ? "block" : "hidden"
         }`}
       >
-        <span className="block text-sm font-semibold text-[color:var(--page-fg)]">
-          {entry.term}
-        </span>
-        <span className="mt-1 block text-xs text-[color:var(--page-fg)]">{entry.what}</span>
+        {/*
+          O nome do termo NÃO se repete aqui. O balão abre encostado no rótulo
+          que explica, e o botão já anuncia "O que é <termo>" — repetir seria
+          ruído. Também era um defeito: com o nome dentro do balão, qualquer
+          busca por "Saldo nas contas" na página encontrava dois elementos, o
+          rótulo e a explicação. Foi assim que a suíte pegou isto.
+        */}
+        <span className="block text-xs text-[color:var(--page-fg)]">{entry.what}</span>
         <span
           className="mt-2 block border-t border-[color:var(--card-border)] pt-2 text-xs"
           style={{ color: "var(--muted-fg)" }}

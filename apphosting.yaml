@@ -74,12 +74,41 @@ env:
   # O mesmo segredo precisa ser cadastrado no painel do Asaas, em
   # Integrações → Webhooks, como cabeçalho `asaas-access-token`.
   #
-  - variable: ASAAS_API_KEY
-    secret: ASAAS_API_KEY
-    availability: [RUNTIME]
-  - variable: PAYMENT_WEBHOOK_SECRET
-    secret: PAYMENT_WEBHOOK_SECRET
-    availability: [RUNTIME]
+  # ATENÇÃO antes de descomentar: estas duas linhas quebram o desenvolvimento
+  # local, e o fizeram entre 7 e 8 de setembro de 2026.
+  #
+  # O emulador do App Hosting lê este arquivo como base e tenta resolver toda
+  # referência `secret:` — contra `demo-conta-comigo`, que nunca terá segredo
+  # nenhum. O resultado é 403, os emuladores morrem na largada, o seed encontra
+  # a porta do Auth fechada, e `npm run dev:local` e a suíte de ponta a ponta
+  # param de funcionar para todo mundo. Sobrescrever por
+  # `apphosting.emulator.yaml` não resolve: a entrada continua sendo tratada
+  # como segredo e a chamada vira `secrets/undefined`.
+  #
+  # E, na data acima, elas não faziam nada em produção: nenhum dos dois
+  # segredos existia no Secret Manager (404 em
+  # `firebase apphosting:secrets:describe`). Os valores chegam ao servidor como
+  # variáveis de ambiente cadastradas no console do App Hosting, que têm
+  # precedência sobre este arquivo — é por isso que a produção funciona e o
+  # local não.
+  #
+  # Mover para o Secret Manager continua sendo o certo: variável de console é
+  # legível por todo participante do projeto, e esta chave emite cobranças
+  # reais. Mas descomentar aqui é o último passo, não o primeiro:
+  #
+  #   1. criar os segredos de verdade:
+  #        npx firebase apphosting:secrets:set ASAAS_API_KEY --project prod
+  #        npx firebase apphosting:secrets:set PAYMENT_WEBHOOK_SECRET --project prod
+  #   2. resolver o emulador local antes, ou o repositório volta a não rodar;
+  #   3. remover as variáveis de texto puro do console;
+  #   4. só então descomentar isto.
+  #
+  # - variable: ASAAS_API_KEY
+  #   secret: ASAAS_API_KEY
+  #   availability: [RUNTIME]
+  # - variable: PAYMENT_WEBHOOK_SECRET
+  #   secret: PAYMENT_WEBHOOK_SECRET
+  #   availability: [RUNTIME]
   #
   # Sandbox: https://api-sandbox.asaas.com/v3
   - variable: ASAAS_API_BASE_URL

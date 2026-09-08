@@ -153,13 +153,21 @@ test.describe("tela de assinatura", () => {
   });
 
   // Toda conta nova entra no teste de 30 dias, e as contas semeadas são
-  // criadas agora — então a tela mostra "Premium (teste)", não "Gratuito".
-  // O teste antigo assumia que não existia período de teste, o que era
-  // verdade quando o site já o anunciava e o código não o implementava.
+  // criadas agora — então a tela mostra o teste, não "Gratuito". O teste
+  // antigo assumia que não existia período de teste, o que era verdade quando
+  // o site já o anunciava e o código não o implementava.
   test("mostra o período de teste com os dias que faltam", async ({ page }) => {
     await expect(page.getByRole("heading", { name: "Assinatura" })).toBeVisible();
-    await expect(page.getByText("Premium (teste)", { exact: true })).toBeVisible();
-    await expect(page.getByText(/dias restantes/)).toBeVisible();
+    await expect(page.getByText("Premium — período de teste", { exact: true })).toBeVisible();
+    await expect(page.getByText(/Restam \d+ dias? dos 30 de teste/)).toBeVisible();
+  });
+
+  // O ciclo estava gravado na assinatura e não aparecia em lugar nenhum: quem
+  // pagasse o anual via exatamente o que quem pagasse o mensal veria. Durante
+  // o teste não há ciclo contratado, e o campo diz isso em vez de mentir.
+  test("nomeia o período contratado, mesmo quando não há um", async ({ page }) => {
+    await expect(page.getByText("Período contratado", { exact: true })).toBeVisible();
+    await expect(page.getByText("Como você tem acesso", { exact: true })).toBeVisible();
   });
 
   test("diz que a conta continua funcionando quando o teste acabar", async ({ page }) => {
