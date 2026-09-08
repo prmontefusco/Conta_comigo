@@ -135,11 +135,91 @@ contra um projeto real, porque o Admin SDK ignora as Security Rules.
 Para exercitar o fluxo de verdade, use o sandbox:
 `ASAAS_API_BASE_URL=https://api-sandbox.asaas.com/v3`.
 
+## Ligar o pagamento em produção
+
+A ordem importa, e o passo 3 é o que costuma ser esquecido.
+
+1. **Segredos no ambiente de execução.** `ASAAS_API_KEY` e
+   `PAYMENT_WEBHOOK_SECRET` precisam chegar ao servidor. Confirme sem abrir o
+   console, com duas respostas que não têm efeito colateral:
+
+   ```bash
+   curl -s https://contacomigo.api.br/api/assinatura/planos
+   # open:true  → ASAAS_API_KEY presente.  open:false → ausente.
+
+   curl -s -o /dev/null -w '%{http_code}
+   ```
+
+' -X POST https://contacomigo.api.br/api/webhook/pagamento -H 'asaas-access-token: qualquer-coisa'
+
+# 401 → PAYMENT_WEBHOOK_SECRET presente. 503 → ausente.
+
+````
+
+2. **Webhook no painel do Asaas**, em Integrações → Webhooks:
+
+| Campo               | Valor                                              |
+| ------------------- | -------------------------------------------------- |
+| URL                 | `https://contacomigo.api.br/api/webhook/pagamento` |
+| Versão da API       | v3                                                 |
+| Token de auth.      | o mesmo valor de `PAYMENT_WEBHOOK_SECRET`          |
+| Eventos             | `PAYMENT_CONFIRMED` e `PAYMENT_RECEIVED`           |
+
+Só esses dois eventos são tratados como pagamento
+(`asaas-gateway.ts`, `verifyPayment`). Os dois são necessários porque chegam
+em momentos diferentes: no cartão o `CONFIRMED` vem primeiro; no Pix e no
+boleto o que vale é o `RECEIVED`. Receber os dois pela mesma cobrança não
+estende o plano duas vezes — `grant()` é idempotente por `externalTxId`.
+
+Marcar os demais eventos não quebra nada: `verifyPayment` falha fechado e o
+handler responde 200. Só gera uma chamada à API do Asaas por evento, sem
+nenhum ganho.
+
+3. **Conferir que o token confere.** Ao lado do campo há um botão **Gerar
+Token**, e um token gerado ali não é o segredo do servidor. Quando os dois
+divergem nada avisa: a cobrança é paga, o Asaas envia o evento, o servidor
+responde 401 e o plano nunca é concedido. O sintoma aparece no pior lugar —
+em alguém que pagou e não recebeu.
+
+```bash
+PAYMENT_WEBHOOK_SECRET='<valor>' node scripts/verificar-webhook.mjs
+````
+
+O script envia um evento sem prefixo `PAYMENT_`, que o handler responde
+antes de tocar em assinatura ou cobrança. Exercita a autenticação e nada
+mais.
+
+4. **Cobrança real de teste**, com o próprio usuário. O plano deve virar
+   Premium sozinho, **sem** apertar "já paguei". Se só ativar pelo botão, o
+   webhook não chegou — e aí o problema é o passo 3, o endereço, ou a conta do
+   Asaas (produção × sandbox).
+
+## Onde os segredos moram hoje
+
+`apphosting.yaml` declara `ASAAS_API_KEY` e `PAYMENT_WEBHOOK_SECRET` como
+referências ao Cloud Secret Manager. **Em produção elas estão como variáveis de
+ambiente comuns no console do App Hosting**, e variável de console tem
+precedência sobre o yaml — quem lê só o arquivo conclui errado.
+
+A diferença é de exposição, não de funcionamento: variável de ambiente fica
+legível para todo participante do projeto no console, enquanto um segredo do
+Secret Manager tem IAM próprio e histórico de acesso. Para uma chave que **emite
+cobranças reais** (`$aact_prod_…`), a distinção importa.
+
+Migrar é curto, e o yaml já está escrito para isso:
+
+```bash
+npx firebase apphosting:secrets:set ASAAS_API_KEY --project prod
+npx firebase apphosting:secrets:set PAYMENT_WEBHOOK_SECRET --project prod
+# depois, remover as duas variáveis de texto puro no console e reimplantar
+```
+
+Enquanto não migrar, quem tiver acesso ao projeto tem a chave de cobrança.
+
 ## O que falta
 
-- [ ] **Chave do Asaas** — sem `ASAAS_API_KEY`, `/api/assinatura/planos`
-      responde `open: false` e o checkout devolve 503. É o único item que
-      separa o fluxo atual de uma venda real.
+- [x] **Chave do Asaas** — configurada em produção; `/api/assinatura/planos`
+      responde `open: true` com os dois ciclos.
 - [ ] **O que o Premium entrega** além de tirar anúncios. Hoje a tela afirma que
       nenhuma função de planejamento fica atrás do pagamento; se isso mudar, o
       texto muda junto.
@@ -148,6 +228,9 @@ Para exercitar o fluxo de verdade, use o sandbox:
       Pix, depois um cartão, e pagar o Pix, não é atendido pelo botão "já paguei"
       — mas continua sendo ativado pelo webhook, que parte do id enviado pelo
       provedor.
-- [ ] Cadastro do webhook no painel do Asaas
+- [x] Cadastro do webhook no painel do Asaas — feito; conferir o token com
+      `scripts/verificar-webhook.mjs` antes de confiar nele
+- [ ] Mover `ASAAS_API_KEY` e `PAYMENT_WEBHOOK_SECRET` do texto puro do console
+      para o Cloud Secret Manager
 - [ ] Decidir a conciliação contábil da conta compartilhada
 - [ ] Revisão de segurança independente deste caminho, junto com a das regras
