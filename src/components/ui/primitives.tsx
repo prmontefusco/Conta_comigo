@@ -196,19 +196,25 @@ export function Stat({
   label,
   value,
   hint,
+  help,
   tone = "neutral",
   size = "lg",
 }: {
   label: string;
   value: Money;
   hint?: ReactNode;
+  /** Um `<HelpTip>`, quando o número precisa de explicação. */
+  help?: ReactNode;
   tone?: MoneyTone;
   size?: "base" | "lg" | "xl";
 }) {
   return (
     <div>
-      <dt className="text-sm" style={{ color: "var(--muted-fg)" }}>
-        {label}
+      {/* O rótulo fica no próprio <span>: sem ele, o texto do botão de ajuda
+          entraria na leitura do <dt> e mudaria o nome do número. */}
+      <dt className="flex items-center gap-1.5 text-sm" style={{ color: "var(--muted-fg)" }}>
+        <span>{label}</span>
+        {help}
       </dt>
       <dd className="mt-0.5">
         <MoneyText value={value} tone={tone} size={size} />

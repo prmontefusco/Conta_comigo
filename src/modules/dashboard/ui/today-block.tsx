@@ -6,6 +6,7 @@ import { formatMoney } from "@/core/money/format";
 import { isNegative, isPositive } from "@/core/money/money";
 import { Badge, Card, CardTitle, MoneyText, Stat } from "@/components/ui/primitives";
 import { useFinance } from "@/modules/household/ui/finance-provider";
+import { HelpTip } from "@/modules/education/ui/help-tip";
 import { displayStatus } from "@/modules/obligations/domain/obligation";
 
 /**
@@ -31,12 +32,14 @@ export function TodayBlock() {
       <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat
           label="Saldo nas contas"
+          help={<HelpTip term="SALDO_NAS_CONTAS" />}
           value={today.totalCash}
           size="xl"
           hint="Tudo o que está nas contas e na carteira."
         />
         <Stat
           label="Reserva protegida"
+          help={<HelpTip term="RESERVA_PROTEGIDA" />}
           value={today.protectedReserve}
           size="lg"
           tone="outflow"
@@ -44,6 +47,7 @@ export function TodayBlock() {
         />
         <Stat
           label="Saldo livre"
+          help={<HelpTip term="SALDO_LIVRE" />}
           value={today.spendableCash}
           size="lg"
           tone={isNegative(today.spendableCash) ? "critical" : "positive"}

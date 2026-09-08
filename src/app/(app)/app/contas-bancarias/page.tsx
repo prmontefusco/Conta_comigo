@@ -23,6 +23,7 @@ import {
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { MemberField } from "@/modules/household/ui/member-field";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { HelpTip } from "@/modules/education/ui/help-tip";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 
 /**
@@ -225,6 +226,7 @@ function NewAccountDialog({ open, onClose }: { open: boolean; onClose: () => voi
 
         <DateField
           label="Saldo na data de"
+          help={<HelpTip term="SALDO_NA_DATA" label="a data do saldo" />}
           required
           value={balanceDate}
           onChange={(event) => setBalanceDate(event.target.value)}
@@ -232,6 +234,7 @@ function NewAccountDialog({ open, onClose }: { open: boolean; onClose: () => voi
 
         <MoneyField
           label="Limite de cheque especial"
+          help={<HelpTip term="CHEQUE_ESPECIAL" />}
           value={overdraftText}
           onChange={(event) => setOverdraftText(event.target.value)}
           placeholder="0,00"

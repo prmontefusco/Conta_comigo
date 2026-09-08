@@ -16,10 +16,17 @@ interface FieldWrapperProps {
   hint?: string;
   error?: string;
   required?: boolean;
+  /**
+   * Um `<HelpTip>`, quando o campo depende de um conceito.
+   *
+   * Fica **ao lado** do `<label>`, nunca dentro: um botão dentro de um rótulo
+   * rouba o clique do campo e confunde o leitor de tela.
+   */
+  help?: ReactNode;
   children: (ids: { id: string; describedBy: string | undefined }) => ReactNode;
 }
 
-export function Field({ label, hint, error, required, children }: FieldWrapperProps) {
+export function Field({ label, hint, error, required, help, children }: FieldWrapperProps) {
   const id = useId();
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
@@ -27,14 +34,17 @@ export function Field({ label, hint, error, required, children }: FieldWrapperPr
 
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-sm font-medium">
-        {label}
-        {required ? (
-          <span className="ml-0.5 text-[color:var(--tone-critical)]" aria-hidden="true">
-            *
-          </span>
-        ) : null}
-      </label>
+      <div className="flex items-center gap-1.5">
+        <label htmlFor={id} className="block text-sm font-medium">
+          {label}
+          {required ? (
+            <span className="ml-0.5 text-[color:var(--tone-critical)]" aria-hidden="true">
+              *
+            </span>
+          ) : null}
+        </label>
+        {help}
+      </div>
 
       {children({ id, describedBy })}
 
@@ -67,14 +77,16 @@ export function TextField({
   hint,
   error,
   required,
+  help,
   ...rest
 }: InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   hint?: string;
   error?: string;
+  help?: ReactNode;
 }) {
   return (
-    <Field label={label} hint={hint} error={error} required={required}>
+    <Field label={label} hint={hint} error={error} required={required} help={help}>
       {({ id, describedBy }) => (
         <input
           id={id}
@@ -101,14 +113,16 @@ export function MoneyField({
   hint,
   error,
   required,
+  help,
   ...rest
 }: InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   hint?: string;
   error?: string;
+  help?: ReactNode;
 }) {
   return (
-    <Field label={label} hint={hint} error={error} required={required}>
+    <Field label={label} hint={hint} error={error} required={required} help={help}>
       {({ id, describedBy }) => (
         <div className="relative">
           <span
@@ -139,16 +153,18 @@ export function SelectField({
   hint,
   error,
   required,
+  help,
   options,
   ...rest
 }: SelectHTMLAttributes<HTMLSelectElement> & {
   label: string;
   hint?: string;
   error?: string;
+  help?: ReactNode;
   options: ReadonlyArray<{ value: string; label: string }>;
 }) {
   return (
-    <Field label={label} hint={hint} error={error} required={required}>
+    <Field label={label} hint={hint} error={error} required={required} help={help}>
       {({ id, describedBy }) => (
         <select
           id={id}
@@ -174,6 +190,7 @@ export function DateField(
     label: string;
     hint?: string;
     error?: string;
+    help?: ReactNode;
   },
 ) {
   return <TextField type="date" {...props} />;

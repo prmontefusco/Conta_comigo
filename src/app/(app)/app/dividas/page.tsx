@@ -38,6 +38,7 @@ import { MemberField } from "@/modules/household/ui/member-field";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
+import { HelpTip } from "@/modules/education/ui/help-tip";
 import { PayoffStrategyComparator } from "@/modules/recovery-timeline/ui/payoff-strategy-comparator";
 import { Callout } from "@/components/ui/primitives";
 
@@ -115,7 +116,10 @@ export default function DebtsPage() {
 
       {/* Destaque para a Lei do Superendividamento */}
       <Callout tone="info" title="As parcelas das dívidas estão sufocando o salário da família?">
-        Se o total de parcelas consome sua renda e falta dinheiro para alimentação, aluguel ou remédios, você pode se enquadrar na <strong>Lei do Superendividamento (Lei 14.181/2021)</strong>. Monte seu plano de repactuação em 5 anos com carência de 180 dias.
+        Se o total de parcelas consome sua renda e falta dinheiro para alimentação, aluguel ou
+        remédios, você pode se enquadrar na{" "}
+        <strong>Lei do Superendividamento (Lei 14.181/2021)</strong>. Monte seu plano de repactuação
+        em 5 anos com carência de 180 dias.
         <div className="mt-2">
           <Link href="/app/superendividamento" className="text-xs font-bold underline">
             ⚖️ Acessar Dossiê de Superendividamento &rarr;
@@ -445,6 +449,7 @@ function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }
 
         <MoneyField
           label="Valor que caiu na conta"
+          help={<HelpTip term="VALOR_DESEMBOLSADO" />}
           value={disbursedText}
           onChange={(event) => setDisbursedText(event.target.value)}
           hint="Se for menor que o contratado, a diferença aparece como custo da contratação."
@@ -470,6 +475,7 @@ function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }
         <div className="grid grid-cols-2 gap-4">
           <TextField
             label="Juros ao mês (%)"
+            help={<HelpTip term="JUROS_AO_MES" />}
             inputMode="decimal"
             value={rateText}
             onChange={(event) => setRateText(event.target.value)}
@@ -478,6 +484,7 @@ function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }
           />
           <TextField
             label="CET ao ano (%)"
+            help={<HelpTip term="CET" />}
             inputMode="decimal"
             value={cetText}
             onChange={(event) => setCetText(event.target.value)}
@@ -496,6 +503,7 @@ function NewDebtDialog({ open, onClose }: { open: boolean; onClose: () => void }
 
         <TextField
           label="Parcelas que você já pagou"
+          help={<HelpTip term="PARCELAS_JA_PAGAS" />}
           type="number"
           min={0}
           max={600}
