@@ -2,6 +2,7 @@
 
 import { Callout, Spinner } from "@/components/ui/primitives";
 import { DashboardTabs } from "@/modules/dashboard/ui/dashboard-tabs";
+import { PlanStatusNotice } from "@/modules/billing/ui/plan-status-notice";
 import { TodayPrioritiesCard } from "@/modules/dashboard/ui/today-priorities-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 
@@ -39,10 +40,10 @@ export default function DashboardPage() {
       {finance.error ? <Callout tone="attention">{finance.error}</Callout> : null}
 
       {!hasData ? (
-        <div className="rounded-2xl border-2 border-dashed border-[color:var(--color-brand-600)]/40 bg-[color:var(--color-brand-50)]/30 dark:bg-[color:var(--color-brand-950)]/20 p-5 shadow-xs">
+        <div className="rounded-2xl border-2 border-dashed border-[color:var(--color-brand-600)]/40 bg-[color:var(--color-brand-50)]/30 p-5 shadow-xs dark:bg-[color:var(--color-brand-950)]/20">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[color:var(--color-brand-600)]">
+              <span className="text-xs font-bold tracking-wider text-[color:var(--color-brand-600)] uppercase">
                 Primeiros Passos
               </span>
               <h2 className="text-base font-bold text-[color:var(--page-fg)]">
@@ -54,7 +55,8 @@ export default function DashboardPage() {
             </span>
           </div>
           <p className="mt-1 text-xs text-[color:var(--muted-fg)]">
-            Para que o diagnóstico de saúde financeira, a projeção de 12 meses e a linha do tempo comecem a fazer sentido, cadastre os dados básicos da sua casa:
+            Para que o diagnóstico de saúde financeira, a projeção de 12 meses e a linha do tempo
+            comecem a fazer sentido, cadastre os dados básicos da sua casa:
           </p>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -67,7 +69,7 @@ export default function DashboardPage() {
                 <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
                   1. Onde está seu dinheiro
                 </h3>
-                <p className="mt-1 text-2xs" style={{ color: "var(--muted-fg)" }}>
+                <p className="text-2xs mt-1" style={{ color: "var(--muted-fg)" }}>
                   Cadastre contas bancárias ou saldo em carteira.
                 </p>
               </div>
@@ -85,7 +87,7 @@ export default function DashboardPage() {
                 <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
                   2. Sua Renda Mensal
                 </h3>
-                <p className="mt-1 text-2xs" style={{ color: "var(--muted-fg)" }}>
+                <p className="text-2xs mt-1" style={{ color: "var(--muted-fg)" }}>
                   Salário, pró-labore ou renda extra que entra todo mês.
                 </p>
               </div>
@@ -103,7 +105,7 @@ export default function DashboardPage() {
                 <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
                   3. Contas do Mês
                 </h3>
-                <p className="mt-1 text-2xs" style={{ color: "var(--muted-fg)" }}>
+                <p className="text-2xs mt-1" style={{ color: "var(--muted-fg)" }}>
                   Aluguel, luz, água, condomínio e boletos essenciais.
                 </p>
               </div>
@@ -121,7 +123,7 @@ export default function DashboardPage() {
                 <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
                   4. Dívidas & Empréstimos
                 </h3>
-                <p className="mt-1 text-2xs" style={{ color: "var(--muted-fg)" }}>
+                <p className="text-2xs mt-1" style={{ color: "var(--muted-fg)" }}>
                   Se possuir parcelas de empréstimos, consignados ou cartões.
                 </p>
               </div>
@@ -135,6 +137,12 @@ export default function DashboardPage() {
 
       {/* O que precisa de atenção hoje, antes de qualquer bloco analítico. */}
       {hasData ? <TodayPrioritiesCard /> : null}
+
+      {/*
+        Depois das prioridades, nunca antes: conta vencida vem primeiro que
+        assinatura. E só aparece quando há ação real — ver plan-notice.ts.
+      */}
+      <PlanStatusNotice />
 
       {/* Dashboard Segmentado em Pilares */}
       <DashboardTabs />

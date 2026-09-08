@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { Card, CardTitle } from "@/components/ui/primitives";
+import { planStatusLabel } from "@/modules/billing/domain/plan-status";
+import { formatDays, usePlanEndDate, usePlanStatus } from "@/modules/billing/ui/use-plan-status";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { ROLE_LABELS } from "@/modules/household/domain/household";
 
@@ -61,7 +63,9 @@ const SECTIONS = [
 ] as const;
 
 export default function MorePage() {
-  const { household, role, isPremium } = useSession();
+  const { household, role } = useSession();
+  const plan = usePlanStatus();
+  const planEndDate = usePlanEndDate(plan.endsAt);
 
   return (
     <div className="space-y-4">
@@ -80,7 +84,19 @@ export default function MorePage() {
           </div>
           <div className="flex justify-between gap-4">
             <dt style={{ color: "var(--muted-fg)" }}>Plano</dt>
-            <dd className="font-medium">{isPremium ? "Premium" : "Gratuito"}</dd>
+            <dd className="text-right font-medium">
+              <Link href="/app/assinatura" className="underline underline-offset-2">
+                {planStatusLabel(plan)}
+              </Link>
+              {plan.daysRemaining !== null ? (
+                <span className="block text-xs font-normal" style={{ color: "var(--muted-fg)" }}>
+                  {plan.daysRemaining > 0
+                    ? `Restam ${formatDays(plan.daysRemaining)}`
+                    : "Termina hoje"}
+                  {planEndDate ? ` · até ${planEndDate}` : ""}
+                </span>
+              ) : null}
+            </dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt style={{ color: "var(--muted-fg)" }}>Fuso horário</dt>

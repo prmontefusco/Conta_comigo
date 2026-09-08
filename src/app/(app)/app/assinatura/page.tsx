@@ -3,12 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button, Callout, Card, CardTitle, Spinner } from "@/components/ui/primitives";
 import { formatMoney } from "@/core/money/format";
-import {
-  daysUntilExpiry,
-  isWithinRenewalWindow,
-  RENEWAL_WINDOW_DAYS,
-} from "@/modules/billing/domain/subscription";
-import { FREE_LIMITS, PREMIUM_LIMITS } from "@/modules/billing/domain/plan-limits";
+import { RENEWAL_WINDOW_DAYS } from "@/modules/billing/domain/subscription";
+import { canOfferPurchase } from "@/modules/billing/domain/plan-status";
+import { PlanStatusCard } from "@/modules/billing/ui/plan-status-card";
+import { usePlanStatus } from "@/modules/billing/ui/use-plan-status";
 import { useSession } from "@/modules/household/ui/session-provider";
 
 /**
@@ -48,7 +46,10 @@ interface PixResult {
 const brl = (cents: number): string => formatMoney({ amount: cents, currency: "BRL" });
 
 export default function SubscriptionPage() {
-  const { user, subscription, isPremium, planSource, trialDaysLeft, refreshProfile } = useSession();
+  const { user, subscription, refreshProfile } = useSession();
+  // Uma fonte só para plano, ciclo, prazo e dias restantes — a mesma que o
+  // aviso da tela inicial e a página "Mais" leem.
+  const status = usePlanStatus();
 
   const [catalogue, setCatalogue] = useState<PlansResponse | null>(null);
   const [cycle, setCycle] = useState<Cycle>("YEARLY");
@@ -178,13 +179,12 @@ export default function SubscriptionPage() {
 
   if (!catalogue) return <Spinner label="Carregando planos" />;
 
-  const remainingDays = daysUntilExpiry(subscription);
   const selected = catalogue.plans.find((plan) => plan.cycle === cycle);
   const saving = catalogue.yearlySavingPerMonthCents;
 
   // Quem já pagou só vê a compra de novo quando ela faz sentido: perto do fim.
-  const renewing = isWithinRenewalWindow(subscription);
-  const canBuy = catalogue.open && (!isPremium || renewing);
+  const renewing = status.canRenew;
+  const canBuy = catalogue.open && canOfferPurchase(status);
 
   return (
     <div className="space-y-4">
@@ -193,36 +193,7 @@ export default function SubscriptionPage() {
       {notice ? <Callout tone={notice.tone}>{notice.text}</Callout> : null}
       {error ? <Callout tone="critical">{error}</Callout> : null}
 
-      {planSource === "TRIAL" ? (
-        <Callout tone="info">
-          Você está no período de teste do Premium:{" "}
-          <strong>
-            {trialDaysLeft} {trialDaysLeft === 1 ? "dia restante" : "dias restantes"}
-          </strong>
-          . Quando acabar, a conta passa para o plano gratuito e continua funcionando — nada é
-          apagado e nada é cobrado sozinho.
-        </Callout>
-      ) : null}
-
-      <Card>
-        <CardTitle>Seu plano</CardTitle>
-        <p className="text-sm">
-          <span className="font-medium">
-            {planSource === "TRIAL" ? "Premium (teste)" : isPremium ? "Premium" : "Gratuito"}
-          </span>
-          {isPremium && remainingDays !== null ? (
-            <span style={{ color: "var(--muted-fg)" }}>
-              {" — "}
-              {remainingDays} {remainingDays === 1 ? "dia restante" : "dias restantes"}
-            </span>
-          ) : null}
-        </p>
-        <p className="mt-2 text-sm" style={{ color: "var(--muted-fg)" }}>
-          {isPremium
-            ? `Projeção de ${PREMIUM_LIMITS.forecastMonths} meses, leitura de faturas e boletos por foto, diagnóstico redigido por IA, até ${PREMIUM_LIMITS.members} pessoas no grupo e ${PREMIUM_LIMITS.creditCards} cartões.`
-            : `Você está no plano gratuito, e ele não tem prazo para acabar. Continuam liberados: contas e dívidas sem limite, modo emergência, cálculo de multa e juros, calculadora de acordo e roteiros de negociação. O Premium estende a projeção de ${FREE_LIMITS.forecastMonths} para ${PREMIUM_LIMITS.forecastMonths} meses, lê documentos por foto e abre espaço para ${PREMIUM_LIMITS.members} pessoas no grupo.`}
-        </p>
-      </Card>
+      <PlanStatusCard status={status} />
 
       {canBuy ? (
         <>

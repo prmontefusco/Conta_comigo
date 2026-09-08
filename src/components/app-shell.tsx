@@ -28,6 +28,20 @@ interface NavSection {
   readonly items: readonly NavItem[];
 }
 
+/**
+ * O menu lateral leva **tudo**, e o do celular leva o essencial.
+ *
+ * Antes, o lateral tinha um item "Mais Opções" que abria uma página com metade
+ * do produto: contas bancárias, reservas, orçamento, recorrentes, relatórios,
+ * negociação. Quem está no desktop tem espaço de sobra na coluna e não deveria
+ * precisar de um segundo salto para chegar a uma tela que cabe aqui — o efeito
+ * prático era que essas telas não existiam para quem não caçasse.
+ *
+ * No celular a decisão é a oposta, e por um motivo físico: a barra inferior
+ * comporta cinco ou seis alvos do tamanho de um polegar. Ali "Mais" continua
+ * sendo o único caminho para a cauda longa, e `/app/mais` continua existindo
+ * por causa disso.
+ */
 const DESKTOP_NAV_SECTIONS: readonly NavSection[] = [
   {
     title: "Visão Geral",
@@ -41,8 +55,25 @@ const DESKTOP_NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: "/app/dia-a-dia", label: "Lançamentos", icon: "🧾" },
       { href: "/app/contas", label: "Contas a Pagar", icon: "📄" },
+      {
+        href: "/app/contas-bancarias",
+        label: "Contas e saldos",
+        icon: "🏦",
+        restrictedForDependent: true,
+      },
       { href: "/app/cartoes", label: "Cartões", icon: "💳", restrictedForDependent: true },
-      { href: "/app/importar", label: "Importar extrato", icon: "📥", restrictedForDependent: true },
+      {
+        href: "/app/recorrentes",
+        label: "Contas que se repetem",
+        icon: "🔁",
+        restrictedForDependent: true,
+      },
+      {
+        href: "/app/importar",
+        label: "Importar extrato",
+        icon: "📥",
+        restrictedForDependent: true,
+      },
     ],
   },
   {
@@ -50,8 +81,25 @@ const DESKTOP_NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: "/app/emergencia", label: "Pagar primeiro", icon: "🚨" },
       { href: "/app/plano", label: "Plano de ação", icon: "🧭" },
+      {
+        href: "/app/orcamento",
+        label: "Orçamento do mês",
+        icon: "🎯",
+        restrictedForDependent: true,
+      },
+      {
+        href: "/app/reservas",
+        label: "Reservas e metas",
+        icon: "🛟",
+        restrictedForDependent: true,
+      },
       { href: "/app/comprar", label: "Antes de comprar", icon: "🛒" },
-      { href: "/app/projecao", label: "Projeção & Fluxo", icon: "📈", restrictedForDependent: true },
+      {
+        href: "/app/projecao",
+        label: "Projeção & Fluxo",
+        icon: "📈",
+        restrictedForDependent: true,
+      },
       { href: "/app/visao-futuro", label: "Visão de Futuro", icon: "🚀" },
       { href: "/app/diagnostico-ia", label: "Diagnóstico IA", icon: "✨" },
     ],
@@ -59,23 +107,56 @@ const DESKTOP_NAV_SECTIONS: readonly NavSection[] = [
   {
     title: "Dívidas & Recuperação",
     items: [
-      { href: "/app/dividas", label: "Dívidas & Empréstimos", icon: "🏛️", restrictedForDependent: true },
-      { href: "/app/superendividamento", label: "Superendividamento", icon: "⚖️", restrictedForDependent: true },
+      {
+        href: "/app/dividas",
+        label: "Dívidas & Empréstimos",
+        icon: "🏛️",
+        restrictedForDependent: true,
+      },
+      {
+        href: "/app/negociar",
+        label: "Negociar dívidas",
+        icon: "🤝",
+        restrictedForDependent: true,
+      },
+      {
+        href: "/app/superendividamento",
+        label: "Superendividamento",
+        icon: "⚖️",
+        restrictedForDependent: true,
+      },
+    ],
+  },
+  {
+    title: "Registro & Relatórios",
+    items: [
+      { href: "/app/decisoes", label: "Decisões da família", icon: "🗒️" },
+      { href: "/app/relatorios", label: "Relatórios", icon: "📊", restrictedForDependent: true },
     ],
   },
   {
     title: "Minha Conta",
     items: [
       { href: "/app/meus-dados", label: "Meus Dados & Família", icon: "👤" },
-      { href: "/contato", label: "Fale Conosco / Suporte", icon: "💬" },
+      { href: "/app/membros", label: "Membros e permissões", icon: "👥" },
+      { href: "/app/assinatura", label: "Assinatura", icon: "💳" },
       { href: "/app/configuracoes", label: "Configurações", icon: "⚙️" },
-      { href: "/app/mais", label: "Mais Opções", icon: "⋯" },
+    ],
+  },
+  {
+    title: "Ajuda & Sobre",
+    items: [
+      { href: "/contato", label: "Fale Conosco / Suporte", icon: "💬" },
+      { href: "/educacao-financeira", label: "Educação financeira", icon: "📚" },
+      { href: "/privacidade", label: "Política de privacidade", icon: "🔒" },
+      { href: "/termos", label: "Termos de uso", icon: "📄" },
     ],
   },
 ];
 
-// The bottom bar holds what someone opens standing in a queue. Registering a
-// gasto is the most frequent of those; Diagnóstico is one tap further, in Mais.
+// A barra inferior guarda o que alguém abre em pé, numa fila. Lançar um gasto
+// é o mais frequente disso. "Mais" fica porque no celular ele é o único acesso
+// ao resto do produto — no desktop, o menu lateral já leva tudo.
 const MOBILE_NAV = [
   { href: "/app", label: "Início", icon: "🏠" },
   { href: "/app/avisos", label: "Avisos", icon: "🔔" },
@@ -238,7 +319,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 📧
               </span>
               <span>
-                <strong>Confirme seu e-mail ({user.email})</strong> para validar sua conta e ativar seus 30 dias de teste grátis do Premium.
+                <strong>Confirme seu e-mail ({user.email})</strong> para validar sua conta e ativar
+                seus 30 dias de teste grátis do Premium.
               </span>
             </div>
             <div>
@@ -248,7 +330,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 onClick={handleResendEmail}
                 className="cursor-pointer rounded-lg bg-amber-600 px-3 py-1 font-semibold text-white shadow-2xs transition hover:bg-amber-700 disabled:opacity-60"
               >
-                {emailSent ? "E-mail enviado! Verifique sua caixa" : sendingEmail ? "Enviando…" : "Reenviar confirmação"}
+                {emailSent
+                  ? "E-mail enviado! Verifique sua caixa"
+                  : sendingEmail
+                    ? "Enviando…"
+                    : "Reenviar confirmação"}
               </button>
             </div>
           </div>
@@ -257,10 +343,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="mx-auto flex max-w-6xl gap-6 px-4 py-4 md:py-6">
         <nav aria-label="Navegação principal" className="hidden w-56 shrink-0 md:block">
-          <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pr-1 space-y-4">
+          <div className="sticky top-20 max-h-[calc(100vh-6rem)] space-y-4 overflow-y-auto pr-1">
             {desktopSections.map((section) => (
               <div key={section.title} className="space-y-1">
-                <p className="px-3 text-2xs font-bold uppercase tracking-wider text-[color:var(--muted-fg)]">
+                <p className="text-2xs px-3 font-bold tracking-wider text-[color:var(--muted-fg)] uppercase">
                   {section.title}
                 </p>
                 <ul className="space-y-0.5">
