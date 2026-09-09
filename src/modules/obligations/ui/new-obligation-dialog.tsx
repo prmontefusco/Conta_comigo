@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addMonths, todayIn, type CalendarDate, calendarDate } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
 import { allocate, fromDecimalString, type Money } from "@/core/money/money";
-import { Button } from "@/components/ui/primitives";
+import { Button, Callout } from "@/components/ui/primitives";
 import { DateField, FormError, MoneyField, SelectField, TextField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
+import type { Obligation } from "@/modules/obligations/domain/obligation";
 import { MemberField } from "@/modules/household/ui/member-field";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
@@ -15,28 +16,38 @@ import { FREQUENCY_LABELS } from "@/modules/recurring/domain/recurring-rule";
 import { estimateVariableExpense } from "@/modules/recurring/domain/variable-expense-estimator";
 
 /**
- * Creating a bill or an expected receipt.
+ * Creating a bill or an expected receipt - and correcting one.
  *
  * Three shapes are offered because they behave differently in the projection:
  * a one-off lands on a single date, an installment plan creates one obligation
  * per instalment, and a recurring bill becomes a rule the forecast expands on
  * demand rather than hundreds of stored documents.
+ *
+ * Corrigir usa o mesmo formulário, sem a escolha de formato: o formato decide
+ * quantos documentos nascem, e isso já aconteceu. Uma parcela lançada com o
+ * valor errado se conserta sozinha; trocar o formato de um documento que já
+ * existe criaria outros, que é o oposto de corrigir.
  */
 
 type Shape = "ONE_OFF" | "INSTALLMENTS" | "RECURRING";
 
 export function NewObligationDialog({
   open,
+  obligation = null,
   onClose,
   defaultDirection = "OUTFLOW",
 }: {
   open: boolean;
+  /** A conta sendo corrigida, quando houver. */
+  obligation?: Obligation | null;
   onClose: () => void;
   defaultDirection?: "OUTFLOW" | "INFLOW";
 }) {
   const { categories, transactions, obligations, asOf } = useFinance();
   const { household, user } = useSession();
   const collections = useCollections();
+
+  const editing = obligation !== null;
 
   const [shape, setShape] = useState<Shape>("ONE_OFF");
   const [direction, setDirection] = useState(defaultDirection);
@@ -54,6 +65,40 @@ export function NewObligationDialog({
   const [memberId, setMemberId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  // Abrir o diálogo é o que traz os dados: sem isto, corrigir uma conta depois
+  // de outra mostraria os valores da anterior.
+  useEffect(() => {
+    if (!open) return;
+
+    setError(null);
+    setConfirmingDelete(false);
+
+    if (!obligation) {
+      setShape("ONE_OFF");
+      setDirection(defaultDirection);
+      setDescription("");
+      setAmountText("");
+      setInstallments(2);
+      setCategoryId("");
+      setExpenseNature("FIXED");
+      setConfidence("CONFIRMED");
+      setVisibility("HOUSEHOLD");
+      setMemberId("");
+      return;
+    }
+
+    setDirection(obligation.direction);
+    setDescription(obligation.description);
+    setAmountText((obligation.amount.amount / 100).toFixed(2).replace(".", ","));
+    setDueDate(obligation.dueDate);
+    setCategoryId(obligation.categoryId ?? "");
+    setExpenseNature(obligation.expenseNature);
+    setConfidence(obligation.confidence);
+    setVisibility(obligation.visibility);
+    setMemberId(obligation.responsibleMemberId ?? "");
+  }, [open, obligation, defaultDirection]);
 
   const relevantCategories = categories.filter((category) =>
     direction === "INFLOW" ? category.kind === "INCOME" : category.kind === "EXPENSE",
@@ -114,7 +159,23 @@ export function NewObligationDialog({
 
     setSaving(true);
     try {
-      if (shape === "RECURRING") {
+      if (obligation) {
+        // A competência acompanha o vencimento: quem corrige a data está
+        // dizendo em que mês esta conta deveria estar, e deixar a competência
+        // para trás manteria o compromisso no mês errado da projeção.
+        await collections.obligations.update(obligation.id, {
+          direction,
+          description: description.trim(),
+          amount,
+          dueDate: due,
+          competenceDate: due,
+          categoryId: categoryId || null,
+          expenseNature: expenseNature as never,
+          confidence: confidence as never,
+          visibility: visibility as never,
+          responsibleMemberId: memberId || null,
+        } as never);
+      } else if (shape === "RECURRING") {
         await collections.recurringRules.create({
           householdId: household.id,
           direction,
@@ -175,15 +236,43 @@ export function NewObligationDialog({
     }
   }
 
+  async function onDelete() {
+    if (!obligation) return;
+    setError(null);
+    setSaving(true);
+    try {
+      await collections.obligations.remove(obligation.id);
+      onClose();
+    } catch (deleteError) {
+      console.error(deleteError);
+      setError("Não foi possível excluir agora. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const alreadySettled = obligation ? obligation.settledAmount.amount > 0 : false;
+
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Nova conta"
-      description="Uma conta a pagar, uma receita esperada, um parcelamento ou uma despesa que se repete."
+      title={editing ? "Corrigir conta" : "Nova conta"}
+      description={
+        editing
+          ? "Ajuste valor, vencimento ou categoria. A correção vale na hora para a projeção e para os avisos de vencimento."
+          : "Uma conta a pagar, uma receita esperada, um parcelamento ou uma despesa que se repete."
+      }
     >
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         {error ? <FormError>{error}</FormError> : null}
+
+        {alreadySettled ? (
+          <Callout tone="attention" title="Esta conta já tem pagamento registrado">
+            Corrigir o valor aqui não mexe no que já foi pago — o pagamento é um lançamento
+            separado, no dia a dia. Se o erro foi no pagamento, corrija por lá.
+          </Callout>
+        ) : null}
 
         <SelectField
           label="Tipo"
@@ -195,30 +284,34 @@ export function NewObligationDialog({
           ]}
         />
 
-        <SelectField
-          label="Como se repete"
-          value={shape}
-          onChange={(event) => setShape(event.target.value as Shape)}
-          hint={
-            shape === "RECURRING"
-              ? "Vira uma regra: a projeção calcula as ocorrências futuras sozinha."
-              : shape === "INSTALLMENTS"
-                ? "Cria uma obrigação por parcela, com vencimentos mensais."
-                : undefined
-          }
-          options={[
-            { value: "ONE_OFF", label: "Uma vez só" },
-            { value: "INSTALLMENTS", label: "Parcelado" },
-            { value: "RECURRING", label: "Todo mês (ou outra frequência)" },
-          ]}
-        />
+        {editing ? null : (
+          <SelectField
+            label="Como se repete"
+            value={shape}
+            onChange={(event) => setShape(event.target.value as Shape)}
+            hint={
+              shape === "RECURRING"
+                ? "Vira uma regra: a projeção calcula as ocorrências futuras sozinha."
+                : shape === "INSTALLMENTS"
+                  ? "Cria uma obrigação por parcela, com vencimentos mensais."
+                  : undefined
+            }
+            options={[
+              { value: "ONE_OFF", label: "Uma vez só" },
+              { value: "INSTALLMENTS", label: "Parcelado" },
+              { value: "RECURRING", label: "Todo mês (ou outra frequência)" },
+            ]}
+          />
+        )}
 
         <TextField
           label="Descrição"
           required
           value={description}
           onChange={(event) => setDescription(event.target.value)}
-          placeholder={direction === "INFLOW" ? "Salário líquido, benefício, comissão" : "Conta de energia"}
+          placeholder={
+            direction === "INFLOW" ? "Salário líquido, benefício, comissão" : "Conta de energia"
+          }
         />
 
         <MoneyField
@@ -293,7 +386,7 @@ export function NewObligationDialog({
           </div>
         ) : null}
 
-        {shape === "INSTALLMENTS" ? (
+        {shape === "INSTALLMENTS" && !editing ? (
           <TextField
             label="Número de parcelas"
             type="number"
@@ -305,7 +398,7 @@ export function NewObligationDialog({
           />
         ) : null}
 
-        {shape === "RECURRING" ? (
+        {shape === "RECURRING" && !editing ? (
           <SelectField
             label="Frequência"
             value={frequency}
@@ -318,11 +411,13 @@ export function NewObligationDialog({
 
         <DateField
           label={
-            shape === "RECURRING"
-              ? "Primeiro vencimento"
-              : shape === "INSTALLMENTS"
-                ? "Vencimento da primeira parcela"
-                : "Vencimento"
+            editing
+              ? "Vencimento"
+              : shape === "RECURRING"
+                ? "Primeiro vencimento"
+                : shape === "INSTALLMENTS"
+                  ? "Vencimento da primeira parcela"
+                  : "Vencimento"
           }
           required
           value={dueDate}
@@ -393,6 +488,48 @@ export function NewObligationDialog({
             Cancelar
           </Button>
         </div>
+
+        {editing ? (
+          <div className="border-t border-[color:var(--card-border)] pt-4">
+            {confirmingDelete ? (
+              <Callout tone="critical" title="Excluir esta conta?">
+                <p className="text-sm">
+                  Ela sai da projeção e dos avisos de vencimento na mesma hora. Não dá para
+                  desfazer.
+                  {alreadySettled ? " Os pagamentos já registrados continuam nos lançamentos." : ""}
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void onDelete()}
+                    disabled={saving}
+                  >
+                    Excluir
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setConfirmingDelete(false)}
+                    disabled={saving}
+                  >
+                    Manter
+                  </Button>
+                </div>
+              </Callout>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-xs"
+                onClick={() => setConfirmingDelete(true)}
+                disabled={saving}
+              >
+                Excluir conta
+              </Button>
+            )}
+          </div>
+        ) : null}
       </form>
     </Modal>
   );

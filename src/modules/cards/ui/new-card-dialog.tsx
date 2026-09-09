@@ -1,20 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { fromDecimalString } from "@/core/money/money";
-import { Button } from "@/components/ui/primitives";
+import { Button, Callout } from "@/components/ui/primitives";
 import { FormError, MoneyField, SelectField, TextField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
 import { canAddOne } from "@/modules/billing/domain/plan-limits";
+import type { CreditCard } from "@/modules/cards/domain/credit-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { MemberField } from "@/modules/household/ui/member-field";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 
-export function NewCardDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { household, effectivePlan } = useSession();
+/**
+ * Cadastrar ou corrigir um cartão.
+ *
+ * Fechamento e vencimento não são detalhe de cadastro: são eles que decidem em
+ * qual fatura cada compra cai. Um dia de fechamento errado joga meio mês de
+ * compras para a fatura seguinte, e a projeção passa a cobrar no mês errado —
+ * por isso corrigir precisa estar aqui, e não em um suporte por e-mail.
+ */
+export function NewCardDialog({
+  open,
+  card = null,
+  onClose,
+}: {
+  open: boolean;
+  /** O cartão sendo corrigido, quando houver. */
+  card?: CreditCard | null;
+  onClose: () => void;
+}) {
+  const { household, effectivePlan, canAdminister } = useSession();
   const finance = useFinance();
   const collections = useCollections();
+
+  const editing = card !== null;
 
   const [name, setName] = useState("");
   const [issuer, setIssuer] = useState("");
@@ -23,8 +43,40 @@ export function NewCardDialog({ open, onClose }: { open: boolean; onClose: () =>
   const [dueDay, setDueDay] = useState("5");
   const [visibility, setVisibility] = useState("HOUSEHOLD");
   const [holderMemberId, setHolderMemberId] = useState("");
+  const [archived, setArchived] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  // Abrir o diálogo é o que traz os dados: sem isto, corrigir um cartão depois
+  // de outro mostraria os números do anterior.
+  useEffect(() => {
+    if (!open) return;
+
+    setError(null);
+    setConfirmingDelete(false);
+
+    if (!card) {
+      setName("");
+      setIssuer("");
+      setLimitText("");
+      setClosingDay("25");
+      setDueDay("5");
+      setVisibility("HOUSEHOLD");
+      setHolderMemberId("");
+      setArchived(false);
+      return;
+    }
+
+    setName(card.name);
+    setIssuer(card.issuer ?? "");
+    setLimitText((card.creditLimit.amount / 100).toFixed(2).replace(".", ","));
+    setClosingDay(String(card.closingDay));
+    setDueDay(String(card.dueDay));
+    setVisibility(card.visibility);
+    setHolderMemberId(card.holderMemberId ?? "");
+    setArchived(card.archived);
+  }, [open, card]);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -33,11 +85,14 @@ export function NewCardDialog({ open, onClose }: { open: boolean; onClose: () =>
 
     // O teto do plano é checado antes de qualquer validação de formulário: não
     // faz sentido pedir para alguém corrigir um campo de um cartão que não vai
-    // caber de qualquer jeito.
-    const room = canAddOne("creditCards", effectivePlan, finance.cards.length);
-    if (!room.allowed) {
-      setError(room.message);
-      return;
+    // caber de qualquer jeito. Só vale para cartão novo — corrigir um cartão
+    // que já existe não aumenta a contagem.
+    if (!card) {
+      const room = canAddOne("creditCards", effectivePlan, finance.cards.length);
+      if (!room.allowed) {
+        setError(room.message);
+        return;
+      }
     }
 
     const creditLimit = fromDecimalString(limitText);
@@ -63,19 +118,24 @@ export function NewCardDialog({ open, onClose }: { open: boolean; onClose: () =>
 
     setSaving(true);
     try {
-      await collections.creditCards.create({
-        householdId: household.id,
+      const fields = {
         name: name.trim(),
         issuer: issuer.trim() || undefined,
         creditLimit,
         closingDay: closing,
         dueDay: due,
         visibility: visibility as never,
-        ...(holderMemberId ? { holderMemberId } : {}),
-        archived: false,
-      } as never);
-      setName("");
-      setLimitText("");
+        // `null` apaga o campo de verdade; `undefined` sairia do payload e
+        // deixaria o titular antigo no documento.
+        holderMemberId: card ? holderMemberId || null : holderMemberId || undefined,
+        archived: card ? archived : false,
+      };
+
+      if (card) {
+        await collections.creditCards.update(card.id, fields as never);
+      } else {
+        await collections.creditCards.create({ householdId: household.id, ...fields } as never);
+      }
       onClose();
     } catch (saveError) {
       console.error(saveError);
@@ -85,12 +145,35 @@ export function NewCardDialog({ open, onClose }: { open: boolean; onClose: () =>
     }
   }
 
+  async function onDelete() {
+    if (!card) return;
+    setError(null);
+    setSaving(true);
+    try {
+      await collections.creditCards.remove(card.id);
+      onClose();
+    } catch (deleteError) {
+      console.error(deleteError);
+      setError("Não foi possível excluir agora. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const purchaseCount = card
+    ? finance.cardPurchases.filter((purchase) => purchase.creditCardId === card.id).length
+    : 0;
+
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Novo cartão"
-      description="As datas de fechamento e vencimento definem em qual fatura cada compra entra."
+      title={editing ? "Editar cartão" : "Novo cartão"}
+      description={
+        editing
+          ? "Corrigir o fechamento ou o vencimento remonta as faturas: as compras passam a cair no mês certo."
+          : "As datas de fechamento e vencimento definem em qual fatura cada compra entra."
+      }
     >
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         {error ? <FormError>{error}</FormError> : null}
@@ -159,6 +242,19 @@ export function NewCardDialog({ open, onClose }: { open: boolean; onClose: () =>
           ]}
         />
 
+        {editing ? (
+          <SelectField
+            label="Situação"
+            value={archived ? "ARCHIVED" : "ACTIVE"}
+            onChange={(event) => setArchived(event.target.value === "ARCHIVED")}
+            options={[
+              { value: "ACTIVE", label: "Em uso" },
+              { value: "ARCHIVED", label: "Arquivado (cartão cancelado)" },
+            ]}
+            hint="Arquivar tira o cartão das listas de escolha sem apagar compra nenhuma."
+          />
+        ) : null}
+
         <div className="flex gap-2 pt-2">
           <Button type="submit" className="flex-1" disabled={saving}>
             {saving ? "Salvando…" : "Salvar"}
@@ -167,6 +263,48 @@ export function NewCardDialog({ open, onClose }: { open: boolean; onClose: () =>
             Cancelar
           </Button>
         </div>
+
+        {editing && canAdminister ? (
+          <div className="border-t border-[color:var(--card-border)] pt-4">
+            {confirmingDelete ? (
+              <Callout tone="critical" title="Excluir este cartão?">
+                <p className="text-sm">
+                  {purchaseCount > 0
+                    ? `${purchaseCount} ${purchaseCount === 1 ? "compra registrada ficaria" : "compras registradas ficariam"} sem cartão. Arquivar mantém o histórico das faturas e tira o cartão das listas — é quase sempre o que você quer.`
+                    : "Nenhuma compra aponta para este cartão, então excluir não deixa buraco no histórico."}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void onDelete()}
+                    disabled={saving}
+                  >
+                    Excluir mesmo assim
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setConfirmingDelete(false)}
+                    disabled={saving}
+                  >
+                    Manter
+                  </Button>
+                </div>
+              </Callout>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-xs"
+                onClick={() => setConfirmingDelete(true)}
+                disabled={saving}
+              >
+                Excluir cartão
+              </Button>
+            )}
+          </div>
+        ) : null}
       </form>
     </Modal>
   );

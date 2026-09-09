@@ -19,6 +19,7 @@ import {
   computeLimitStatus,
   splitStatements,
   type CardStatement,
+  type CreditCard,
 } from "@/modules/cards/domain/credit-card";
 import { BillingCalendarCard } from "@/modules/cards/ui/billing-calendar-card";
 import { CommittedMonthsCard } from "@/modules/cards/ui/committed-months-card";
@@ -43,6 +44,7 @@ export default function CardsPage() {
   const finance = useFinance();
   const { canWrite } = useSession();
   const [creatingCard, setCreatingCard] = useState(false);
+  const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
   const [purchaseCardId, setPurchaseCardId] = useState<string | null>(null);
   const [payingStatement, setPayingStatement] = useState<CardStatement | null>(null);
 
@@ -93,6 +95,7 @@ export default function CardsPage() {
               key={card.id}
               cardId={card.id}
               onAddPurchase={() => setPurchaseCardId(card.id)}
+              onEdit={setEditingCard}
               onPayStatement={setPayingStatement}
             />
           ))}
@@ -103,7 +106,14 @@ export default function CardsPage() {
         </>
       )}
 
-      <NewCardDialog open={creatingCard} onClose={() => setCreatingCard(false)} />
+      <NewCardDialog
+        open={creatingCard || editingCard !== null}
+        card={editingCard}
+        onClose={() => {
+          setCreatingCard(false);
+          setEditingCard(null);
+        }}
+      />
       <NewPurchaseDialog cardId={purchaseCardId} onClose={() => setPurchaseCardId(null)} />
       <PayStatementDialog statement={payingStatement} onClose={() => setPayingStatement(null)} />
     </div>
@@ -114,10 +124,12 @@ function CardSummary({
   cardId,
   onAddPurchase,
   onPayStatement,
+  onEdit,
 }: {
   cardId: string;
   onAddPurchase: () => void;
   onPayStatement: (statement: CardStatement) => void;
+  onEdit: (card: CreditCard) => void;
 }) {
   const finance = useFinance();
   const { canWrite } = useSession();
@@ -156,9 +168,19 @@ function CardSummary({
           ) : null}
         </div>
         {canWrite ? (
-          <Button variant="secondary" onClick={onAddPurchase}>
-            Nova compra
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" onClick={onAddPurchase}>
+              Nova compra
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-xs"
+              onClick={() => onEdit(card)}
+              aria-label={`Editar ${card.name}`}
+            >
+              Editar
+            </Button>
+          </div>
         ) : null}
       </div>
 
