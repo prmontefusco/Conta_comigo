@@ -191,7 +191,7 @@ export function DashboardTabs() {
               </div>
               <Link href="/app/recorrentes">
                 <Button variant="secondary" className="px-3 py-1.5 text-xs">
-                  + Adicionar Salário / Renda Extra
+                  + Adicionar Salário Líquido / Renda
                 </Button>
               </Link>
             </div>
@@ -218,13 +218,13 @@ export function DashboardTabs() {
           </Card>
 
           <Card>
-            <CardTitle hint="Fontes de renda ativas da família (salários, comissões, pró-labore)">
+            <CardTitle hint="Fontes de renda ativas da família (salário líquido na conta, comissões, pró-labore)">
               Rendas Recorrentes Cadastradas
             </CardTitle>
 
             {recurringInflows.length === 0 ? (
               <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
-                Nenhuma receita fixa cadastrada. Adicione os salários e rendas da casa em{" "}
+                Nenhuma receita fixa cadastrada. Adicione os salários líquidos e rendas da casa em{" "}
                 <Link
                   href="/app/recorrentes"
                   className="text-[color:var(--color-brand-600)] underline"

@@ -218,11 +218,17 @@ export function NewObligationDialog({
           required
           value={description}
           onChange={(event) => setDescription(event.target.value)}
-          placeholder="Conta de energia"
+          placeholder={direction === "INFLOW" ? "Salário líquido, benefício, comissão" : "Conta de energia"}
         />
 
         <MoneyField
-          label={shape === "INSTALLMENTS" ? "Valor total" : "Valor"}
+          label={
+            direction === "INFLOW"
+              ? "Valor líquido a receber"
+              : shape === "INSTALLMENTS"
+                ? "Valor total"
+                : "Valor"
+          }
           required
           value={amountText}
           onChange={(event) => setAmountText(event.target.value)}
@@ -230,7 +236,9 @@ export function NewObligationDialog({
           hint={
             shape === "INSTALLMENTS"
               ? "O valor total será dividido entre as parcelas, sem perder centavos."
-              : undefined
+              : direction === "INFLOW"
+                ? "Informe o valor líquido que efetivamente cai na conta (não utilize o valor bruto do holerite). É esse valor real que garante a projeção correta de saldo."
+                : undefined
           }
         />
 

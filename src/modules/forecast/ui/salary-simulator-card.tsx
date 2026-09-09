@@ -393,15 +393,15 @@ export function SalarySimulatorCard() {
             <p className="text-xs text-slate-600">
               O sistema simulará automaticamente a <strong>1ª parcela em 30 de Novembro</strong>{" "}
               (50%) e a <strong>2ª parcela em 20 de Dezembro</strong> (50%) com base no salário
-              informado:
+              líquido informado (o valor que efetivamente cai na conta):
             </p>
             <div className="max-w-md">
               <MoneyField
-                label="Salário Base para o 13º"
+                label="Salário Líquido Base para o 13º"
                 placeholder={formatMoney(defaultMonthlyBase)}
                 value={thirteenthSalaryText}
                 onChange={(e) => setThirteenthSalaryText(e.target.value)}
-                hint={`Padrão: ${formatMoney(defaultMonthlyBase)} (renda mensal atual)`}
+                hint={`Padrão: ${formatMoney(defaultMonthlyBase)} (salário líquido cadastrado)`}
               />
             </div>
           </div>
@@ -410,15 +410,15 @@ export function SalarySimulatorCard() {
         {mode === "VACATION" && (
           <div className="space-y-4">
             <p className="text-xs text-slate-600">
-              Simula o recebimento de <strong>1 salário + 1/3 de férias</strong> na data escolhida:
+              Simula o recebimento de <strong>1 salário líquido + 1/3 de férias</strong> na data escolhida:
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <MoneyField
-                label="Salário Base de Férias"
+                label="Salário Líquido Base de Férias"
                 placeholder={formatMoney(defaultMonthlyBase)}
                 value={vacationSalaryText}
                 onChange={(e) => setVacationSalaryText(e.target.value)}
-                hint={`Padrão: ${formatMoney(defaultMonthlyBase)}`}
+                hint={`Padrão: ${formatMoney(defaultMonthlyBase)} (salário líquido cadastrado)`}
               />
               <DateField
                 label="Data prevista de pagamento"

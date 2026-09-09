@@ -88,7 +88,7 @@ export default function DashboardPage() {
                   2. Sua Renda Mensal
                 </h3>
                 <p className="text-2xs mt-1" style={{ color: "var(--muted-fg)" }}>
-                  Salário, pró-labore ou renda extra que entra todo mês.
+                  Salário líquido (o que cai na conta), pró-labore ou renda extra.
                 </p>
               </div>
               <span className="mt-3 text-xs font-bold text-[color:var(--color-brand-600)]">

@@ -26,10 +26,10 @@ export default function OnboardingPage() {
     {
       id: "income",
       href: "/app/recorrentes",
-      title: "Cadastre sua renda",
+      title: "Cadastre sua renda (salário líquido)",
       essential: true,
       description:
-        "Salário, benefício, bico, comissão ou renda variável. Pode começar com uma estimativa.",
+        "Salário líquido que efetivamente cai na sua conta, benefício, bico ou pró-labore. Nunca utilize o valor bruto do holerite.",
       unlocks: "Mostra quanto costuma entrar e até onde um acordo pode ir sem estourar o mês.",
       done: finance.recurringRules.some((rule) => rule.direction === "INFLOW"),
     },

@@ -65,6 +65,7 @@ export default function RecurringPage() {
         title="Como Lidar com Renda e Despesas Variáveis"
         description="Contas como água, luz e gás mudam de valor todo mês. Calibrar sua projeção pela média recente é o que mantém o fluxo de caixa realista."
         tips={[
+          "Salário na projeção: cadastre sempre o valor líquido que efetivamente cai na sua conta bancária (nunca o valor bruto do holerite).",
           "Contas variáveis (água, luz, gás): cadastre a regra com a média dos últimos meses e confira a sugestão de calibração automática abaixo.",
           "Calibre suas despesas essenciais pelo seu mês mais baixo: viva com o valor mínimo seguro para nunca depender de comissões incertas.",
           "Nos meses de renda alta ou faturas menores: use o excedente para fortalecer sua Reserva de Respiro.",
@@ -76,7 +77,7 @@ export default function RecurringPage() {
         <Card>
           <EmptyState
             title="Nenhuma recorrência cadastrada"
-            description="Salário, aluguel, internet, escola. São elas que permitem projetar os próximos meses."
+            description="Salário líquido na conta, aluguel, internet, escola. São elas que permitem projetar os próximos meses com precisão."
             action={
               canWrite ? (
                 <Button onClick={() => setCreating(true)}>Nova recorrência</Button>

@@ -46,7 +46,7 @@ export default function AccountsPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Contas e saldos</h1>
+        <h1 className="text-xl font-semibold">Informações bancárias e Saldos</h1>
         {canWrite ? <Button onClick={() => setCreating(true)}>Nova conta</Button> : null}
       </div>
 

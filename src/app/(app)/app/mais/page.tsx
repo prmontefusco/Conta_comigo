@@ -29,7 +29,7 @@ const SECTIONS = [
     title: "Dinheiro",
     items: [
       { href: "/app/dia-a-dia", label: "Gastos e recebimentos do dia a dia", icon: "🧾" },
-      { href: "/app/contas-bancarias", label: "Contas e saldos", icon: "🏦" },
+      { href: "/app/contas-bancarias", label: "Informações bancárias e Saldos", icon: "🏦" },
       { href: "/app/reservas", label: "Reservas e metas", icon: "🛟" },
     ],
   },

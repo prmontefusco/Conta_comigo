@@ -281,7 +281,7 @@ export default function SuperendividamentoPage() {
 
           {/* Seção 1: Renda e Dependentes */}
           <Card>
-            <CardTitle hint="Informe os rendimentos comprováveis da família em holerites ou extratos.">
+            <CardTitle hint="Atenção: informe o salário LÍQUIDO que cai na conta bancária, e não o valor bruto do holerite.">
               1. Renda Familiar e Contexto
             </CardTitle>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -289,7 +289,7 @@ export default function SuperendividamentoPage() {
                 label="Renda Líquida Mensal Total"
                 value={rendaText}
                 onChange={(e) => setRendaText(e.target.value)}
-                hint="Salário líquido recebido em conta, sem descontos facultativos."
+                hint="Valor que efetivamente cai na conta bancária (líquido real, após descontos obrigatórios de INSS e IRRF)."
               />
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted-fg)" }}>

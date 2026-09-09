@@ -276,7 +276,7 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
       title={isIncome ? "Registrar recebimento" : "Registrar gasto"}
       description={
         isIncome
-          ? "O que já caiu na sua conta: salário, diária, comissão, aluguel recebido."
+          ? "O valor líquido que efetivamente caiu na conta: salário, diária, comissão ou benefício."
           : "Mercado, combustível, farmácia, estacionamento — o que você gastou hoje."
       }
     >
@@ -307,16 +307,28 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
             required
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder={isIncome ? "Salário de agosto" : "Mercado"}
+            placeholder={isIncome ? "Salário líquido na conta" : "Mercado"}
           />
 
           <MoneyField
-            label={card && parts > 1 ? "Valor total" : "Valor"}
+            label={
+              card && parts > 1
+                ? "Valor total"
+                : isIncome
+                  ? "Valor líquido recebido"
+                  : "Valor"
+            }
             required
             value={amountText}
             onChange={(event) => setAmountText(event.target.value)}
             placeholder="0,00"
-            hint={card && parts > 1 ? "O valor cheio da compra, não o da parcela." : undefined}
+            hint={
+              card && parts > 1
+                ? "O valor cheio da compra, não o da parcela."
+                : isIncome
+                  ? "Informe o valor líquido que caiu na sua conta (não o valor bruto do holerite)."
+                  : undefined
+            }
           />
 
           <div className="grid grid-cols-2 gap-4">

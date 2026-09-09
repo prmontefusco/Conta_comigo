@@ -53,14 +53,14 @@ const DESKTOP_NAV_SECTIONS: readonly NavSection[] = [
   {
     title: "Dia a Dia & Contas",
     items: [
-      { href: "/app/dia-a-dia", label: "Lançamentos", icon: "🧾" },
-      { href: "/app/contas", label: "Contas a Pagar", icon: "📄" },
       {
         href: "/app/contas-bancarias",
-        label: "Contas e saldos",
+        label: "Informações bancárias e Saldos",
         icon: "🏦",
         restrictedForDependent: true,
       },
+      { href: "/app/dia-a-dia", label: "Lançamentos", icon: "🧾" },
+      { href: "/app/contas", label: "Contas a Pagar", icon: "📄" },
       { href: "/app/cartoes", label: "Cartões", icon: "💳", restrictedForDependent: true },
       {
         href: "/app/recorrentes",
