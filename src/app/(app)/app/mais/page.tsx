@@ -7,6 +7,7 @@ import { formatDays, usePlanEndDate, usePlanStatus } from "@/modules/billing/ui/
 import { useSession } from "@/modules/household/ui/session-provider";
 import { ROLE_LABELS } from "@/modules/household/domain/household";
 import { navSectionsFor } from "@/modules/shared/ui/app-nav";
+import { PWAInstallCard } from "@/components/pwa-install-prompt";
 
 /**
  * O menu do celular.
@@ -69,6 +70,8 @@ export default function MorePage() {
           </div>
         </dl>
       </Card>
+
+      <PWAInstallCard />
 
       {sections.map((section) => (
         <Card key={section.title}>

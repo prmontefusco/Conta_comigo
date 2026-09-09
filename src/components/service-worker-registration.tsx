@@ -15,7 +15,9 @@ import { useEffect } from "react";
  */
 export function ServiceWorkerRegistration() {
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production") return;
+    const isProd = process.env.NODE_ENV === "production";
+    const isExplicitlyEnabled = process.env.NEXT_PUBLIC_ENABLE_PWA === "true";
+    if (!isProd && !isExplicitlyEnabled) return;
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
 
     const register = () => {

@@ -24,7 +24,14 @@ const SHELL_CACHE = `conta-comigo-shell-${VERSION}`;
 const ASSET_CACHE = `conta-comigo-assets-${VERSION}`;
 
 const OFFLINE_URL = "/offline";
-const SHELL = [OFFLINE_URL, "/icon-192.png", "/icon-512.png", "/favicon.ico"];
+const SHELL = [
+  OFFLINE_URL,
+  "/icon-192.png",
+  "/icon-512.png",
+  "/apple-icon.png",
+  "/favicon.ico",
+  "/manifest.webmanifest",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

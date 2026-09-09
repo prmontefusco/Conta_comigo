@@ -4,6 +4,7 @@ import { isIndexable } from "@/lib/seo";
 import { JsonLd, buildOrganizationSchema, buildWebSiteSchema } from "@/lib/json-ld";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 
 /**
  * Inter, servido do próprio repositório.
@@ -74,12 +75,18 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Conta comigo",
   },
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/icon.png", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
       { url: "/favicon.ico", sizes: "32x32" },
     ],
-    apple: [{ url: "/apple-icon.png", type: "image/png" }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
   },
   robots: {
     index: isIndexable(),
@@ -116,6 +123,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           Ir para o conteúdo
         </a>
         {children}
+        <PWAInstallPrompt />
         <ServiceWorkerRegistration />
       </body>
     </html>

@@ -8,6 +8,7 @@ import { Button, Callout, Card, CardTitle } from "@/components/ui/primitives";
 import { FormError, SelectField, TextField } from "@/components/ui/form";
 import { getDb } from "@/lib/firebase/client";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { PWAInstallCard } from "@/components/pwa-install-prompt";
 
 const TIMEZONES = [
   "America/Sao_Paulo",
@@ -128,6 +129,8 @@ export default function SettingsPage() {
           ) : null}
         </form>
       </Card>
+
+      <PWAInstallCard />
 
       <Card>
         <CardTitle>Seus dados</CardTitle>
