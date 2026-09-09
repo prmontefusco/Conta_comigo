@@ -130,24 +130,27 @@ env:
     value: "10999" # R$ 109,99 por ano (equivale a ~R$ 9,17/mês)
     availability: [RUNTIME]
 
-  # ── Consultoria com IA e leitura de comprovante ─────────────────────────────
+  # ── Consultoria com IA e leitura de documentos ──────────────────────────────
   # RUNTIME apenas. Uma chave de modelo em BUILD acabaria no bundle servido ao
   # navegador, e quem a tivesse gastaria a cota em seu nome.
   #
   # Ausente → a consultoria responde pelo motor determinístico local, sem custo
   # por token. É degradação silenciosa e intencional: o produto continua de pé.
   #
-  # A mesma chave habilita a leitura de comprovante por foto. Essa não tem
-  # motor local: sem a chave, a tela responde que a leitura está indisponível e
-  # a pessoa digita os dados, como sempre pôde.
+  # A mesma chave habilita as quatro leituras por arquivo: comprovante por foto,
+  # boleto e fatura, extrato bancário e contrato de empréstimo. Essas não têm
+  # motor local — sem a chave, a tela responde que a leitura está indisponível
+  # e a pessoa digita os dados, como sempre pôde.
   #
-  # Crie o segredo antes de descomentar:
+  # O segredo vive no Secret Manager e é referenciado aqui; criar um sem
+  # declarar nesta lista não o entrega ao backend, e declarar um que não existe
+  # faz o rollout falhar. Para trocar o valor:
   #   npx firebase apphosting:secrets:set GEMINI_API_KEY
-  #
-  # - variable: GEMINI_API_KEY
-  #   secret: GEMINI_API_KEY
-  #   availability: [RUNTIME]
-  #
+  #   npx firebase apphosting:secrets:grantaccess GEMINI_API_KEY --backend conta-comigo
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+    availability: [RUNTIME]
+
   # Trocar de modelo não deve exigir reimplantar código — só editar isto.
   # Confirme o nome na documentação do provedor antes de ligar: um modelo
   # inexistente cai no motor local e registra o status 404 no log.
