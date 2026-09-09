@@ -416,9 +416,15 @@ function buildActionPlan(finance: FinanceData) {
     finance.reserves,
     finance.forecast.summary.committedOutflows,
   );
+  // Só o que se repete e é confiável conta como renda.
+  //
+  // Este número vira a parcela oferecida a credores, num módulo cuja razão de
+  // existir é provar que a renda não cobre o mínimo existencial. Um "meu irmão
+  // me paga R$ 300 dia 20", anotado como plano, inflaria a capacidade de
+  // pagamento e trabalharia contra a própria pessoa.
   const income = sum(
     finance.forecast.events
-      .filter((event) => event.direction === "INFLOW")
+      .filter((event) => event.direction === "INFLOW" && event.confidence === "CONFIRMED")
       .map((event) => event.amount),
   );
   const essentials = sum(
@@ -654,9 +660,21 @@ function buildServiceReport(finance: FinanceData, availableCash: Money) {
 
 function proposalCapacityFromFinance(finance: FinanceData) {
   const months = finance.forecast.months.filter((month) => !month.isPartial);
+  const wholeMonthKeys = new Set(months.map((month) => month.month));
+
+  // Renda é o que entra com regularidade e confiança — pelo mesmo motivo da
+  // outra conta de capacidade acima: `expectedInflows` do mês incluiria um
+  // recebimento pontual só planejado, e essa diferença chega ao credor como
+  // uma proposta que a pessoa não tem como cumprir.
+  const confirmedInflows = finance.forecast.events.filter(
+    (event) =>
+      event.direction === "INFLOW" &&
+      event.confidence === "CONFIRMED" &&
+      wholeMonthKeys.has(event.competenceMonth),
+  );
   const income = money(
     Math.round(
-      months.reduce((total, month) => total + month.expectedInflows.amount, 0) /
+      confirmedInflows.reduce((total, event) => total + event.amount.amount, 0) /
         Math.max(1, months.length),
     ),
   );

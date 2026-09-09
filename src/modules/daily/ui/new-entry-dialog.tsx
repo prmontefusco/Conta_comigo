@@ -18,6 +18,7 @@ import { Button, Callout } from "@/components/ui/primitives";
 import { DateField, FormError, MoneyField, SelectField, TextField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
 import { dueDateFor, statementMonthForPurchase } from "@/modules/cards/domain/credit-card";
+import type { DailyEntry } from "@/modules/daily/domain/daily-entries";
 import { MemberField } from "@/modules/household/ui/member-field";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
@@ -28,12 +29,12 @@ import {
 import { useCollections } from "@/modules/shared/ui/use-collections";
 
 /**
- * Recording what actually happened today.
+ * Recording — and correcting — what actually happened.
  *
  * One dialog for both directions because the questions are almost the same,
  * and because the household's day is one sequence of events, not two screens.
  *
- * Two decisions are worth stating:
+ * Three decisions are worth stating:
  *
  * - Paying with a card does not create an expense transaction. It creates a
  *   purchase, which is consumption today and cash on a fatura later. Writing
@@ -42,6 +43,13 @@ import { useCollections } from "@/modules/shared/ui/use-collections";
  *   it repeats, the rule that feeds the projection starts at the *next*
  *   occurrence, never at this one - otherwise today's salary would be
  *   projected again as if it were still to come.
+ * - Corrigir usa este mesmo formulário. Um valor digitado errado vira saldo
+ *   errado no mesmo instante, e o conserto precisa estar onde a pessoa
+ *   percebeu o erro: na própria lista do dia a dia. O que a edição **não**
+ *   faz é trocar dinheiro em conta por compra no crédito — são dois
+ *   documentos diferentes, e converter um no outro em silêncio é a forma mais
+ *   fácil de duplicar um gasto. Para isso, a tela pede para excluir e lançar
+ *   de novo.
  */
 
 type Mode = "EXPENSE" | "INCOME";
@@ -57,16 +65,38 @@ const REPEAT_OPTIONS = [
 
 type Repeat = (typeof REPEAT_OPTIONS)[number]["value"];
 
-export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: () => void }) {
+export function NewEntryDialog({
+  mode,
+  entry = null,
+  onClose,
+}: {
+  /** `EXPENSE` ou `INCOME` para um lançamento novo; `null` quando o diálogo está fechado ou editando. */
+  mode: Mode | null;
+  /** O lançamento sendo corrigido, quando houver. */
+  entry?: DailyEntry | null;
+  onClose: () => void;
+}) {
   const { accounts, cards, categories, asOf } = useFinance();
   const { household } = useSession();
   const collections = useCollections();
+
+  const editing = entry !== null;
+  const open = mode !== null || editing;
+
+  // Ao editar, a direção vem do próprio lançamento.
+  const effectiveMode: Mode = entry
+    ? entry.direction === "IN"
+      ? "INCOME"
+      : "EXPENSE"
+    : (mode ?? "EXPENSE");
+  const isIncome = effectiveMode === "INCOME";
+  const editingCardPurchase = entry?.kind === "CARD_PURCHASE";
 
   const openAccounts = useMemo(() => accounts.filter((account) => !account.archived), [accounts]);
   const openCards = useMemo(() => cards.filter((card) => !card.archived), [cards]);
 
   const relevantCategories = categories.filter((category) =>
-    mode === "INCOME" ? category.kind === "INCOME" : category.kind === "EXPENSE",
+    isIncome ? category.kind === "INCOME" : category.kind === "EXPENSE",
   );
 
   const [description, setDescription] = useState("");
@@ -81,29 +111,47 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
   const [repeat, setRepeat] = useState<Repeat>("NONE");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const defaultPaidWith =
-    mode === "INCOME"
-      ? openAccounts[0]
-        ? `conta:${openAccounts[0].id}`
-        : ""
-      : (openAccounts[0] && `conta:${openAccounts[0].id}`) ||
-        (openCards[0] && `cartao:${openCards[0].id}`) ||
-        "";
+  const defaultPaidWith = isIncome
+    ? openAccounts[0]
+      ? `conta:${openAccounts[0].id}`
+      : ""
+    : (openAccounts[0] && `conta:${openAccounts[0].id}`) ||
+      (openCards[0] && `cartao:${openCards[0].id}`) ||
+      "";
 
   useEffect(() => {
-    if (!mode) return;
-    setDescription("");
-    setAmountText("");
-    setDate(asOf);
-    setPaidWith(defaultPaidWith);
-    setInstallments("1");
-    setCategoryId("");
-    setMemberId("");
-    setVisibility("HOUSEHOLD");
-    setRepeat("NONE");
+    if (!open) return;
+
     setError(null);
-  }, [mode, asOf, defaultPaidWith]);
+    setConfirmingDelete(false);
+
+    if (!entry) {
+      setDescription("");
+      setAmountText("");
+      setDate(asOf);
+      setPaidWith(defaultPaidWith);
+      setInstallments("1");
+      setCategoryId("");
+      setMemberId("");
+      setVisibility("HOUSEHOLD");
+      setRepeat("NONE");
+      return;
+    }
+
+    setDescription(entry.description);
+    setAmountText((entry.amount.amount / 100).toFixed(2).replace(".", ","));
+    setDate(entry.date);
+    setPaidWith(
+      entry.creditCardId ? `cartao:${entry.creditCardId}` : `conta:${entry.accountId ?? ""}`,
+    );
+    setInstallments(String(entry.installmentCount ?? 1));
+    setCategoryId(entry.categoryId ?? "");
+    setMemberId(entry.responsibleMemberId ?? "");
+    setVisibility(entry.visibility);
+    setRepeat("NONE");
+  }, [open, entry, asOf, defaultPaidWith]);
 
   const card = paidWith.startsWith("cartao:")
     ? openCards.find((item) => item.id === paidWith.slice("cartao:".length))
@@ -122,24 +170,41 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
         })
       : null;
 
-  if (!mode) return null;
+  if (!open) return null;
 
-  const isIncome = mode === "INCOME";
   const hasSomewhereToPutIt = isIncome ? openAccounts.length > 0 : paidWithOptions().length > 0;
 
+  /** A data escolhida ainda não chegou: o que se está registrando é um plano. */
+  const planning = !editing && purchaseDate !== null && purchaseDate > asOf;
+
+  /**
+   * Este lançamento nasceu da confirmação de uma conta.
+   *
+   * Editá-lo aqui mexeria só na transação e deixaria a obrigação dizendo que
+   * foi paga por um valor que não existe mais. Excluí-lo deixaria a conta
+   * quitada e o dinheiro fora do saldo, sem nada apontando o erro.
+   */
+  const fromSettlement = Boolean(entry?.settlesObligationId);
+
+  /**
+   * Onde o dinheiro pode estar.
+   *
+   * Ao corrigir, a lista fica restrita ao tipo do próprio lançamento: uma
+   * compra no crédito e uma saída de conta são documentos diferentes, e trocar
+   * um pelo outro aqui criaria uma segunda forma de gravar o mesmo gasto.
+   */
   function paidWithOptions() {
-    return [
-      ...openAccounts.map((account) => ({
-        value: `conta:${account.id}`,
-        label: isIncome ? account.name : `${account.name} (dinheiro em conta)`,
-      })),
-      ...(isIncome
-        ? []
-        : openCards.map((item) => ({
-            value: `cartao:${item.id}`,
-            label: `${item.name} (crédito)`,
-          }))),
-    ];
+    const accountOptions = openAccounts.map((account) => ({
+      value: `conta:${account.id}`,
+      label: isIncome ? account.name : `${account.name} (dinheiro em conta)`,
+    }));
+    const cardOptions = openCards.map((item) => ({
+      value: `cartao:${item.id}`,
+      label: `${item.name} (crédito)`,
+    }));
+
+    if (editing) return editingCardPurchase ? cardOptions : accountOptions;
+    return isIncome ? accountOptions : [...accountOptions, ...cardOptions];
   }
 
   /**
@@ -183,6 +248,15 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
       setError("Informe uma data válida.");
       return;
     }
+    // Corrigir a data para o futuro transformaria um fato em plano, e são
+    // documentos diferentes — o mesmo motivo pelo qual não se troca conta por
+    // cartão aqui.
+    if (editing && when > asOf) {
+      setError(
+        "A data não pode ficar no futuro. Se este lançamento ainda não aconteceu, exclua e registre como planejado.",
+      );
+      return;
+    }
     if (!isIncome && !card && !accountId) {
       setError("Escolha de onde saiu o dinheiro.");
       return;
@@ -199,10 +273,51 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
       setError("O número de parcelas precisa estar entre 1 e 120.");
       return;
     }
+    // Uma compra no crédito com data futura não tem como virar compromisso
+    // genérico: ela pertence a uma fatura, e uma obrigação avulsa seria paga de
+    // uma conta — contando o mesmo gasto duas vezes quando a fatura chegasse.
+    if (!editing && card && when > asOf) {
+      setError(
+        "Ainda não dá para registrar uma compra futura no cartão. Registre no dia em que ela acontecer.",
+      );
+      return;
+    }
 
     setSaving(true);
     try {
-      if (card) {
+      if (editing && entry) {
+        await saveCorrection(entry, when);
+      } else if (when > asOf) {
+        // Ainda não aconteceu, então ainda não é dinheiro.
+        //
+        // Gravar uma transação com data futura produzia a contradição que esta
+        // mudança existe para desfazer: o valor entrava nos totais do mês como
+        // realizado, ficava fora do saldo — que corta por data — e era
+        // invisível para a projeção, que não lê transações. Vira compromisso,
+        // que é o que o aplicativo já sabe representar e projetar.
+        //
+        // `ESTIMATED` e `OCCASIONAL` porque é um plano avulso, não renda fixa:
+        // o cálculo da capacidade de pagamento oferecida a credores só pode
+        // contar com o que se repete.
+        await collections.obligations.create({
+          householdId: household.id,
+          direction: isIncome ? "INFLOW" : "OUTFLOW",
+          origin: "MANUAL",
+          description: description.trim(),
+          amount,
+          dueDate: when,
+          competenceDate: when,
+          ...(categoryId ? { categoryId } : {}),
+          ...(accountId ? { expectedAccountId: accountId } : {}),
+          expenseNature: "OCCASIONAL",
+          confidence: "ESTIMATED",
+          visibility: visibility as never,
+          ...(memberId ? { responsibleMemberId: memberId } : {}),
+          status: "SCHEDULED",
+          settledAmount: { amount: 0, currency: amount.currency },
+          settlementTransactionIds: [],
+        } as never);
+      } else if (card) {
         await collections.cardPurchases.create({
           householdId: household.id,
           creditCardId: card.id,
@@ -232,7 +347,7 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
         } as never);
       }
 
-      if (isIncome && repeat !== "NONE") {
+      if (!editing && isIncome && repeat !== "NONE") {
         const nextStart = nextOccurrenceAfter(when, repeat);
         const { day, month } = partsOf(nextStart);
 
@@ -269,18 +384,107 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
     }
   }
 
+  /**
+   * Grava a correção no documento que já existe.
+   *
+   * A data de competência acompanha a data do lançamento: quem corrige o dia
+   * de um gasto está dizendo em que mês ele deveria estar, e deixar a
+   * competência para trás manteria o gasto no mês errado dos relatórios.
+   */
+  async function saveCorrection(current: DailyEntry, when: CalendarDate) {
+    if (!amount) return;
+
+    if (current.kind === "CARD_PURCHASE") {
+      await collections.cardPurchases.update(current.id, {
+        ...(card ? { creditCardId: card.id } : {}),
+        description: description.trim(),
+        totalAmount: amount,
+        purchaseDate: when,
+        competenceDate: when,
+        categoryId,
+        installmentCount: parts,
+        visibility: visibility as never,
+        responsibleMemberId: memberId || null,
+      } as never);
+      return;
+    }
+
+    await collections.transactions.update(current.id, {
+      amount,
+      transactionDate: when,
+      competenceDate: when,
+      description: description.trim(),
+      visibility: visibility as never,
+      ...(accountId ? { accountId } : {}),
+      // Uma receita pode legitimamente ficar sem categoria, e `null` é o que
+      // apaga o campo — `undefined` deixaria a categoria antiga no documento.
+      // Numa despesa este valor nunca é vazio: a validação acima exige uma.
+      categoryId: categoryId || null,
+      responsibleMemberId: memberId || null,
+    } as never);
+  }
+
+  async function onDelete() {
+    if (!entry) return;
+    setError(null);
+    setSaving(true);
+    try {
+      if (entry.kind === "CARD_PURCHASE") await collections.cardPurchases.remove(entry.id);
+      else await collections.transactions.remove(entry.id);
+      onClose();
+    } catch (deleteError) {
+      console.error(deleteError);
+      setError("Não foi possível excluir agora. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <Modal
-      open={Boolean(mode)}
+      open={open}
       onClose={onClose}
-      title={isIncome ? "Registrar recebimento" : "Registrar gasto"}
+      title={
+        editing
+          ? isIncome
+            ? "Corrigir recebimento"
+            : "Corrigir gasto"
+          : planning
+            ? isIncome
+              ? "Planejar recebimento"
+              : "Planejar gasto"
+            : isIncome
+              ? "Registrar recebimento"
+              : "Registrar gasto"
+      }
       description={
-        isIncome
-          ? "O valor líquido que efetivamente caiu na conta: salário, diária, comissão ou benefício."
-          : "Mercado, combustível, farmácia, estacionamento — o que você gastou hoje."
+        editing
+          ? "Ajuste o que estiver errado. A correção vale na hora para saldo, relatórios e projeção."
+          : planning
+            ? "A data escolhida ainda não chegou, então isto entra como plano."
+            : isIncome
+              ? "O valor líquido que efetivamente caiu na conta: salário, diária, comissão ou benefício."
+              : "Mercado, combustível, farmácia, estacionamento — o que você gastou hoje."
       }
     >
-      {!hasSomewhereToPutIt ? (
+      {fromSettlement ? (
+        <div className="space-y-4">
+          <Callout tone="attention" title="Este lançamento veio de uma conta">
+            Ele foi criado quando você confirmou {isIncome ? "o recebimento" : "o pagamento"} de{" "}
+            <strong>{entry?.description}</strong>. Corrigir ou excluir por aqui mexeria só na metade
+            do registro e deixaria a conta dizendo que foi {isIncome ? "recebida" : "paga"} por um
+            valor que não existe mais.
+          </Callout>
+          <div className="flex gap-2">
+            <Link href="/app/contas" className="flex-1">
+              <Button className="w-full">Abrir Contas</Button>
+            </Link>
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Fechar
+            </Button>
+          </div>
+        </div>
+      ) : !hasSomewhereToPutIt ? (
         <div className="space-y-4">
           <Callout tone="attention" title="Falta cadastrar onde o dinheiro está">
             Para registrar {isIncome ? "um recebimento" : "um gasto"} é preciso ter ao menos uma
@@ -300,7 +504,7 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           {error ? <FormError>{error}</FormError> : null}
 
-          {!isIncome ? <ReceiptScanButton onRead={applyReading} /> : null}
+          {!isIncome && !editing ? <ReceiptScanButton onRead={applyReading} /> : null}
 
           <TextField
             label="Descrição"
@@ -312,11 +516,7 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
 
           <MoneyField
             label={
-              card && parts > 1
-                ? "Valor total"
-                : isIncome
-                  ? "Valor líquido recebido"
-                  : "Valor"
+              card && parts > 1 ? "Valor total" : isIncome ? "Valor líquido recebido" : "Valor"
             }
             required
             value={amountText}
@@ -358,9 +558,13 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
             onChange={(event) => setPaidWith(event.target.value)}
             options={paidWithOptions()}
             hint={
-              card
-                ? "Compras no crédito entram na fatura; o dinheiro sai só no pagamento dela."
-                : undefined
+              editing
+                ? editingCardPurchase
+                  ? "Para mover esta compra para uma conta, exclua aqui e registre de novo — são registros diferentes."
+                  : "Para mover este lançamento para o cartão de crédito, exclua aqui e registre de novo — são registros diferentes."
+                : card
+                  ? "Compras no crédito entram na fatura; o dinheiro sai só no pagamento dela."
+                  : undefined
             }
           />
 
@@ -378,7 +582,7 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
             ]}
           />
 
-          {isIncome ? (
+          {isIncome && !editing ? (
             <SelectField
               label="Esse recebimento se repete?"
               value={repeat}
@@ -428,14 +632,73 @@ export function NewEntryDialog({ mode, onClose }: { mode: Mode | null; onClose: 
             </Callout>
           ) : null}
 
+          {planning ? (
+            <Callout
+              tone="info"
+              title={
+                isIncome ? "Isto ainda não é dinheiro em conta" : "Isto ainda não saiu da conta"
+              }
+            >
+              <span className="text-sm">
+                {isIncome
+                  ? "Vai entrar como previsto: aparece na projeção e em Contas a receber, mas não no saldo nem em “Entrou”. Quando cair, você confirma o valor que realmente entrou — que pode ser diferente deste."
+                  : "Vai entrar como conta a pagar: aparece na projeção e em Contas, mas não sai do saldo. Quando pagar, você confirma o valor real."}
+              </span>
+            </Callout>
+          ) : null}
+
           <div className="flex gap-2 pt-2">
             <Button type="submit" className="flex-1" disabled={saving}>
-              {saving ? "Salvando…" : "Salvar"}
+              {saving ? "Salvando…" : planning ? "Planejar" : "Salvar"}
             </Button>
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancelar
             </Button>
           </div>
+
+          {editing ? (
+            <div className="border-t border-[color:var(--card-border)] pt-4">
+              {confirmingDelete ? (
+                <Callout tone="critical" title="Excluir este lançamento?">
+                  <p className="text-sm">
+                    Ele sai do saldo, dos relatórios e da projeção na mesma hora. Não dá para
+                    desfazer.
+                    {entry?.kind === "CARD_PURCHASE" && (entry.installmentCount ?? 1) > 1
+                      ? " Todas as parcelas desta compra saem junto."
+                      : ""}
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => void onDelete()}
+                      disabled={saving}
+                    >
+                      Excluir
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setConfirmingDelete(false)}
+                      disabled={saving}
+                    >
+                      Manter
+                    </Button>
+                  </div>
+                </Callout>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-xs"
+                  onClick={() => setConfirmingDelete(true)}
+                  disabled={saving}
+                >
+                  Excluir lançamento
+                </Button>
+              )}
+            </div>
+          ) : null}
         </form>
       )}
     </Modal>

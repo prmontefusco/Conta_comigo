@@ -179,6 +179,37 @@ export function asEmail(
   return testEnv.authenticatedContext(uid, { email, email_verified: emailVerified });
 }
 
+/**
+ * Uma obrigação nova e válida, para o teste variar só o que ele quer testar.
+ *
+ * O padrão é INFLOW porque é o caso que a confirmação de recebimento
+ * introduziu: uma obrigação de entrada criada a partir do Dia a dia ou
+ * materializada de uma regra recorrente.
+ */
+export function obligationPayload(
+  uid: string,
+  householdId: string,
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    householdId,
+    direction: "INFLOW",
+    origin: "MANUAL",
+    description: "Salário",
+    amount: brl(200000),
+    dueDate: "2026-09-30",
+    competenceDate: "2026-09-01",
+    expenseNature: "FIXED",
+    confidence: "ESTIMATED",
+    visibility: "HOUSEHOLD",
+    status: "SCHEDULED",
+    settledAmount: brl(0),
+    settlementTransactionIds: [],
+    ...auditFor(uid),
+    ...overrides,
+  };
+}
+
 /** A valid new transaction payload, so tests vary only what they care about. */
 export function transactionPayload(
   uid: string,

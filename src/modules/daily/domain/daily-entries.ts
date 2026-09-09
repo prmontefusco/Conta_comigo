@@ -1,6 +1,7 @@
 import { type CalendarDate, type MonthKey, monthKeyOf } from "@/core/date/calendar-date";
 import { type Money, subtract, sum, zero } from "@/core/money/money";
 import type { CardPurchase } from "@/modules/cards/domain/credit-card";
+import { isOpen, remainingAmount, type Obligation } from "@/modules/obligations/domain/obligation";
 import type {
   AccountId,
   CategoryId,
@@ -46,6 +47,14 @@ export interface DailyEntry {
   readonly visibility: Visibility;
   /** True when the money has not left an account yet - a card purchase. */
   readonly paidLater: boolean;
+  /**
+   * A obrigação que este lançamento liquidou, quando ele nasceu de uma.
+   *
+   * A tela precisa saber disso para **não** deixar editar nem excluir a linha
+   * por aqui: apagar a transação sem desfazer a liquidação deixaria a conta
+   * marcada como paga e o dinheiro fora do saldo, sem nada que aponte o erro.
+   */
+  readonly settlesObligationId?: string;
 }
 
 export interface BuildDailyEntriesInput {
@@ -75,6 +84,9 @@ export function buildDailyEntries(input: BuildDailyEntriesInput): DailyEntry[] {
         : {}),
       visibility: transaction.visibility,
       paidLater: false,
+      ...(transaction.settlesObligationId
+        ? { settlesObligationId: transaction.settlesObligationId }
+        : {}),
     });
   }
 
@@ -113,6 +125,94 @@ export function buildDailyEntries(input: BuildDailyEntriesInput): DailyEntry[] {
  */
 export function entriesInMonth(entries: readonly DailyEntry[], month: MonthKey): DailyEntry[] {
   return entries.filter((entry) => monthKeyOf(entry.competenceDate) === month);
+}
+
+/* ------------------------------------------------------------------ */
+/* O que ainda não aconteceu                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Uma linha do que está planejado para o mês.
+ *
+ * Tipo próprio, e não um `DailyEntry` com uma bandeira, por uma razão de
+ * consequência: `buildDailyEntries` é a definição de "o que conta como gasto"
+ * de que o sugeridor de orçamento depende
+ * (`modules/budget/domain/budget-suggestions`). Deixar obrigação entrar ali
+ * faria uma conta planejada virar gasto realizado dos meses anteriores e
+ * inflar todo teto sugerido — e, depois de liquidada, ela apareceria duas
+ * vezes: como obrigação e como a transação que a liquidou.
+ *
+ * O plano é uma lista à parte, somada à parte, mostrada à parte.
+ */
+export interface PlannedEntry {
+  readonly id: string;
+  readonly direction: "IN" | "OUT";
+  /** Quando é esperado. */
+  readonly dueDate: CalendarDate;
+  readonly competenceDate: CalendarDate;
+  readonly description: string;
+  /** Sempre positivo; `direction` diz para que lado. */
+  readonly amount: Money;
+  readonly categoryId?: CategoryId;
+  readonly visibility: Visibility;
+  readonly responsibleMemberId?: MemberId;
+  /** Verdadeiro quando a data esperada já passou e nada foi confirmado. */
+  readonly late: boolean;
+}
+
+export interface PlannedEntriesInput {
+  readonly obligations: readonly Obligation[];
+  readonly month: MonthKey;
+  /** Hoje, para dizer o que já venceu sem ter sido confirmado. */
+  readonly asOf: CalendarDate;
+}
+
+/**
+ * O que está previsto para o mês e ainda não virou dinheiro.
+ *
+ * Filtra por competência, o mesmo critério de `entriesInMonth`: os dois blocos
+ * da tela precisam responder à mesma pergunta sobre "que mês é este".
+ */
+export function plannedEntriesInMonth(input: PlannedEntriesInput): PlannedEntry[] {
+  const planned: PlannedEntry[] = [];
+
+  for (const obligation of input.obligations) {
+    if (!isOpen(obligation)) continue;
+    if (monthKeyOf(obligation.competenceDate) !== input.month) continue;
+
+    const remaining = remainingAmount(obligation);
+    if (remaining.amount <= 0) continue;
+
+    planned.push({
+      id: obligation.id,
+      direction: obligation.direction === "INFLOW" ? "IN" : "OUT",
+      dueDate: obligation.dueDate,
+      competenceDate: obligation.competenceDate,
+      description: obligation.description,
+      amount: remaining,
+      ...(obligation.categoryId ? { categoryId: obligation.categoryId } : {}),
+      visibility: obligation.visibility,
+      ...(obligation.responsibleMemberId
+        ? { responsibleMemberId: obligation.responsibleMemberId }
+        : {}),
+      late: obligation.dueDate < input.asOf,
+    });
+  }
+
+  // O que vence antes aparece antes: a ordem da lista é a ordem da atenção.
+  return planned.sort((a, b) => (a.dueDate === b.dueDate ? 0 : a.dueDate < b.dueDate ? -1 : 1));
+}
+
+export interface PlannedTotals {
+  readonly toReceive: Money;
+  readonly toPay: Money;
+}
+
+export function plannedTotals(entries: readonly PlannedEntry[]): PlannedTotals {
+  return {
+    toReceive: sum(entries.filter((entry) => entry.direction === "IN").map((e) => e.amount)),
+    toPay: sum(entries.filter((entry) => entry.direction === "OUT").map((e) => e.amount)),
+  };
 }
 
 export interface DayGroup {

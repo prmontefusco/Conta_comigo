@@ -194,6 +194,185 @@ describe("visão geral do painel (dashboard overview)", () => {
     expect(safe.untilDate).toBe(on("2026-09-20"));
   });
 
+  /**
+   * "Recebido" tem que querer dizer recebido.
+   *
+   * Um salário lançado para o dia 30 quando hoje é dia 8 é um plano. Contá-lo
+   * como realizado fazia este bloco discordar do saldo — que exclui o futuro
+   * por `transactionDate` — e da projeção, que nem lê transações. O dinheiro
+   * aparecia como certo em um lugar e não existia no outro.
+   */
+  describe("lançamento com data futura", () => {
+    const base = {
+      asOf: TODAY,
+      accounts: [account],
+      obligations: [],
+      reserves: [reserve],
+      cards: [card],
+      cardStatements: [],
+      debts: [],
+      forecast: mockForecast,
+    };
+
+    const salarioFuturo = anIncome({
+      id: "tx-futuro",
+      amount: brl(2000),
+      transactionDate: on("2026-09-30"),
+      competenceDate: on("2026-09-30"),
+      accountId: "acc-1",
+    });
+
+    it("não conta como recebido, conta como previsto", () => {
+      const overview = buildOverview({ ...base, transactions: [salarioFuturo] });
+
+      expect(overview.thisMonth.incomeReceived).toEqual(brl(0));
+      expect(overview.thisMonth.incomeExpected).toEqual(brl(2000));
+    });
+
+    it("não entra no saldo de hoje", () => {
+      const overview = buildOverview({ ...base, transactions: [salarioFuturo] });
+
+      expect(overview.today.totalCash).toEqual(brl(5000));
+    });
+
+    it("não some do resultado do mês, só muda de coluna", () => {
+      // A classificação preserva `expectedResult`. Descartar o lançamento
+      // apagaria do aplicativo inteiro o dinheiro que já está cadastrado: o
+      // saldo já o exclui e a projeção não o enxerga.
+      const futuro = buildOverview({ ...base, transactions: [salarioFuturo] });
+      const passado = buildOverview({
+        ...base,
+        transactions: [
+          anIncome({
+            id: "tx-passado",
+            amount: brl(2000),
+            transactionDate: on("2026-09-05"),
+            competenceDate: on("2026-09-05"),
+            accountId: "acc-1",
+          }),
+        ],
+      });
+
+      expect(futuro.thisMonth.expectedResult).toEqual(passado.thisMonth.expectedResult);
+    });
+
+    it("uma despesa futura conta como pendente, não como paga", () => {
+      const contaFutura = anExpense({
+        id: "tx-futura-out",
+        amount: brl(180),
+        transactionDate: on("2026-09-25"),
+        competenceDate: on("2026-09-25"),
+        accountId: "acc-1",
+      });
+
+      const overview = buildOverview({ ...base, transactions: [contaFutura] });
+
+      expect(overview.thisMonth.expensesPaid).toEqual(brl(0));
+      expect(overview.thisMonth.expensesPending).toEqual(brl(180));
+    });
+
+    it("o que aconteceu hoje continua sendo realizado", () => {
+      // A fronteira é inclusiva: um recebimento de hoje já é dinheiro.
+      const salarioHoje = anIncome({
+        id: "tx-hoje",
+        amount: brl(2000),
+        transactionDate: TODAY,
+        competenceDate: TODAY,
+        accountId: "acc-1",
+      });
+
+      const overview = buildOverview({ ...base, transactions: [salarioHoje] });
+
+      expect(overview.thisMonth.incomeReceived).toEqual(brl(2000));
+      expect(overview.thisMonth.incomeExpected).toEqual(brl(0));
+    });
+
+    it("uma conta de agosto paga hoje conta como paga, apesar da competência antiga", () => {
+      // O critério é a data do caixa, não a competência: filtrar pela
+      // competência inverteria a pergunta.
+      const boletoAtrasado = anExpense({
+        id: "tx-atrasado",
+        amount: brl(150),
+        transactionDate: TODAY,
+        competenceDate: on("2026-09-01"),
+        accountId: "acc-1",
+      });
+
+      const overview = buildOverview({ ...base, transactions: [boletoAtrasado] });
+
+      expect(overview.thisMonth.expensesPaid).toEqual(brl(150));
+    });
+  });
+
+  it("não conta a fatura duas vezes quando ela já virou obrigação", () => {
+    // A dedução por `cardStatementId` existe no motor de projeção desde
+    // sempre; este bloco era o único agregador sem ela.
+    const faturaMaterializada = anObligation({
+      id: "ob-fatura",
+      direction: "OUTFLOW",
+      amount: brl(800),
+      dueDate: on("2026-09-30"),
+      competenceDate: on("2026-09-01"),
+      origin: "CARD_STATEMENT",
+      source: { cardStatementId: "stmt-1" },
+    });
+
+    const overview = buildOverview({
+      asOf: TODAY,
+      accounts: [account],
+      transactions: [],
+      obligations: [faturaMaterializada],
+      reserves: [reserve],
+      cards: [card],
+      cardStatements: [cardStatement],
+      debts: [],
+      forecast: mockForecast,
+    });
+
+    expect(overview.thisMonth.cardCommitment).toEqual(brl(0));
+    expect(overview.thisMonth.expensesPending).toEqual(brl(800));
+  });
+
+  it("uma entrada só prevista não aumenta o que é seguro gastar hoje", () => {
+    // A fronteira encurta a janela de saídas descontadas, então uma entrada
+    // mais próxima libera mais dinheiro. Anotar "meu irmão me paga amanhã" não
+    // pode ter esse efeito.
+    const comPromessa = {
+      ...mockForecast,
+      events: [
+        {
+          date: on("2026-09-09"),
+          direction: "INFLOW",
+          amount: brl(50),
+          description: "Promessa",
+          source: "OBLIGATION",
+          isDebtCommitment: false,
+          competenceMonth: "2026-09",
+          confidence: "ESTIMATED",
+        },
+        ...mockForecast.events,
+      ],
+    } as unknown as ForecastResult;
+
+    const overview = buildOverview({
+      asOf: TODAY,
+      accounts: [account],
+      transactions: [],
+      obligations: [obligationSoon],
+      reserves: [reserve],
+      cards: [card],
+      cardStatements: [cardStatement],
+      debts: [debt],
+      forecast: comPromessa,
+    });
+
+    const safe = safeToSpendToday(overview, comPromessa);
+
+    // A fronteira continua sendo o salário confirmado do dia 20.
+    expect(safe.untilDate).toBe(on("2026-09-20"));
+    expect(safe.amount).toEqual(brl(2500));
+  });
+
   it("monta visão de cartões (cardsOverview) calculando o limite e uso de cada um", () => {
     const cards = cardsOverview([card], [cardStatement]);
     expect(cards).toHaveLength(1);

@@ -338,6 +338,34 @@ aparência de dado.
 
 Ver a seção 7 acima. É a única pendência do escopo da auditoria.
 
+### Consignado é contado duas vezes na projeção
+
+Encontrado em setembro de 2026, ao separar planejado de realizado.
+
+Num empréstimo consignado, a parcela **nunca entra na conta**: a empresa retém
+o valor da folha e repassa ao banco. O que cai na conta já é líquido. Mas
+`forecast.ts` emite a parcela de qualquer dívida como saída normal de conta
+(`collectEvents`, seção das dívidas), sem olhar `debt.kind`. Quem cadastra o
+salário líquido — que é o que todas as telas pedem — **e** o consignado tem a
+parcela descontada duas vezes na projeção.
+
+O produto já sabe da diferença e não age sobre ela: `debt-risk.ts` classifica
+`PAYROLL_LOAN` com `guarantee: "PAYROLL"` e a consequência escrita é literalmente
+"a parcela sai do salário antes de você receber". `lateInstallmentCount` ainda
+marca a parcela como atrasada quando não há `DEBT_PAYMENT` registrado, o que
+contradiz essa mesma frase — desconto em folha não atrasa.
+
+Consertar exige uma decisão de produto que ainda não foi tomada: se a renda
+continua sendo cadastrada **líquida** (e a parcela do consignado simplesmente
+deixa de ser uma saída de caixa, permanecendo apenas como amortização da
+dívida), ou se o app passa a modelar o **holerite** — renda bruta e descontos em
+folha nomeados (consignado, plano de saúde, sindicato). A segunda opção é a que
+resolve também o caso "recebi menos porque descontaram a Unimed" na origem, em
+vez de só no momento da confirmação.
+
+Enquanto não for decidido, quem tem consignado deve cadastrar a dívida para
+acompanhar o saldo devedor e **não** esperar que a projeção acerte o caixa.
+
 ### ~~Rate limit compartilhado~~ ✔ feito
 
 `server/rate-limit-store.ts` conta no Firestore, em transação, com um documento

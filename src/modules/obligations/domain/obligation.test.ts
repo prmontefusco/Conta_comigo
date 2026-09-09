@@ -10,6 +10,7 @@ import {
   projectedCashDelta,
   remainingAmount,
   settle,
+  settleAndClose,
   summarise,
   unsettle,
 } from "./obligation";
@@ -108,8 +109,95 @@ describe("ciclo de vida de obrigações (obligation)", () => {
 
     it("recusa liquidação de obrigação cancelada ou com valor inválido", () => {
       const cancelada = cancel(conta, NOW);
-      expect(() => settle(cancelada, { transactionId: "tx-1", amount: brl(50), at: NOW })).toThrow();
+      expect(() =>
+        settle(cancelada, { transactionId: "tx-1", amount: brl(50), at: NOW }),
+      ).toThrow();
       expect(() => settle(conta, { transactionId: "tx-1", amount: brl(0), at: NOW })).toThrow();
+    });
+  });
+
+  /**
+   * "Recebi menos" não é o mesmo que "falta receber".
+   *
+   * Um salário previsto em R$ 2.000 que cai R$ 1.850 porque a Unimed foi
+   * descontada em folha não deixa R$ 150 a receber de ninguém. Sem esta
+   * distinção, o resto fica para sempre na projeção, vira "atrasado" quando a
+   * data passa e infla o resultado previsto do mês.
+   */
+  describe("encerrar recebendo menos do que o previsto (settleAndClose)", () => {
+    const salario = anObligation({
+      id: "ob-salario",
+      direction: "INFLOW",
+      description: "Salário",
+      amount: brl(2000),
+      dueDate: on("2026-09-05"),
+      competenceDate: on("2026-09-01"),
+    });
+
+    it("encerra a obrigação mesmo com valor menor que o previsto", () => {
+      const recebido = settleAndClose(salario, {
+        transactionId: "tx-salario",
+        amount: brl(1850),
+        at: NOW,
+      });
+
+      expect(recebido.status).toBe("SETTLED");
+      expect(recebido.settledAmount).toEqual(brl(1850));
+      expect(recebido.settledAt).toBe(NOW);
+    });
+
+    it("não sobra resto para a projeção depois de encerrada", () => {
+      const recebido = settleAndClose(salario, {
+        transactionId: "tx-salario",
+        amount: brl(1850),
+        at: NOW,
+      });
+
+      expect(remainingAmount(recebido)).toEqual(brl(0));
+      expect(projectedCashDelta(recebido)).toEqual(brl(0));
+      expect(isOpen(recebido)).toBe(false);
+      expect(summarise([recebido], TODAY, "INFLOW").total).toEqual(brl(0));
+    });
+
+    it("preserva o previsto: o que se esperava e o que entrou são números diferentes", () => {
+      const recebido = settleAndClose(salario, {
+        transactionId: "tx-salario",
+        amount: brl(1850),
+        at: NOW,
+      });
+
+      expect(recebido.amount).toEqual(brl(2000));
+      expect(recebido.settledAmount).toEqual(brl(1850));
+    });
+
+    it("settle deixa o resto em aberto — é a diferença entre as duas", () => {
+      const parcial = settle(salario, { transactionId: "tx-salario", amount: brl(1850), at: NOW });
+
+      expect(parcial.status).toBe("PARTIALLY_SETTLED");
+      expect(remainingAmount(parcial)).toEqual(brl(150));
+    });
+
+    it("aceita valor acima do previsto sem gerar saldo negativo", () => {
+      const comBonus = settleAndClose(salario, {
+        transactionId: "tx-salario",
+        amount: brl(2300),
+        at: NOW,
+      });
+
+      expect(comBonus.status).toBe("SETTLED");
+      expect(comBonus.settledAmount).toEqual(brl(2300));
+      expect(remainingAmount(comBonus)).toEqual(brl(0));
+      expect(projectedCashDelta(comBonus)).toEqual(brl(0));
+    });
+
+    it("recusa obrigação cancelada ou valor inválido, como settle", () => {
+      const cancelada = cancel(salario, NOW);
+      expect(() =>
+        settleAndClose(cancelada, { transactionId: "tx-1", amount: brl(50), at: NOW }),
+      ).toThrow();
+      expect(() =>
+        settleAndClose(salario, { transactionId: "tx-1", amount: brl(0), at: NOW }),
+      ).toThrow();
     });
   });
 

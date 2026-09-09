@@ -6,6 +6,7 @@ import { formatCalendarDate } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
 import { isNegative, money, subtract, sum } from "@/core/money/money";
 import { Button, Card, CardTitle, Stat } from "@/components/ui/primitives";
+import { firstWholeMonth } from "@/modules/forecast/domain/forecast";
 import { HealthScoreCard } from "@/modules/ai-advisor/ui/health-score-card";
 import { AlertsList } from "@/modules/alerts/ui/alerts-list";
 import { MonthBlock, Next30DaysBlock } from "@/modules/dashboard/ui/month-block";
@@ -34,7 +35,10 @@ export function DashboardTabs() {
   const [activeTab, setActiveTab] = useState<DashboardTab>("GERAL");
 
   const currency = finance.totalCash.currency;
-  const currentMonth = finance.forecast.months[0];
+  // O primeiro mês **inteiro**: `months[0]` é parcial e não contém o que já
+  // aconteceu neste mês, o que subestimaria a renda de quem abre o aplicativo
+  // no dia 28.
+  const currentMonth = firstWholeMonth(finance.forecast.months);
 
   // Cálculos do mês atual
   const monthlyInflows = currentMonth?.expectedInflows ?? money(0, currency);
@@ -404,12 +408,14 @@ export function DashboardTabs() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link href="/app/superendividamento">
-                  <Button className="px-3 py-1.5 text-xs bg-[color:var(--color-critical-600)] text-white hover:bg-[color:var(--color-critical-700)]">
+                  <Button className="bg-[color:var(--color-critical-600)] px-3 py-1.5 text-xs text-white hover:bg-[color:var(--color-critical-700)]">
                     ⚖️ Superendividamento (Lei 14.181)
                   </Button>
                 </Link>
                 <Link href="/app/negociar">
-                  <Button variant="secondary" className="px-3 py-1.5 text-xs">Simular Acordo / Feirão</Button>
+                  <Button variant="secondary" className="px-3 py-1.5 text-xs">
+                    Simular Acordo / Feirão
+                  </Button>
                 </Link>
                 <Link href="/app/dividas">
                   <Button variant="secondary" className="px-3 py-1.5 text-xs">

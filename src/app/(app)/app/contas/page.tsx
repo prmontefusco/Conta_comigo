@@ -22,6 +22,11 @@ import {
   type Obligation,
 } from "@/modules/obligations/domain/obligation";
 import { NewObligationDialog } from "@/modules/obligations/ui/new-obligation-dialog";
+import { ConfirmOccurrenceDialog } from "@/modules/recurring/ui/confirm-occurrence-dialog";
+import {
+  pendingOccurrences,
+  type PendingOccurrence,
+} from "@/modules/recurring/domain/pending-occurrences";
 import { SettleObligationDialog } from "@/modules/obligations/ui/settle-obligation-dialog";
 import { DocumentImportButton } from "@/modules/receipts/ui/document-import-button";
 import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
@@ -49,10 +54,31 @@ export default function ObligationsPage() {
   const [filter, setFilter] = useState<Filter>("OPEN");
   const [creating, setCreating] = useState(false);
   const [settling, setSettling] = useState<Obligation | null>(null);
+  const [editing, setEditing] = useState<Obligation | null>(null);
+  const [confirming, setConfirming] = useState<PendingOccurrence | null>(null);
 
   const items = useMemo(
     () => filterObligations(finance.obligations, direction, filter, finance.asOf),
     [finance.obligations, direction, filter, finance.asOf],
+  );
+
+  /**
+   * O que se repete e ainda espera confirmação.
+   *
+   * Um salário mensal é uma regra: até agora ele só existia na projeção, e não
+   * havia onde dizer quanto realmente caiu. A janela olha para trás, porque é
+   * depois do dia 5 que alguém confirma o salário do dia 5 — a projeção, essa
+   * continua olhando só para frente.
+   */
+  const recurring = useMemo(
+    () =>
+      pendingOccurrences({
+        rules: finance.recurringRules,
+        obligations: finance.obligations,
+        asOf: finance.asOf,
+        direction,
+      }),
+    [finance.recurringRules, finance.obligations, finance.asOf, direction],
   );
 
   const total = sum(items.filter(isOpen).map(remainingAmount));
@@ -180,6 +206,16 @@ export default function ObligationsPage() {
                         {obligation.direction === "INFLOW" ? "Recebi" : "Paguei"}
                       </Button>
                     ) : null}
+                    {canWrite ? (
+                      <Button
+                        variant="ghost"
+                        className="mt-1 block w-full text-xs"
+                        onClick={() => setEditing(obligation)}
+                        aria-label={`Corrigir ${obligation.description}`}
+                      >
+                        Corrigir
+                      </Button>
+                    ) : null}
                   </div>
                 </li>
               );
@@ -188,7 +224,61 @@ export default function ObligationsPage() {
         )}
       </Card>
 
-      <NewObligationDialog open={creating} onClose={() => setCreating(false)} />
+      {recurring.length > 0 && filter !== "SETTLED" ? (
+        <Card>
+          <CardTitle hint="Vêm de uma conta que se repete. Confirme o valor real quando o dinheiro se mover — ele pode ser diferente do previsto.">
+            {direction === "OUTFLOW" ? "Contas que se repetem" : "Recebimentos que se repetem"}
+          </CardTitle>
+
+          <ul className="divide-y divide-[color:var(--card-border)]">
+            {recurring.slice(0, 8).map((item) => (
+              <li key={item.occurrence.occurrenceKey} className="flex items-center gap-3 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{item.rule.description}</p>
+                  <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+                    {formatCalendarDate(item.occurrence.dueDate)}
+                    {item.rule.confidence === "ESTIMATED" ? " · valor estimado" : ""}
+                  </p>
+                  {item.late ? (
+                    <div className="mt-1">
+                      <Badge tone="attention">Já passou da data</Badge>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="shrink-0 text-right">
+                  <MoneyText
+                    value={item.occurrence.amount}
+                    size="sm"
+                    tone={direction === "INFLOW" ? "positive" : "outflow"}
+                  />
+                  {canWrite ? (
+                    <Button
+                      variant="secondary"
+                      className="mt-1 block w-full text-xs"
+                      onClick={() => setConfirming(item)}
+                    >
+                      {direction === "INFLOW" ? "Recebi" : "Paguei"}
+                    </Button>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
+      <ConfirmOccurrenceDialog pending={confirming} onClose={() => setConfirming(null)} />
+
+      <NewObligationDialog
+        open={creating || editing !== null}
+        obligation={editing}
+        defaultDirection={direction}
+        onClose={() => {
+          setCreating(false);
+          setEditing(null);
+        }}
+      />
       <SettleObligationDialog obligation={settling} onClose={() => setSettling(null)} />
     </div>
   );

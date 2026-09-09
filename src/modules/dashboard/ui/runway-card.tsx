@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Badge, Card, ProgressBar, Stat } from "@/components/ui/primitives";
+import { firstWholeMonth } from "@/modules/forecast/domain/forecast";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { calcularRunway, type NivelRunway } from "../domain/runway";
 import { money } from "@/core/money/money";
@@ -18,9 +19,12 @@ export function RunwayCard() {
   const finance = useFinance();
   const currency = finance.totalCash.currency;
 
-  const currentMonth = finance.forecast.months[0];
+  // Mês inteiro, não o pedaço que resta deste: o custo mensal é a base do
+  // cálculo de fôlego, e um mês pela metade dobraria o fôlego aparente.
+  const currentMonth = firstWholeMonth(finance.forecast.months);
   const custoMensal = currentMonth?.committedOutflows ?? money(0, currency);
-  const liquidez = finance.protectedReserve.amount > 0 ? finance.protectedReserve : finance.totalCash;
+  const liquidez =
+    finance.protectedReserve.amount > 0 ? finance.protectedReserve : finance.totalCash;
 
   const runway = useMemo(() => {
     return calcularRunway({

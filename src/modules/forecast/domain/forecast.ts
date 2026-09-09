@@ -14,7 +14,11 @@ import {
 } from "@/core/date/calendar-date";
 import { type Money, add, clampToZero, subtract, sum, zero } from "@/core/money/money";
 import { upcomingInstallments } from "@/modules/debts/domain/debt";
-import { isOpen, remainingAmount } from "@/modules/obligations/domain/obligation";
+import {
+  isOpen,
+  materialisedOccurrenceKeys,
+  remainingAmount,
+} from "@/modules/obligations/domain/obligation";
 import { occurrencesBetween } from "@/modules/recurring/domain/recurring-rule";
 import type {
   ForecastDay,
@@ -68,6 +72,22 @@ export function forecast(input: ForecastInput): ForecastResult {
 /* ------------------------------------------------------------------ */
 
 /**
+ * O primeiro mês inteiro da projeção.
+ *
+ * `months[0]` é o mês corrente e vem **parcial**: ele começa hoje, então não
+ * contém o salário que caiu no dia 5 nem as contas já pagas. Usá-lo como
+ * "quanto entra por mês" subestima a renda de quem abre o aplicativo no fim do
+ * mês e a superestima no começo — e esse número alimenta o score de saúde, o
+ * fôlego de caixa e o dossiê de superendividamento.
+ *
+ * Quando não houver mês inteiro no horizonte, devolve o parcial mesmo: um
+ * número imperfeito e rotulado é melhor que nenhum.
+ */
+export function firstWholeMonth(months: readonly ForecastMonth[]): ForecastMonth | undefined {
+  return months.find((month) => !month.isPartial) ?? months[0];
+}
+
+/**
  * Turns every source of future money movement into one ordered stream.
  *
  * Deduplication is the delicate part. The same bill can be described by a
@@ -80,14 +100,11 @@ export function collectEvents(input: ForecastInput): ForecastEvent[] {
   const events: ForecastEvent[] = [];
   const { from, to } = input.horizon;
 
-  const materialisedOccurrenceKeys = new Set<string>();
+  const occurrenceKeys = materialisedOccurrenceKeys(input.obligations);
   const materialisedStatementIds = new Set<string>();
   const materialisedDebtInstallments = new Set<string>();
 
   for (const obligation of input.obligations) {
-    if (obligation.source?.occurrenceKey) {
-      materialisedOccurrenceKeys.add(obligation.source.occurrenceKey);
-    }
     if (obligation.source?.cardStatementId) {
       materialisedStatementIds.add(obligation.source.cardStatementId);
     }
@@ -132,7 +149,7 @@ export function collectEvents(input: ForecastInput): ForecastEvent[] {
 
   for (const rule of input.recurringRules) {
     for (const occurrence of occurrencesBetween(rule, from, to)) {
-      if (materialisedOccurrenceKeys.has(occurrence.occurrenceKey)) continue;
+      if (occurrenceKeys.has(occurrence.occurrenceKey)) continue;
 
       events.push({
         date: occurrence.dueDate,

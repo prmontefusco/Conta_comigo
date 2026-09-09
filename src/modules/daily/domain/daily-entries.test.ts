@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { monthKey } from "@/core/date/calendar-date";
 import {
   aCardPurchase,
+  anObligation,
   aTransfer,
   anExpense,
   anIncome,
@@ -13,6 +14,8 @@ import {
   dailyTotals,
   entriesInMonth,
   groupByDay,
+  plannedEntriesInMonth,
+  plannedTotals,
   spendingByCategory,
   totalsByMember,
 } from "./daily-entries";
@@ -177,5 +180,108 @@ describe("where it went and who spent it", () => {
   it("keeps income visible per person", () => {
     const joao = totalsByMember(entries).find((line) => line.memberId === "member-joao");
     expect(joao!.received).toEqual(brl(5000));
+  });
+});
+
+/**
+ * O que está planejado não é o que aconteceu.
+ *
+ * Estes testes existem porque a tela do Dia a dia contava um salário datado
+ * para o fim do mês como se já tivesse caído — e o mesmo dinheiro sumia da
+ * projeção, que não lê transações. A lista de planejado é separada de
+ * propósito: `buildDailyEntries` define o que conta como gasto para o
+ * sugeridor de orçamento, e obrigação ali dentro inflaria todo teto sugerido.
+ */
+describe("plannedEntriesInMonth", () => {
+  const setembro = monthKey("2026-09");
+  const hoje = on("2026-09-09");
+
+  const salario = anObligation({
+    id: "ob-salario",
+    direction: "INFLOW",
+    description: "Salário",
+    amount: brl(2000),
+    dueDate: on("2026-09-30"),
+    competenceDate: on("2026-09-01"),
+  });
+
+  const luz = anObligation({
+    id: "ob-luz",
+    direction: "OUTFLOW",
+    description: "Luz",
+    amount: brl(180),
+    dueDate: on("2026-09-15"),
+    competenceDate: on("2026-09-01"),
+  });
+
+  it("lista o que está em aberto no mês, do mais próximo ao mais distante", () => {
+    const planejado = plannedEntriesInMonth({
+      obligations: [salario, luz],
+      month: setembro,
+      asOf: hoje,
+    });
+
+    expect(planejado.map((entry) => entry.id)).toEqual(["ob-luz", "ob-salario"]);
+    expect(planejado[0]?.direction).toBe("OUT");
+    expect(planejado[1]?.direction).toBe("IN");
+  });
+
+  it("mostra o que ainda falta, não o valor cheio, quando houve pagamento parcial", () => {
+    const parcial = anObligation({
+      ...luz,
+      settledAmount: brl(80),
+      status: "PARTIALLY_SETTLED",
+    });
+
+    const planejado = plannedEntriesInMonth({
+      obligations: [parcial],
+      month: setembro,
+      asOf: hoje,
+    });
+
+    expect(planejado[0]?.amount).toEqual(brl(100));
+  });
+
+  it("não lista o que já foi confirmado nem o que foi cancelado", () => {
+    const confirmada = anObligation({ ...salario, status: "SETTLED", settledAmount: brl(1850) });
+    const cancelada = anObligation({ ...luz, status: "CANCELED" });
+
+    const planejado = plannedEntriesInMonth({
+      obligations: [confirmada, cancelada],
+      month: setembro,
+      asOf: hoje,
+    });
+
+    expect(planejado).toEqual([]);
+  });
+
+  it("marca como atrasado o que venceu sem confirmação", () => {
+    const vencida = anObligation({ ...luz, dueDate: on("2026-09-05") });
+
+    const planejado = plannedEntriesInMonth({
+      obligations: [vencida, salario],
+      month: setembro,
+      asOf: hoje,
+    });
+
+    expect(planejado[0]?.late).toBe(true);
+    expect(planejado[1]?.late).toBe(false);
+  });
+
+  it("ignora outros meses", () => {
+    const outubro = anObligation({ ...luz, competenceDate: on("2026-10-01") });
+
+    expect(plannedEntriesInMonth({ obligations: [outubro], month: setembro, asOf: hoje })).toEqual(
+      [],
+    );
+  });
+
+  it("soma entradas e saídas separadamente", () => {
+    const totais = plannedTotals(
+      plannedEntriesInMonth({ obligations: [salario, luz], month: setembro, asOf: hoje }),
+    );
+
+    expect(totais.toReceive).toEqual(brl(2000));
+    expect(totais.toPay).toEqual(brl(180));
   });
 });

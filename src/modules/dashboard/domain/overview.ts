@@ -158,17 +158,42 @@ function buildMonthPosition(input: OverviewInput): MonthPosition {
 
   let incomeReceived = zero();
   let expensesPaid = zero();
+  let incomeExpected = zero();
+  let expensesPending = zero();
 
   for (const transaction of input.transactions) {
     if (monthKeyOf(transaction.competenceDate) !== month) continue;
+
+    // "Recebido" tem que querer dizer recebido.
+    //
+    // Um lançamento datado para o fim do mês é um plano, e contá-lo aqui como
+    // realizado é o que fazia esta tela discordar do saldo — que exclui o
+    // futuro por `transactionDate` — e da projeção, que nem lê transações.
+    //
+    // O critério é `transactionDate` e não `competenceDate`, de propósito: um
+    // boleto de agosto pago em setembro tem competência no passado e caixa no
+    // presente, e filtrar pela competência inverteria a pergunta.
+    const stillAhead = transaction.transactionDate > input.asOf;
+
     const income = incomeEffect(transaction);
-    if (income) incomeReceived = add(incomeReceived, income.amount);
+    if (income) {
+      if (stillAhead) incomeExpected = add(incomeExpected, income.amount);
+      else incomeReceived = add(incomeReceived, income.amount);
+    }
+
     const spending = spendingEffect(transaction);
-    if (spending) expensesPaid = add(expensesPaid, spending.amount);
+    if (spending) {
+      if (stillAhead) expensesPending = add(expensesPending, spending.amount);
+      else expensesPaid = add(expensesPaid, spending.amount);
+    }
   }
 
-  let incomeExpected = zero();
-  let expensesPending = zero();
+  // Faturas já materializadas como obrigação não contam duas vezes.
+  const materialisedStatements = new Set(
+    input.obligations
+      .map((obligation) => obligation.source?.cardStatementId)
+      .filter((id): id is string => Boolean(id)),
+  );
 
   for (const obligation of input.obligations) {
     if (!isOpen(obligation)) continue;
@@ -181,6 +206,7 @@ function buildMonthPosition(input: OverviewInput): MonthPosition {
   const cardCommitment = sum(
     input.cardStatements
       .filter((statement) => statement.dueDate >= monthStart && statement.dueDate <= monthEnd)
+      .filter((statement) => !materialisedStatements.has(statement.id))
       .map((statement) => statement.remainingAmount),
   );
 
@@ -237,12 +263,21 @@ function buildNext30Days(input: OverviewInput): DashboardOverview["next30Days"] 
  *
  * Takes the free balance and removes everything already owed before the next
  * expected income arrives. Reported as a fact, with the assumptions visible.
+ *
+ * A fronteira é a próxima entrada **confirmada**, e a exigência de confiança
+ * não é preciosismo: a fronteira encurta a janela de saídas descontadas, então
+ * quanto mais cedo a próxima entrada, **maior** o valor liberado. Sem o filtro,
+ * anotar "meu irmão me paga R$ 50 amanhã" faria o aplicativo dizer que dá para
+ * gastar mais hoje — exatamente ao contrário do que uma promessa deveria
+ * produzir.
  */
 export function safeToSpendToday(
   overview: DashboardOverview,
   forecastResult: ForecastResult,
 ): { amount: Money; untilDate: CalendarDate | null } {
-  const nextInflow = forecastResult.events.find((event) => event.direction === "INFLOW");
+  const nextInflow = forecastResult.events.find(
+    (event) => event.direction === "INFLOW" && event.confidence === "CONFIRMED",
+  );
   const boundary = nextInflow?.date ?? forecastResult.horizon.to;
 
   const outflowsBeforeIncome = sum(

@@ -1,8 +1,8 @@
 import { collection, doc, writeBatch, type Firestore } from "firebase/firestore";
 import { instant, type CalendarDate } from "@/core/date/calendar-date";
-import { add, greaterOrEqual, isPositive, type Money } from "@/core/money/money";
+import { isPositive, type Money } from "@/core/money/money";
 import type { Obligation } from "@/modules/obligations/domain/obligation";
-import { remainingAmount } from "@/modules/obligations/domain/obligation";
+import { remainingAmount, settle, settleAndClose } from "@/modules/obligations/domain/obligation";
 import { err, ok, validationError, type Result } from "@/core/result/result";
 import type { AccountId, HouseholdId, UserId } from "@/modules/shared/domain/common";
 import { stripUndefined } from "@/modules/shared/infrastructure/codecs";
@@ -27,6 +27,23 @@ export interface SettleObligationInput {
   readonly accountId: AccountId;
   readonly amount: Money;
   readonly paidOn: CalendarDate;
+  /**
+   * Encerra a obrigação mesmo tendo entrado menos do que o previsto.
+   *
+   * É a diferença entre "recebi menos" e "ainda vou receber o resto" — a
+   * primeira encerra, a segunda deixa o resto na projeção. Só quem está
+   * olhando o extrato sabe qual das duas é, então a tela pergunta.
+   */
+  readonly closeRemainder?: boolean;
+  /**
+   * Autoriza registrar mais do que estava previsto.
+   *
+   * O excesso é legítimo com frequência — décimo terceiro, hora extra, uma
+   * conta que veio maior. O que ele também é, com a mesma frequência, é um
+   * zero a mais digitado sem querer. Por isso a rota recusa por padrão e a
+   * tela confirma explicitamente, mostrando a diferença.
+   */
+  readonly allowOverpayment?: boolean;
 }
 
 export async function settleObligation(
@@ -45,11 +62,13 @@ export async function settleObligation(
   }
 
   const outstanding = remainingAmount(obligation);
-  if (input.amount.amount > outstanding.amount) {
+  const overpaying = input.amount.amount > outstanding.amount;
+
+  if (overpaying && !input.allowOverpayment) {
     return err(
       validationError(
-        "O valor informado é maior do que o saldo em aberto desta conta. " +
-          "Ajuste o valor ou edite a conta antes de registrar o pagamento.",
+        "O valor informado é maior do que o previsto para esta conta. " +
+          "Confirme que é isso mesmo, ou ajuste o valor.",
       ),
     );
   }
@@ -86,14 +105,22 @@ export async function settleObligation(
     }),
   );
 
-  const settledAmount = add(obligation.settledAmount, input.amount);
-  const fullySettled = greaterOrEqual(settledAmount, obligation.amount);
+  // O domínio decide o estado final; aqui só se escreve o que ele devolveu.
+  // Duplicar a regra de "quando fica quitada" seria abrir espaço para as duas
+  // cópias divergirem — e uma delas é a que grava.
+  const settled = input.closeRemainder
+    ? settleAndClose(obligation, {
+        transactionId: transactionRef.id,
+        amount: input.amount,
+        at: now,
+      })
+    : settle(obligation, { transactionId: transactionRef.id, amount: input.amount, at: now });
 
   batch.update(doc(input.db, `households/${input.householdId}/obligations/${obligation.id}`), {
-    settledAmount,
-    status: fullySettled ? "SETTLED" : "PARTIALLY_SETTLED",
-    settlementTransactionIds: [...obligation.settlementTransactionIds, transactionRef.id],
-    ...(fullySettled ? { settledAt: now } : {}),
+    settledAmount: settled.settledAmount,
+    status: settled.status,
+    settlementTransactionIds: settled.settlementTransactionIds,
+    ...(settled.settledAt ? { settledAt: settled.settledAt } : {}),
     updatedAt: now,
   });
 
