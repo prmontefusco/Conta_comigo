@@ -8,6 +8,7 @@ import {
   receiptRequestSchema,
 } from "@/modules/receipts/domain/receipt-reading";
 import { requireAuth } from "@/server/auth-guard";
+import { readFileWithGemini } from "@/server/gemini";
 import { requirePremiumFeature } from "@/server/plan-guard";
 import { checkSharedRateLimit } from "@/server/rate-limit-store";
 
@@ -100,7 +101,16 @@ export async function POST(request: Request) {
   const today = tryCalendarDate(parsed.data.today ?? "") ?? todayIn("America/Sao_Paulo");
 
   try {
-    const text = await readReceiptWithGemini(apiKey, imageBase64, mimeType, categories);
+    const text = await readFileWithGemini({
+      apiKey,
+      prompt: buildReceiptPrompt(categories),
+      fileBase64: imageBase64,
+      mimeType,
+      // Leitura, não redação: a resposta é um objeto de sete campos.
+      maxOutputTokens: 600,
+      timeoutMs: GEMINI_TIMEOUT_MS,
+      operation: "aiComprovante",
+    });
 
     if (!text) {
       return NextResponse.json(
@@ -155,71 +165,4 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-}
-
-function geminiModel(): string {
-  return process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
-}
-
-/** `null` significa "não deu": a tela oferece a digitação, nunca um chute. */
-async function readReceiptWithGemini(
-  apiKey: string,
-  imageBase64: string,
-  mimeType: string,
-  categories: { id: string; name: string }[],
-): Promise<string | null> {
-  const model = geminiModel();
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        // No cabeçalho, nunca na query string.
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: buildReceiptPrompt(categories) },
-              { inline_data: { mime_type: mimeType, data: imageBase64 } },
-            ],
-          },
-        ],
-        // Leitura, não redação: temperatura zero, e teto baixo porque a
-        // resposta é um objeto de sete campos.
-        generationConfig: { temperature: 0, maxOutputTokens: 600 },
-      }),
-      signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
-    },
-  );
-
-  if (!response.ok) {
-    logger.warn("O modelo recusou a leitura do comprovante.", {
-      operation: "aiComprovante",
-      status: response.status,
-      model,
-    });
-    return null;
-  }
-
-  const data: unknown = await response.json();
-  const text = readCandidateText(data);
-  return text && text.trim() !== "" ? text : null;
-}
-
-function readCandidateText(data: unknown): string | undefined {
-  const candidates = readUnknown(data, "candidates");
-  if (!Array.isArray(candidates)) return undefined;
-  const parts = readUnknown(readUnknown(candidates[0], "content"), "parts");
-  if (!Array.isArray(parts)) return undefined;
-  const text = readUnknown(parts[0], "text");
-  return typeof text === "string" ? text : undefined;
-}
-
-function readUnknown(data: unknown, key: string): unknown {
-  if (typeof data !== "object" || data === null) return undefined;
-  return (data as Record<string, unknown>)[key];
 }

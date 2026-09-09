@@ -23,9 +23,20 @@ import { type Money, money } from "@/core/money/money";
  * **CSV** não tem padrão. Cada banco escolhe separador, ordem de colunas e
  * formato de data. Em vez de exigir um layout, o módulo procura as colunas
  * pelo cabeçalho e tenta os formatos de data e de número usados no Brasil.
+ *
+ * ## O terceiro caminho
+ *
+ * Quem não chega ao menu que gera OFX ou CSV tem, no celular, o PDF que o
+ * banco mandou por e-mail. Esse arquivo é lido por IA
+ * (`modules/receipts/domain/statement-reading`) e entra aqui por
+ * `entriesFromRows`, já como lista conferível: a partir daí é o mesmo
+ * caminho dos formatos estruturados, com a mesma impressão digital e a mesma
+ * conferência antes de gravar. A diferença aparece na tela, que diz de onde
+ * a lista veio — leitura de arquivo estruturado não erra número, leitura de
+ * imagem pode errar.
  */
 
-export type StatementFormat = "OFX" | "CSV";
+export type StatementFormat = "OFX" | "CSV" | "IA";
 
 export interface ImportedEntry {
   /** Id estável derivado do conteúdo, para conferir duplicata entre importações. */
@@ -215,6 +226,37 @@ export function parseCsv(content: string): StatementParseResult {
   }
 
   return { format: "CSV", entries, rejected };
+}
+
+/**
+ * Monta a lista a partir de linhas já lidas por outro caminho.
+ *
+ * Existe para que o extrato lido por IA use exatamente a mesma impressão
+ * digital, a mesma limpeza de descrição e a mesma detecção de duplicata dos
+ * formatos estruturados. Uma segunda forma de montar `ImportedEntry` seria
+ * uma segunda forma de errar.
+ */
+export function entriesFromRows(
+  rows: readonly { date: CalendarDate; description: string; amountCents: number }[],
+): StatementParseResult {
+  const entries: ImportedEntry[] = [];
+  const rejected: { line: string; reason: string }[] = [];
+
+  for (const row of rows) {
+    if (row.amountCents === 0) {
+      rejected.push({ line: compact(`${row.date} ${row.description}`), reason: "valor zero" });
+      continue;
+    }
+
+    entries.push({
+      fingerprint: fingerprintOf(row.date, row.amountCents, row.description),
+      date: row.date,
+      description: cleanDescription(row.description),
+      amount: money(row.amountCents),
+    });
+  }
+
+  return { format: "IA", entries, rejected };
 }
 
 /** Escolhe o leitor pelo conteúdo, não pela extensão do arquivo. */

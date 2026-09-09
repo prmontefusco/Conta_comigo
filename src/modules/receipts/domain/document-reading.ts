@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { type CalendarDate, tryCalendarDate } from "@/core/date/calendar-date";
 import { fromDecimal, type Money } from "@/core/money/money";
+import { extractJsonObject } from "./model-json";
 
 /**
  * Reading bank bills, utility bills and credit card statements in PDF or Image.
@@ -102,32 +103,4 @@ export function parseDocumentReading(text: string): DocumentReading | null {
     barcode: raw.linhaDigitavel?.trim() || undefined,
     confidence: raw.confianca ?? "MEDIA",
   };
-}
-
-function extractJsonObject(text: string): unknown {
-  const trimmed = text.trim();
-  const direct = tryParse(trimmed);
-  if (direct) return direct;
-
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  if (fenced && fenced[1]) {
-    const fromFenced = tryParse(fenced[1]);
-    if (fromFenced) return fromFenced;
-  }
-
-  const start = trimmed.indexOf("{");
-  const end = trimmed.lastIndexOf("}");
-  if (start !== -1 && end > start) {
-    return tryParse(trimmed.slice(start, end + 1));
-  }
-
-  return null;
-}
-
-function tryParse(source: string): unknown {
-  try {
-    return JSON.parse(source);
-  } catch {
-    return null;
-  }
 }

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { type CalendarDate, tryCalendarDate } from "@/core/date/calendar-date";
 import { fromDecimal, type Money } from "@/core/money/money";
+import { extractJsonObject } from "./model-json";
 
 /**
  * Reading a receipt photo.
@@ -113,19 +114,6 @@ export function parseReceiptReading(
  * object is still in there, wrapped in a code fence or a sentence. Digging it
  * out is cheaper than losing a reading the person already waited for.
  */
-function extractJsonObject(text: string): unknown {
-  const trimmed = text.trim();
-  const start = trimmed.indexOf("{");
-  const end = trimmed.lastIndexOf("}");
-  if (start < 0 || end <= start) return null;
-
-  try {
-    return JSON.parse(trimmed.slice(start, end + 1));
-  } catch {
-    return null;
-  }
-}
-
 /** A date that exists, is not in the future, and is not absurdly old. */
 function readPastDate(value: string | null | undefined, today: CalendarDate): CalendarDate | null {
   if (!value) return null;

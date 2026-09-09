@@ -7,6 +7,7 @@ import {
   parseDocumentReading,
 } from "@/modules/receipts/domain/document-reading";
 import { requireAuth } from "@/server/auth-guard";
+import { readFileWithGemini } from "@/server/gemini";
 import { requirePremiumFeature } from "@/server/plan-guard";
 import { checkSharedRateLimit } from "@/server/rate-limit-store";
 
@@ -73,7 +74,15 @@ export async function POST(request: Request) {
   const { fileBase64, mimeType } = parsed.data;
 
   try {
-    const text = await readDocumentWithGemini(apiKey, fileBase64, mimeType);
+    const text = await readFileWithGemini({
+      apiKey,
+      prompt: buildDocumentPrompt(),
+      fileBase64,
+      mimeType,
+      maxOutputTokens: 800,
+      timeoutMs: GEMINI_TIMEOUT_MS,
+      operation: "aiDocumento",
+    });
 
     if (!text) {
       return NextResponse.json(
@@ -124,66 +133,4 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-}
-
-function geminiModel(): string {
-  return process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
-}
-
-async function readDocumentWithGemini(
-  apiKey: string,
-  fileBase64: string,
-  mimeType: string,
-): Promise<string | null> {
-  const model = geminiModel();
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: buildDocumentPrompt() },
-              { inline_data: { mime_type: mimeType, data: fileBase64 } },
-            ],
-          },
-        ],
-        generationConfig: { temperature: 0, maxOutputTokens: 800 },
-      }),
-      signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
-    },
-  );
-
-  if (!response.ok) {
-    logger.warn("O modelo recusou a leitura do documento.", {
-      operation: "aiDocumento",
-      status: response.status,
-      model,
-    });
-    return null;
-  }
-
-  const data: unknown = await response.json();
-  const text = readCandidateText(data);
-  return text && text.trim() !== "" ? text : null;
-}
-
-function readCandidateText(data: unknown): string | undefined {
-  const candidates = readUnknown(data, "candidates");
-  if (!Array.isArray(candidates)) return undefined;
-  const parts = readUnknown(readUnknown(candidates[0], "content"), "parts");
-  if (!Array.isArray(parts)) return undefined;
-  const text = readUnknown(parts[0], "text");
-  return typeof text === "string" ? text : undefined;
-}
-
-function readUnknown(data: unknown, key: string): unknown {
-  if (typeof data !== "object" || data === null) return undefined;
-  return (data as Record<string, unknown>)[key];
 }

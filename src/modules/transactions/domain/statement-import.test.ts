@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { money } from "@/core/money/money";
+import { calendarDate } from "@/core/date/calendar-date";
 import {
+  entriesFromRows,
   parseBrazilianDate,
   parseCsv,
   parseDecimal,
@@ -205,5 +207,35 @@ describe("parseStatement", () => {
     );
 
     expect(result.entries[0]?.fingerprint).toBe(result.entries[1]?.fingerprint);
+  });
+});
+
+describe("entriesFromRows", () => {
+  it("monta a lista do extrato lido por IA com a mesma impressão digital do CSV", () => {
+    const fromCsv = parseCsv(["Data;Descricao;Valor", "03/09/2026;Mercado;-45,90"].join("\n"));
+    const fromIa = entriesFromRows([
+      { date: calendarDate("2026-09-03"), description: "Mercado", amountCents: -4590 },
+    ]);
+
+    expect(fromIa.format).toBe("IA");
+    expect(fromIa.entries[0]?.fingerprint).toBe(fromCsv.entries[0]?.fingerprint);
+    expect(fromIa.entries[0]?.amount).toEqual(money(-4590));
+  });
+
+  it("recusa valor zero em vez de gravar um lançamento vazio", () => {
+    const result = entriesFromRows([
+      { date: calendarDate("2026-09-03"), description: "Estorno", amountCents: 0 },
+    ]);
+
+    expect(result.entries).toHaveLength(0);
+    expect(result.rejected[0]?.reason).toBe("valor zero");
+  });
+
+  it("dá uma descrição quando a linha veio sem histórico", () => {
+    const result = entriesFromRows([
+      { date: calendarDate("2026-09-03"), description: "  ", amountCents: -100 },
+    ]);
+
+    expect(result.entries[0]?.description).toBe("Lançamento importado");
   });
 });

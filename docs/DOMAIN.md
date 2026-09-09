@@ -332,13 +332,34 @@ ele se repete, a `RecurringRule` criada junto começa na **próxima** ocorrênci
 nunca nesta: o dinheiro que já está na conta não pode ser projetado de novo
 como se ainda fosse entrar.
 
-### Comprovante por foto
+### Leitura de documentos por IA
 
-A leitura de comprovante (`modules/receipts/`) devolve uma **sugestão** de
-preenchimento, nunca um lançamento. O domínio descarta o que o modelo não tem
-como saber: valor não positivo, data no futuro, categoria que não é do
-household. A foto não é armazenada em lugar nenhum — vai na requisição que a
-lê e é descartada com ela.
+`modules/receipts/` tem quatro leitores — comprovante, boleto ou fatura,
+extrato bancário e contrato de crédito — e todos obedecem à mesma regra: eles
+devolvem uma **sugestão**, nunca um lançamento. Nada é gravado antes de a
+pessoa olhar a tela preenchida e confirmar.
+
+O domínio descarta o que o modelo não tem como saber, e é isso que os testes
+protegem:
+
+- **Comprovante:** valor não positivo, data no futuro, categoria que não é do
+  household.
+- **Extrato:** linha sem data ou com valor zero, data no futuro (extrato é
+  histórico) e data absurdamente antiga. O **saldo do extrato não vira
+  lançamento** — ele é conferência, e transformá-lo em movimento contaria o
+  mesmo dinheiro duas vezes. As linhas lidas entram pelo mesmo
+  `entriesFromRows` que os formatos OFX e CSV usam, com a mesma impressão
+  digital e a mesma detecção de duplicata: uma segunda forma de montar a lista
+  seria uma segunda forma de errar.
+- **Contrato:** taxa mensal e taxa anual são grandezas diferentes, e a
+  conversão é composta — 30% ao ano são 2,21% ao mês, não 2,5%. Dividir por
+  doze subestima o custo, que é exatamente o erro que faz alguém escolher o
+  contrato mais caro. CET também não é juros: inclui tarifas e seguro, e fica
+  em campo separado. Quando a mensal foi calculada a partir da anual, a tela
+  diz isso — um número lido e um número calculado não são a mesma informação.
+
+O arquivo não é armazenado em lugar nenhum: vai na requisição que o lê e é
+descartado com ela.
 
 ## Household
 

@@ -314,13 +314,27 @@ Toda rota que gasta dinheiro ou concede direito é autenticada por
 `checkRevoked`. Um uid vindo no corpo é só uma alegação de quem chama sobre si
 mesmo, e nunca é usado.
 
-| Rota                          | Quem entra              | Por quê                                                     |
-| ----------------------------- | ----------------------- | ----------------------------------------------------------- |
-| `/api/assinatura/planos`      | Qualquer um             | Preço é público; exigir login afastaria quem está decidindo |
-| `/api/assinatura/checkout`    | Token verificado        | Abre cobrança em nome de alguém                             |
-| `/api/assinatura/reconciliar` | Token verificado        | Concede plano pago                                          |
-| `/api/webhook/pagamento`      | Segredo compartilhado   | Chamado pelo provedor, não por um navegador                 |
-| `/api/ai/diagnostico`         | Token verificado + cota | Chama um modelo cobrado por token                           |
+| Rota                          | Quem entra                        | Por quê                                                     |
+| ----------------------------- | --------------------------------- | ----------------------------------------------------------- |
+| `/api/assinatura/planos`      | Qualquer um                       | Preço é público; exigir login afastaria quem está decidindo |
+| `/api/assinatura/checkout`    | Token verificado                  | Abre cobrança em nome de alguém                             |
+| `/api/assinatura/reconciliar` | Token verificado                  | Concede plano pago                                          |
+| `/api/webhook/pagamento`      | Segredo compartilhado             | Chamado pelo provedor, não por um navegador                 |
+| `/api/ai/diagnostico`         | Token verificado + cota           | Chama um modelo cobrado por token                           |
+| `/api/ai/superendividamento`  | Token verificado + cota           | Chama um modelo cobrado por token                           |
+| `/api/ai/comprovante`         | Token verificado + cota + Premium | Lê uma foto: custa mais que texto                           |
+| `/api/ai/documento`           | Token verificado + cota + Premium | Lê boleto e fatura em PDF                                   |
+| `/api/ai/extrato`             | Token verificado + cota + Premium | Lê o extrato: o arquivo e a resposta mais caros do produto  |
+| `/api/ai/contrato`            | Token verificado + cota + Premium | Lê contrato de empréstimo                                   |
+
+As cotas por janela de dez minutos descem conforme o custo da chamada: 15 para
+documento, 10 para comprovante, 8 para contrato e 6 para extrato — um PDF de
+extrato é o maior arquivo de entrada e a maior resposta que o produto pede.
+
+Nenhuma dessas rotas guarda o arquivo. Ele chega na requisição, vai ao modelo e
+é descartado com ela: não há Storage, não há URL, não há log do corpo — e, por
+isso, também não há ciclo de vida de exclusão a manter (ver dados pessoais,
+acima).
 
 ### O caso da consultoria de IA
 
