@@ -6,66 +6,31 @@ import { planStatusLabel } from "@/modules/billing/domain/plan-status";
 import { formatDays, usePlanEndDate, usePlanStatus } from "@/modules/billing/ui/use-plan-status";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { ROLE_LABELS } from "@/modules/household/domain/household";
+import { navSectionsFor } from "@/modules/shared/ui/app-nav";
 
-const SECTIONS = [
-  {
-    title: "Inteligência & Futuro",
-    items: [
-      { href: "/app/diagnostico-ia", label: "Diagnóstico & Consultor IA", icon: "✨" },
-      { href: "/app/visao-futuro", label: "Visão de Futuro e Quitação", icon: "🚀" },
-      { href: "/app/plano", label: "Plano de ação", icon: "🧭" },
-    ],
-  },
-  {
-    title: "Entender",
-    items: [
-      { href: "/app/avisos", label: "Caixa de avisos", icon: "🔔" },
-      { href: "/app/decisoes", label: "Decisões da família", icon: "🗒️" },
-      { href: "/app/relatorios", label: "Relatórios", icon: "📊" },
-      { href: "/app/orcamento", label: "Orçamento do mês", icon: "🎯" },
-    ],
-  },
-  {
-    title: "Dinheiro",
-    items: [
-      { href: "/app/dia-a-dia", label: "Gastos e recebimentos do dia a dia", icon: "🧾" },
-      { href: "/app/contas-bancarias", label: "Informações bancárias e Saldos", icon: "🏦" },
-      { href: "/app/reservas", label: "Reservas e metas", icon: "🛟" },
-    ],
-  },
-  {
-    title: "Compromissos",
-    items: [
-      { href: "/app/dividas", label: "Empréstimos e financiamentos", icon: "🏛️" },
-      { href: "/app/superendividamento", label: "Superendividamento (Lei 14.181)", icon: "⚖️" },
-      { href: "/app/negociar", label: "Negociar e renegociar dívidas", icon: "🤝" },
-      { href: "/app/recorrentes", label: "Contas que se repetem", icon: "🔁" },
-    ],
-  },
-  {
-    title: "Grupo",
-    items: [
-      { href: "/app/membros", label: "Membros e permissões", icon: "👥" },
-      { href: "/app/configuracoes", label: "Configurações", icon: "⚙️" },
-      { href: "/app/meus-dados", label: "Meus dados", icon: "🗂️" },
-      { href: "/app/assinatura", label: "Assinatura", icon: "💳" },
-    ],
-  },
-  {
-    title: "Sobre & Contato",
-    items: [
-      { href: "/contato", label: "Fale conosco / Suporte", icon: "💬" },
-      { href: "/privacidade", label: "Política de privacidade", icon: "🔒" },
-      { href: "/termos", label: "Termos de uso", icon: "📄" },
-      { href: "/educacao-financeira", label: "Educação financeira", icon: "📚" },
-    ],
-  },
-] as const;
-
+/**
+ * O menu do celular.
+ *
+ * No desktop a coluna lateral leva a tudo. No celular ela não existe: a barra
+ * de baixo comporta cinco ou seis alvos do tamanho de um polegar, e esta
+ * página é o único caminho para o resto do produto.
+ *
+ * Por isso ela não tem lista própria. Tinha, escrita à mão, e a lista
+ * divergiu da coluna do desktop — Contas a pagar, Cartões, Importar extrato,
+ * Antes de comprar e Projeção deixaram de ter qualquer caminho no telefone,
+ * sem que nada quebrasse ou aparecesse como erro. Agora as duas leem
+ * `modules/shared/ui/app-nav`, e um teste confere que toda rota do aplicativo
+ * está lá.
+ *
+ * As seções vêm filtradas pelo papel de quem está olhando: um dependente não
+ * vê aqui um atalho para uma tela que a coluna do desktop esconde dele.
+ */
 export default function MorePage() {
   const { household, role } = useSession();
   const plan = usePlanStatus();
   const planEndDate = usePlanEndDate(plan.endsAt);
+
+  const sections = navSectionsFor(role);
 
   return (
     <div className="space-y-4">
@@ -105,7 +70,7 @@ export default function MorePage() {
         </dl>
       </Card>
 
-      {SECTIONS.map((section) => (
+      {sections.map((section) => (
         <Card key={section.title}>
           <CardTitle>{section.title}</CardTitle>
           <ul className="divide-y divide-[color:var(--card-border)]">

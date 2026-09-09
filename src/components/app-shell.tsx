@@ -7,6 +7,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Button, Spinner } from "@/components/ui/primitives";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { AlertBell } from "@/modules/alerts/ui/alert-bell";
+import { DEPENDENT_BLOCKED_PATHS, MOBILE_BAR, navSectionsFor } from "@/modules/shared/ui/app-nav";
 
 /**
  * The authenticated shell.
@@ -14,157 +15,12 @@ import { AlertBell } from "@/modules/alerts/ui/alert-bell";
  * Mobile-first: primary navigation sits at the bottom, within thumb reach, and
  * moves to a sidebar from the medium breakpoint up. Every destination is a real
  * link, so the browser's back button and keyboard navigation behave normally.
- */
-
-interface NavItem {
-  readonly href: string;
-  readonly label: string;
-  readonly icon: string;
-  readonly restrictedForDependent?: boolean;
-}
-
-interface NavSection {
-  readonly title: string;
-  readonly items: readonly NavItem[];
-}
-
-/**
- * O menu lateral leva **tudo**, e o do celular leva o essencial.
  *
- * Antes, o lateral tinha um item "Mais Opções" que abria uma página com metade
- * do produto: contas bancárias, reservas, orçamento, recorrentes, relatórios,
- * negociação. Quem está no desktop tem espaço de sobra na coluna e não deveria
- * precisar de um segundo salto para chegar a uma tela que cabe aqui — o efeito
- * prático era que essas telas não existiam para quem não caçasse.
- *
- * No celular a decisão é a oposta, e por um motivo físico: a barra inferior
- * comporta cinco ou seis alvos do tamanho de um polegar. Ali "Mais" continua
- * sendo o único caminho para a cauda longa, e `/app/mais` continua existindo
- * por causa disso.
+ * A lista de destinos vive em `modules/shared/ui/app-nav`, junto com a que
+ * alimenta a página "Mais" do celular. Eram duas listas e elas divergiram: o
+ * efeito não foi um erro visível, foi um punhado de telas sem nenhum caminho
+ * para quem usa o telefone.
  */
-const DESKTOP_NAV_SECTIONS: readonly NavSection[] = [
-  {
-    title: "Visão Geral",
-    items: [
-      { href: "/app", label: "Início", icon: "🏠" },
-      { href: "/app/avisos", label: "Avisos", icon: "🔔" },
-    ],
-  },
-  {
-    title: "Dia a Dia & Contas",
-    items: [
-      {
-        href: "/app/contas-bancarias",
-        label: "Informações bancárias e Saldos",
-        icon: "🏦",
-        restrictedForDependent: true,
-      },
-      { href: "/app/dia-a-dia", label: "Lançamentos", icon: "🧾" },
-      { href: "/app/contas", label: "Contas a Pagar", icon: "📄" },
-      { href: "/app/cartoes", label: "Cartões", icon: "💳", restrictedForDependent: true },
-      {
-        href: "/app/recorrentes",
-        label: "Contas que se repetem",
-        icon: "🔁",
-        restrictedForDependent: true,
-      },
-      {
-        href: "/app/importar",
-        label: "Importar extrato",
-        icon: "📥",
-        restrictedForDependent: true,
-      },
-    ],
-  },
-  {
-    title: "Planejamento & Futuro",
-    items: [
-      { href: "/app/emergencia", label: "Pagar primeiro", icon: "🚨" },
-      { href: "/app/plano", label: "Plano de ação", icon: "🧭" },
-      {
-        href: "/app/orcamento",
-        label: "Orçamento do mês",
-        icon: "🎯",
-        restrictedForDependent: true,
-      },
-      {
-        href: "/app/reservas",
-        label: "Reservas e metas",
-        icon: "🛟",
-        restrictedForDependent: true,
-      },
-      { href: "/app/comprar", label: "Antes de comprar", icon: "🛒" },
-      {
-        href: "/app/projecao",
-        label: "Projeção & Fluxo",
-        icon: "📈",
-        restrictedForDependent: true,
-      },
-      { href: "/app/visao-futuro", label: "Visão de Futuro", icon: "🚀" },
-      { href: "/app/diagnostico-ia", label: "Diagnóstico IA", icon: "✨" },
-    ],
-  },
-  {
-    title: "Dívidas & Recuperação",
-    items: [
-      {
-        href: "/app/dividas",
-        label: "Dívidas & Empréstimos",
-        icon: "🏛️",
-        restrictedForDependent: true,
-      },
-      {
-        href: "/app/negociar",
-        label: "Negociar dívidas",
-        icon: "🤝",
-        restrictedForDependent: true,
-      },
-      {
-        href: "/app/superendividamento",
-        label: "Superendividamento",
-        icon: "⚖️",
-        restrictedForDependent: true,
-      },
-    ],
-  },
-  {
-    title: "Registro & Relatórios",
-    items: [
-      { href: "/app/decisoes", label: "Decisões da família", icon: "🗒️" },
-      { href: "/app/relatorios", label: "Relatórios", icon: "📊", restrictedForDependent: true },
-    ],
-  },
-  {
-    title: "Minha Conta",
-    items: [
-      { href: "/app/meus-dados", label: "Meus Dados & Família", icon: "👤" },
-      { href: "/app/membros", label: "Membros e permissões", icon: "👥" },
-      { href: "/app/assinatura", label: "Assinatura", icon: "💳" },
-      { href: "/app/configuracoes", label: "Configurações", icon: "⚙️" },
-    ],
-  },
-  {
-    title: "Ajuda & Sobre",
-    items: [
-      { href: "/contato", label: "Fale Conosco / Suporte", icon: "💬" },
-      { href: "/educacao-financeira", label: "Educação financeira", icon: "📚" },
-      { href: "/privacidade", label: "Política de privacidade", icon: "🔒" },
-      { href: "/termos", label: "Termos de uso", icon: "📄" },
-    ],
-  },
-];
-
-// A barra inferior guarda o que alguém abre em pé, numa fila. Lançar um gasto
-// é o mais frequente disso. "Mais" fica porque no celular ele é o único acesso
-// ao resto do produto — no desktop, o menu lateral já leva tudo.
-const MOBILE_NAV = [
-  { href: "/app", label: "Início", icon: "🏠" },
-  { href: "/app/avisos", label: "Avisos", icon: "🔔" },
-  { href: "/app/dia-a-dia", label: "Dia a dia", icon: "🧾" },
-  { href: "/app/emergencia", label: "Pagar 1º", icon: "🚨" },
-  { href: "/app/plano", label: "Plano", icon: "🧭" },
-  { href: "/app/mais", label: "Mais", icon: "⋯" },
-] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const {
@@ -208,27 +64,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isDependent = role === "DEPENDENT";
 
   useEffect(() => {
-    if (
-      isDependent &&
-      [
-        "/app/dividas",
-        "/app/superendividamento",
-        "/app/projecao",
-        "/app/cartoes",
-        "/app/importar",
-      ].some((p) => pathname.startsWith(p))
-    ) {
+    if (isDependent && DEPENDENT_BLOCKED_PATHS.some((blocked) => pathname.startsWith(blocked))) {
       router.replace("/app/dia-a-dia");
     }
   }, [isDependent, pathname, router]);
 
-  const desktopSections = DESKTOP_NAV_SECTIONS.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => {
-      if (isDependent && item.restrictedForDependent) return false;
-      return true;
-    }),
-  })).filter((section) => section.items.length > 0);
+  const desktopSections = navSectionsFor(role);
 
   useEffect(() => {
     if (status === "unauthenticated" && !loggingOut) {
@@ -381,7 +222,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <ul className="mx-auto flex max-w-lg">
-          {MOBILE_NAV.map((item) => (
+          {MOBILE_BAR.map((item) => (
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
