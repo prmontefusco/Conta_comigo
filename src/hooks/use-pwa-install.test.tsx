@@ -1,6 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import { usePWAInstall } from "./use-pwa-install";
+import { usePWAInstall, type BeforeInstallPromptEvent } from "./use-pwa-install";
 
 describe("usePWAInstall hook", () => {
   beforeEach(() => {
@@ -30,9 +30,11 @@ describe("usePWAInstall hook", () => {
   it("captura beforeinstallprompt e ativa canInstall", () => {
     const { result } = renderHook(() => usePWAInstall());
 
-    const promptEvent = new Event("beforeinstallprompt") as any;
-    promptEvent.prompt = vi.fn().mockResolvedValue(undefined);
-    promptEvent.userChoice = Promise.resolve({ outcome: "accepted", platform: "web" });
+    const promptEvent = Object.assign(new Event("beforeinstallprompt"), {
+      platforms: ["web"],
+      prompt: vi.fn().mockResolvedValue(undefined),
+      userChoice: Promise.resolve({ outcome: "accepted" as const, platform: "web" }),
+    }) as unknown as BeforeInstallPromptEvent;
 
     act(() => {
       window.dispatchEvent(promptEvent);
@@ -45,9 +47,11 @@ describe("usePWAInstall hook", () => {
     const { result } = renderHook(() => usePWAInstall());
 
     const promptMock = vi.fn().mockResolvedValue(undefined);
-    const promptEvent = new Event("beforeinstallprompt") as any;
-    promptEvent.prompt = promptMock;
-    promptEvent.userChoice = Promise.resolve({ outcome: "accepted", platform: "web" });
+    const promptEvent = Object.assign(new Event("beforeinstallprompt"), {
+      platforms: ["web"],
+      prompt: promptMock,
+      userChoice: Promise.resolve({ outcome: "accepted" as const, platform: "web" }),
+    }) as unknown as BeforeInstallPromptEvent;
 
     act(() => {
       window.dispatchEvent(promptEvent);
