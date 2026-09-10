@@ -3,7 +3,11 @@ import type { Money } from "@/core/money/money";
 import type { Account } from "@/modules/accounts/domain/account";
 import type { Category } from "@/modules/categories/domain/category";
 import type { CategoryId } from "@/modules/shared/domain/common";
-import type { ExpenseTransaction, Transaction } from "@/modules/transactions/domain/transaction";
+import type {
+  ExpenseTransaction,
+  IncomeTransaction,
+  Transaction,
+} from "@/modules/transactions/domain/transaction";
 
 /**
  * Lançar um gasto em poucos segundos.
@@ -78,6 +82,34 @@ export function suggestQuickCategories(
     .slice(0, limit);
 }
 
+/**
+ * As categorias de entrada que esta casa usa, mais usada primeiro.
+ */
+export function suggestQuickIncomeCategories(
+  input: SuggestQuickCategoriesInput,
+): readonly CategorySuggestion[] {
+  const limit = input.limit ?? QUICK_CATEGORY_COUNT;
+  const usable = input.categories.filter(
+    (category) => !category.archived && category.kind === "INCOME",
+  );
+
+  const uses = new Map<CategoryId, number>();
+  for (const transaction of input.transactions) {
+    if (transaction.kind !== "INCOME" || !transaction.categoryId) continue;
+    const age = differenceInDays(transaction.transactionDate, input.asOf);
+    if (age < 0 || age > RECENCY_WINDOW_DAYS) continue;
+    uses.set(transaction.categoryId, (uses.get(transaction.categoryId) ?? 0) + 1);
+  }
+
+  return [...usable]
+    .map((category) => ({ category, uses: uses.get(category.id) ?? 0 }))
+    .sort((a, b) => {
+      if (b.uses !== a.uses) return b.uses - a.uses;
+      return a.category.sortOrder - b.category.sortOrder;
+    })
+    .slice(0, limit);
+}
+
 export interface SuggestQuickAccountInput {
   readonly accounts: readonly Account[];
   readonly transactions: readonly Transaction[];
@@ -111,6 +143,28 @@ export function suggestQuickAccount(input: SuggestQuickAccountInput): Account | 
   return open.find((account) => account.type === "CHECKING") ?? open[0]!;
 }
 
+/**
+ * Em qual conta o dinheiro provavelmente entrou.
+ */
+export function suggestQuickIncomeAccount(input: SuggestQuickAccountInput): Account | null {
+  const open = input.accounts.filter((account) => !account.archived);
+  if (open.length === 0) return null;
+  if (open.length === 1) return open[0]!;
+
+  const byId = new Map(open.map((account) => [account.id, account]));
+
+  const recent = input.transactions
+    .filter(
+      (transaction): transaction is IncomeTransaction =>
+        transaction.kind === "INCOME" && byId.has(transaction.accountId),
+    )
+    .sort((a, b) => (a.transactionDate < b.transactionDate ? 1 : -1))[0];
+
+  if (recent) return byId.get(recent.accountId) ?? null;
+
+  return open.find((account) => account.type === "CHECKING") ?? open[0]!;
+}
+
 export interface QuickEntryDraft {
   readonly amount: Money;
   readonly categoryId: CategoryId;
@@ -125,6 +179,12 @@ export const PROBLEM_MESSAGES: Record<QuickEntryProblem, string> = {
   NO_AMOUNT: "Digite quanto foi.",
   NO_CATEGORY: "Toque numa categoria.",
   NO_ACCOUNT: "Cadastre uma conta antes de lançar um gasto.",
+};
+
+export const INCOME_PROBLEM_MESSAGES: Record<QuickEntryProblem, string> = {
+  NO_AMOUNT: "Digite quanto entrou.",
+  NO_CATEGORY: "Toque numa categoria de entrada.",
+  NO_ACCOUNT: "Cadastre uma conta antes de lançar uma entrada.",
 };
 
 export interface BuildQuickEntryInput {

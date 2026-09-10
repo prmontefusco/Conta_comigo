@@ -19,7 +19,7 @@
  * assets versionados do Next, cujos nomes já carregam hash.
  */
 
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL_CACHE = `conta-comigo-shell-${VERSION}`;
 const ASSET_CACHE = `conta-comigo-assets-${VERSION}`;
 

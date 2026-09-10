@@ -116,14 +116,23 @@ export default function Page() {
         />
         <p className="mt-4">
           Com o <strong>Conta Comigo</strong>, você gera o Dossiê completo com as despesas discriminadas,
-          gastos cortados e o cálculo do rateio em 60 meses, levando um documento técnico pronto para agilizar o atendimento.
+          gastos cortados, cálculo do rateio em 60 meses e a <strong>Petição Inicial / Requerimento Oficial</strong> pronta para imprimir.
         </p>
+        <p className="mt-2">
+          Quer saber como agir sozinho ou onde encontrar a Defensoria Pública? Veja nosso guia:{" "}
+          <Link href="/precisa-de-advogado-para-superendividamento" className="text-teal-700 underline font-medium">
+            Precisa de advogado para Superendividamento?
+          </Link>
+        </p>
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+          <strong>Aviso legal:</strong> O Conta Comigo fornece suporte no controle orçamentário e na preparação dos cálculos e documentos iniciais. Não há garantia de deferimento ou êxito na ação, cabendo a decisão exclusivamente aos órgãos competentes e ao Judiciário.
+        </div>
         <p className="mt-4">
           <Link
             href="/app/superendividamento"
             className="inline-block rounded-xl bg-[color:var(--color-brand-600)] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-95"
           >
-            Gerar meu Dossiê de Repactuação no Conta Comigo &rarr;
+            Gerar meu Dossiê de Repactuação e Petição Inicial &rarr;
           </Link>
         </p>
       </Section>

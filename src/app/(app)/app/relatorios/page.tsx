@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Callout, Spinner } from "@/components/ui/primitives";
+import Link from "next/link";
+import { Button, Callout, Spinner } from "@/components/ui/primitives";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { recentMonths } from "@/modules/reports/domain/reports";
 import {
@@ -38,18 +39,26 @@ export default function ReportsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Relatórios</h1>
 
-        <label className="text-sm">
-          <span className="sr-only">Período</span>
-          <select
-            value={monthsBack}
-            onChange={(event) => setMonthsBack(Number(event.target.value))}
-            className="min-h-11 rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-3 text-sm"
-          >
-            <option value={3}>Últimos 3 meses</option>
-            <option value={6}>Últimos 6 meses</option>
-            <option value={12}>Últimos 12 meses</option>
-          </select>
-        </label>
+        <div className="flex items-center gap-2">
+          <Link href="/app/baixar-dados">
+            <Button variant="secondary" className="text-xs">
+              💾 Baixar Dados (Planilhas / Backup)
+            </Button>
+          </Link>
+
+          <label className="text-sm">
+            <span className="sr-only">Período</span>
+            <select
+              value={monthsBack}
+              onChange={(event) => setMonthsBack(Number(event.target.value))}
+              className="min-h-11 rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-3 text-sm"
+            >
+              <option value={3}>Últimos 3 meses</option>
+              <option value={6}>Últimos 6 meses</option>
+              <option value={12}>Últimos 12 meses</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       {!hasHistory ? (

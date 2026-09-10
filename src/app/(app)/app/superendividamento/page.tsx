@@ -20,6 +20,11 @@ import {
   type GastoCortadoItem,
   type StatusSuperendividamento,
 } from "@/modules/superendividamento/domain/superendividamento";
+import {
+  CHECKLIST_DOCUMENTOS_EXIGIDOS,
+  gerarTextoPeticaoInicial,
+  type OrgaoDestino,
+} from "@/modules/superendividamento/domain/peticao-inicial";
 
 const TONE_STATUS: Record<
   StatusSuperendividamento,
@@ -177,8 +182,13 @@ export default function SuperendividamentoPage() {
   const [narrativaIA, setNarrativaIA] = useState<string | null>(null);
   const [gerandoIA, setGerandoIA] = useState(false);
 
-  // Aba ativa: DIAGNOSTICO ou DOSSIE_IMPRESSAO
-  const [modoVisualizacao, setModoVisualizacao] = useState<"DIAGNOSTICO" | "DOSSIE">("DIAGNOSTICO");
+  // Aba ativa: DIAGNOSTICO, DOSSIE ou PETICAO
+  const [modoVisualizacao, setModoVisualizacao] = useState<
+    "DIAGNOSTICO" | "DOSSIE" | "PETICAO"
+  >("DIAGNOSTICO");
+  const [orgaoDestino, setOrgaoDestino] = useState<OrgaoDestino>("CEJUSC");
+  const [peticaoCopiada, setPeticaoCopiada] = useState(false);
+  const [documentosChecados, setDocumentosChecados] = useState<Record<string, boolean>>({});
 
   const renda = fromDecimalString(rendaText) ?? initialInflow;
 
@@ -192,6 +202,64 @@ export default function SuperendividamentoPage() {
       bens,
     });
   }, [renda, dependentes, essenciais, cortes, credores, bens]);
+
+  const textoPeticao = useMemo(() => {
+    return gerarTextoPeticaoInicial({
+      requerente: {
+        nome: profile?.displayName ?? household?.name ?? "Consumidor",
+        cpf: profile?.cpf,
+        estadoCivil: undefined,
+        profissao: profile?.occupation,
+        email: profile?.email ?? "",
+        telefone: profile?.phone,
+        endereco: profile?.address
+          ? {
+              logradouro: profile.address.street,
+              numero: profile.address.number,
+              complemento: profile.address.complement,
+              bairro: profile.address.neighborhood,
+              cidade: profile.address.city,
+              uf: profile.address.state,
+              cep: profile.address.cep,
+            }
+          : undefined,
+      },
+      motivoCrise,
+      narrativaFatica: narrativaIA ?? undefined,
+      diagnostico,
+      essenciais,
+      cortes,
+      dependentesCount: dependentes,
+      orgaoDestino,
+    });
+  }, [
+    profile,
+    household,
+    motivoCrise,
+    narrativaIA,
+    diagnostico,
+    essenciais,
+    cortes,
+    dependentes,
+    orgaoDestino,
+  ]);
+
+  const handleCopiarPeticao = async () => {
+    try {
+      await navigator.clipboard.writeText(textoPeticao);
+      setPeticaoCopiada(true);
+      setTimeout(() => setPeticaoCopiada(false), 3000);
+    } catch {
+      // fallback se não tiver permissão
+    }
+  };
+
+  const toggleDocumento = (titulo: string) => {
+    setDocumentosChecados((prev) => ({
+      ...prev,
+      [titulo]: !prev[titulo],
+    }));
+  };
 
   const handleGerarNarrativaIA = async () => {
     setGerandoIA(true);
@@ -297,7 +365,7 @@ export default function SuperendividamentoPage() {
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setModoVisualizacao("DIAGNOSTICO")}
@@ -318,13 +386,45 @@ export default function SuperendividamentoPage() {
                 : "border border-[color:var(--card-border)] bg-[color:var(--card-bg)] text-[color:var(--page-fg)]"
             }`}
           >
-            ⚖️ Ver Dossiê para Juiz / Procon
+            ⚖️ Dossiê Técnico
           </button>
-          {modoVisualizacao === "DOSSIE" && (
+          <button
+            type="button"
+            onClick={() => setModoVisualizacao("PETICAO")}
+            className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+              modoVisualizacao === "PETICAO"
+                ? "bg-[color:var(--color-brand-600)] text-white shadow-2xs"
+                : "border border-[color:var(--card-border)] bg-[color:var(--card-bg)] text-[color:var(--page-fg)]"
+            }`}
+          >
+            📜 Petição / Requerimento Inicial
+          </button>
+          {modoVisualizacao !== "DIAGNOSTICO" && (
             <Button onClick={handlePrint} className="px-3.5 py-2 text-xs">
               🖨️ Imprimir / Salvar PDF
             </Button>
           )}
+        </div>
+      </div>
+
+      {/* Aviso Importante de Escopo do Software & Isenção de Garantia */}
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-950 print:hidden dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
+        <div className="flex items-start gap-3">
+          <span className="text-base leading-none">⚖️</span>
+          <div className="space-y-1.5">
+            <p className="font-bold uppercase tracking-wider text-2xs text-amber-800 dark:text-amber-300">
+              Aviso Importante: Finalidade do Conta Comigo & Ausência de Garantia Jurídica
+            </p>
+            <p className="leading-relaxed">
+              O <strong>Conta Comigo</strong> é exclusivamente uma aplicação tecnológica destinada ao{" "}
+              <strong>suporte no controle orçamentário</strong>, auxílio e orientação na organização financeira para{" "}
+              <strong>diminuição do endividamento</strong> e <strong>suporte na preparação da documentação inicial e cálculos técnicos</strong>.
+            </p>
+            <p className="leading-relaxed text-amber-900/90 dark:text-amber-300/90">
+              O aplicativo <strong>não presta consultoria ou assessoria jurídica privativa</strong> e{" "}
+              <strong>não garante que a ação ou requerimento seja aceito, deferido ou ganho</strong>, nem que os credores aceitem as propostas formuladas. A concessão de liminares, homologação de acordos ou imposição de planos compulsórios dependem única e exclusivamente da análise soberana do juiz, conciliador ou órgão público competente (CEJUSC, Procon ou Defensoria Pública).
+            </p>
+          </div>
         </div>
       </div>
 
@@ -891,6 +991,150 @@ export default function SuperendividamentoPage() {
               <p className="text-2xs leading-relaxed text-neutral-500">
                 {DISCLAIMER_LEGAL_SUPERENDIVIDAMENTO}
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODO 3: PETIÇÃO INICIAL / REQUERIMENTO OFICIAL */}
+      {modoVisualizacao === "PETICAO" && (
+        <div className="space-y-6">
+          {/* Controles de Destino e Ações (Ocultos na impressão) */}
+          <Card className="print:hidden">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-xs font-bold tracking-wider text-[color:var(--color-brand-600)] uppercase">
+                  Órgão de Destino da Petição
+                </span>
+                <p className="text-xs text-[color:var(--muted-fg)]">
+                  Escolha onde você vai dar entrada. O texto se adapta com o endereçamento e termos
+                  corretos:
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={handleCopiarPeticao}
+                  variant={peticaoCopiada ? "primary" : "secondary"}
+                  className="px-3.5 py-2 text-xs"
+                >
+                  {peticaoCopiada ? "✓ Copiado com Sucesso!" : "📋 Copiar Texto Completo"}
+                </Button>
+                <Button onClick={handlePrint} className="px-3.5 py-2 text-xs">
+                  🖨️ Imprimir / Salvar PDF
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setOrgaoDestino("CEJUSC")}
+                className={`flex-1 rounded-xl border p-3 text-left transition ${
+                  orgaoDestino === "CEJUSC"
+                    ? "border-[color:var(--color-brand-600)] bg-[color:var(--color-brand-50)] text-[color:var(--color-brand-800)] shadow-2xs dark:bg-[color:var(--color-brand-950)]/40 dark:text-[color:var(--color-brand-300)]"
+                    : "border-[color:var(--card-border)] bg-[color:var(--card-bg)] text-[color:var(--page-fg)] hover:border-slate-300"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <strong className="text-xs">🏛️ CEJUSC (Tribunal de Justiça)</strong>
+                  {orgaoDestino === "CEJUSC" && <Badge tone="brand">Selecionado</Badge>}
+                </div>
+                <p className="mt-1 text-2xs text-[color:var(--muted-fg)]">
+                  Fórum da sua comarca. Gratuito e sem advogado para conciliação pré-processual.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOrgaoDestino("PROCON")}
+                className={`flex-1 rounded-xl border p-3 text-left transition ${
+                  orgaoDestino === "PROCON"
+                    ? "border-[color:var(--color-brand-600)] bg-[color:var(--color-brand-50)] text-[color:var(--color-brand-800)] shadow-2xs dark:bg-[color:var(--color-brand-950)]/40 dark:text-[color:var(--color-brand-300)]"
+                    : "border-[color:var(--card-border)] bg-[color:var(--card-bg)] text-[color:var(--page-fg)] hover:border-slate-300"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <strong className="text-xs">🏢 PROCON (Núcleo PAS)</strong>
+                  {orgaoDestino === "PROCON" && <Badge tone="brand">Selecionado</Badge>}
+                </div>
+                <p className="mt-1 text-2xs text-[color:var(--muted-fg)]">
+                  Atendimento administrativo municipal ou estadual. Gratuito e presencial.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOrgaoDestino("DEFENSORIA")}
+                className={`flex-1 rounded-xl border p-3 text-left transition ${
+                  orgaoDestino === "DEFENSORIA"
+                    ? "border-[color:var(--color-brand-600)] bg-[color:var(--color-brand-50)] text-[color:var(--color-brand-800)] shadow-2xs dark:bg-[color:var(--color-brand-950)]/40 dark:text-[color:var(--color-brand-300)]"
+                    : "border-[color:var(--card-border)] bg-[color:var(--card-bg)] text-[color:var(--page-fg)] hover:border-slate-300"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <strong className="text-xs">⚖️ Defensoria Pública (NUDECON)</strong>
+                  {orgaoDestino === "DEFENSORIA" && <Badge tone="brand">Selecionado</Badge>}
+                </div>
+                <p className="mt-1 text-2xs text-[color:var(--muted-fg)]">
+                  Assistência jurídica integral e gratuita para quem não tem dinheiro para advogado.
+                </p>
+              </button>
+            </div>
+          </Card>
+
+          {/* Checklist de Documentos Exigidos (Oculto na impressão) */}
+          <Card className="print:hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[color:var(--card-border)] pb-3">
+              <div>
+                <CardTitle hint="Confira cada documento antes de se dirigir ao local de atendimento">
+                  Checklist de Documentos para Anexar à Petição
+                </CardTitle>
+              </div>
+              <span className="text-xs font-semibold text-[color:var(--color-brand-700)]">
+                {
+                  Object.values(documentosChecados).filter(Boolean).length
+                }{" "}
+                de {CHECKLIST_DOCUMENTOS_EXIGIDOS.length} conferidos
+              </span>
+            </div>
+
+            <div className="mt-3 divide-y divide-[color:var(--card-border)]">
+              {CHECKLIST_DOCUMENTOS_EXIGIDOS.map((doc) => {
+                const checado = Boolean(documentosChecados[doc.titulo]);
+                return (
+                  <label
+                    key={doc.titulo}
+                    className="flex cursor-pointer items-start gap-3 py-2.5 transition hover:bg-[color:var(--color-surface-sunken)]/50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checado}
+                      onChange={() => toggleDocumento(doc.titulo)}
+                      className="mt-0.5 size-4 rounded border-slate-300 text-[color:var(--color-brand-600)] focus:ring-[color:var(--color-brand-600)]"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={`text-xs font-semibold ${
+                          checado
+                            ? "text-[color:var(--color-positive-700)] line-through"
+                            : "text-[color:var(--page-fg)]"
+                        }`}
+                      >
+                        {doc.titulo}
+                      </p>
+                      <p className="text-2xs text-[color:var(--muted-fg)]">{doc.descricao}</p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* Folha da Petição Inicial (Formatada para tela e para impressão A4) */}
+          <div className="rounded-2xl border border-[color:var(--card-border)] bg-white p-8 text-neutral-900 shadow-sm print:border-none print:p-0 print:shadow-none sm:p-12">
+            <div className="mx-auto max-w-3xl space-y-6 font-serif text-sm leading-relaxed whitespace-pre-line text-neutral-900">
+              {textoPeticao}
             </div>
           </div>
         </div>

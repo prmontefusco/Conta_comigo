@@ -29,7 +29,7 @@ export function IOSInstallGuideModal({
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="relative size-12 shrink-0 overflow-hidden rounded-xl shadow-xs">
-              <Image src="/icon-192.png" alt="Conta comigo" fill className="object-cover" />
+              <Image src="/logo.png" alt="Conta comigo" fill className="object-cover" />
             </div>
             <div>
               <h3 id="ios-guide-title" className="font-semibold text-[color:var(--page-fg)]">
@@ -116,7 +116,7 @@ export function PWAInstallPrompt() {
         >
           <div className="flex items-start gap-3">
             <div className="relative size-11 shrink-0 overflow-hidden rounded-xl shadow-xs">
-              <Image src="/icon-192.png" alt="Conta comigo" fill className="object-cover" />
+              <Image src="/logo.png" alt="Conta comigo" fill className="object-cover" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">

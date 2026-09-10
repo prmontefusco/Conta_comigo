@@ -4,7 +4,13 @@ import { money } from "@/core/money/money";
 import type { Account } from "@/modules/accounts/domain/account";
 import type { Category } from "@/modules/categories/domain/category";
 import type { Transaction } from "@/modules/transactions/domain/transaction";
-import { buildQuickEntry, suggestQuickAccount, suggestQuickCategories } from "./quick-entry";
+import {
+  buildQuickEntry,
+  suggestQuickAccount,
+  suggestQuickCategories,
+  suggestQuickIncomeAccount,
+  suggestQuickIncomeCategories,
+} from "./quick-entry";
 
 /**
  * O cálculo que decide esta tela não é financeiro: registrar precisa custar
@@ -251,3 +257,82 @@ describe("buildQuickEntry", () => {
     ).toEqual({ problem: "NO_AMOUNT" });
   });
 });
+
+describe("suggestQuickIncomeCategories", () => {
+  const categories = [
+    category("alimentacao", "Alimentação", 0, "EXPENSE"),
+    category("salario", "Salário", 1, "INCOME"),
+    category("renda-extra", "Renda extra", 2, "INCOME"),
+    category("outras", "Outras receitas", 3, "INCOME"),
+  ];
+
+  const incomeTx = (id: string, categoryId: string, date: string, accountId = "conta"): Transaction =>
+    ({
+      id,
+      householdId: "h1",
+      kind: "INCOME",
+      amount: money(5000),
+      transactionDate: calendarDate(date),
+      competenceDate: calendarDate(date),
+      description: id,
+      accountId,
+      categoryId,
+      visibility: "HOUSEHOLD",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      createdBy: "u1",
+    }) as unknown as Transaction;
+
+  it("retorna somente categorias de entrada", () => {
+    const result = suggestQuickIncomeCategories({ categories, transactions: [], asOf });
+    expect(result.map((r) => r.category.id)).not.toContain("alimentacao");
+    expect(result.map((r) => r.category.id)).toContain("salario");
+  });
+
+  it("ordena por frequência recente de entradas", () => {
+    const result = suggestQuickIncomeCategories({
+      categories,
+      transactions: [
+        incomeTx("i1", "renda-extra", "2026-09-18"),
+        incomeTx("i2", "renda-extra", "2026-09-15"),
+        incomeTx("i3", "salario", "2026-09-05"),
+      ],
+      asOf,
+    });
+
+    expect(result[0]?.category.id).toBe("renda-extra");
+    expect(result[0]?.uses).toBe(2);
+  });
+});
+
+describe("suggestQuickIncomeAccount", () => {
+  const conta1 = account("banco-a");
+  const conta2 = account("banco-b");
+
+  it("sugere a conta onde a última entrada ocorreu", () => {
+    const incomeTx = (id: string, accountId: string, date: string): Transaction =>
+      ({
+        id,
+        householdId: "h1",
+        kind: "INCOME",
+        amount: money(1000),
+        transactionDate: calendarDate(date),
+        competenceDate: calendarDate(date),
+        description: id,
+        accountId,
+        visibility: "HOUSEHOLD",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        createdBy: "u1",
+      }) as unknown as Transaction;
+
+    const result = suggestQuickIncomeAccount({
+      accounts: [conta1, conta2],
+      transactions: [incomeTx("i1", "banco-b", "2026-09-19"), incomeTx("i2", "banco-a", "2026-09-10")],
+      asOf,
+    });
+
+    expect(result?.id).toBe("banco-b");
+  });
+});
+

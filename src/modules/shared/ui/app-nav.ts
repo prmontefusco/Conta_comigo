@@ -51,7 +51,8 @@ export const APP_NAV_SECTIONS: readonly NavSection[] = [
         icon: "🏦",
         restrictedForDependent: true,
       },
-      { href: "/app/dia-a-dia", label: "Lançamentos", icon: "🧾" },
+      { href: "/app/entradas", label: "Entradas", icon: "💰" },
+      { href: "/app/dia-a-dia", label: "Saídas", icon: "🧾" },
       { href: "/app/contas", label: "Contas a Pagar", icon: "📄" },
       { href: "/app/cartoes", label: "Cartões", icon: "💳", restrictedForDependent: true },
       {
@@ -124,6 +125,7 @@ export const APP_NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: "/app/decisoes", label: "Decisões da família", icon: "🗒️" },
       { href: "/app/relatorios", label: "Relatórios", icon: "📊", restrictedForDependent: true },
+      { href: "/app/baixar-dados", label: "Baixar meus dados (Backup)", icon: "💾" },
     ],
   },
   {
@@ -155,7 +157,7 @@ export const APP_NAV_SECTIONS: readonly NavSection[] = [
 export const MOBILE_BAR: readonly NavItem[] = [
   { href: "/app", label: "Início", icon: "🏠" },
   { href: "/app/avisos", label: "Avisos", icon: "🔔" },
-  { href: "/app/dia-a-dia", label: "Dia a dia", icon: "🧾" },
+  { href: "/app/dia-a-dia", label: "Saídas", icon: "🧾" },
   { href: "/app/emergencia", label: "Pagar 1º", icon: "🚨" },
   { href: "/app/plano", label: "Plano", icon: "🧭" },
   { href: "/app/mais", label: "Mais", icon: "⋯" },

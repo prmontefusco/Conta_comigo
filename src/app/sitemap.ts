@@ -33,6 +33,7 @@ const PAGES = [
   { path: "como-provar-superendividamento", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "minimo-existencial", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "acao-de-repactuacao-de-dividas", priority: 0.8, changeFrequency: "monthly" as const },
+  { path: "precisa-de-advogado-para-superendividamento", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "renda-extra", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "como-procurar-emprego", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "mudanca-de-carreira", priority: 0.8, changeFrequency: "monthly" as const },

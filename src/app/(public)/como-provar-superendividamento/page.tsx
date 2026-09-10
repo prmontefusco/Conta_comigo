@@ -114,6 +114,9 @@ export default function Page() {
           a margem real de amortização e gerando um dossiê técnico com auxílio de Inteligência Artificial pronto
           para ser anexado ao seu pedido na Justiça, Defensoria Pública ou Procon.
         </p>
+        <p className="mt-3 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-3 dark:bg-amber-950/20 dark:border-amber-900/40 dark:text-amber-200">
+          <strong>Aviso legal:</strong> O Conta Comigo é uma ferramenta de suporte no controle orçamentário e na preparação da documentação e cálculos técnicos. O aplicativo não presta serviços de advocacia e não garante a aceitação da petição ou ganho de causa, decisões de competência soberana do Poder Judiciário.
+        </p>
         <p className="mt-4">
           <Link
             href="/app/superendividamento"

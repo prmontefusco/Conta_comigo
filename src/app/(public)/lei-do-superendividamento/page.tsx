@@ -118,7 +118,7 @@ export default function Page() {
           </p>
         </Section>
 
-        <Section heading="5. Onde buscar ajuda gratuita?">
+        <Section heading="5. Onde buscar ajuda gratuita e precisa de advogado?">
           <p>Você não precisa contratar advogados caros para ter acesso aos benefícios da lei. Procure:</p>
           <Bullets
             items={[
@@ -127,6 +127,12 @@ export default function Page() {
               "Centros Judiciários de Solução de Conflitos e Cidadania (CEJUSC) dos Tribunais de Justiça.",
             ]}
           />
+          <p className="mt-3">
+            Tire todas as dúvidas detalhadas em nosso guia sobre{" "}
+            <Link href="/precisa-de-advogado-para-superendividamento" className="text-teal-700 underline font-medium">
+              se precisa de advogado para Superendividamento e como agir sozinho
+            </Link>.
+          </p>
         </Section>
       </ContentPage>
     </>

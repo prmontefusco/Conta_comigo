@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { deleteUser, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { Badge, Button, Callout, Card, CardTitle } from "@/components/ui/primitives";
@@ -610,9 +611,16 @@ export default function MyDataPage() {
           dívidas e regras de recorrência em formato padrão aberto.
         </p>
 
-        <Button className="mt-4" onClick={() => void onExport()} disabled={exporting}>
-          {exporting ? "Preparando…" : "Baixar meus dados (JSON)"}
-        </Button>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Link href="/app/baixar-dados">
+            <Button className="font-semibold">
+              💾 Central de Download & Backup Local (Excel / CSV / PDF / JSON)
+            </Button>
+          </Link>
+          <Button variant="secondary" onClick={() => void onExport()} disabled={exporting}>
+            {exporting ? "Preparando…" : "Baixar direto em JSON"}
+          </Button>
+        </div>
       </Card>
 
       <Card aria-labelledby="excluir-title">

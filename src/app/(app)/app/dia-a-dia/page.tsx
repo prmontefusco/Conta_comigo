@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   addMonthsToKey,
   formatCalendarDate,
@@ -131,8 +132,29 @@ export default function DailyPage() {
 
   return (
     <div className="space-y-4">
+      {/* Seletor rápido Saídas / Entradas para navegação veloz tanto no Desktop quanto no Mobile */}
+      <div className="flex rounded-xl border border-[color:var(--card-border)] bg-[color:var(--color-surface-sunken)] p-1">
+        <Link
+          href="/app/dia-a-dia"
+          className="flex-1 rounded-lg bg-[color:var(--card-bg)] px-3 py-2 text-center text-xs font-bold text-[color:var(--color-brand-700)] shadow-2xs"
+        >
+          🧾 Saídas (Gastos)
+        </Link>
+        <Link
+          href="/app/entradas"
+          className="flex-1 rounded-lg px-3 py-2 text-center text-xs font-medium text-[color:var(--muted-fg)] transition hover:text-[color:var(--page-fg)]"
+        >
+          💰 Entradas (Recebimentos)
+        </Link>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Dia a dia</h1>
+        <div>
+          <h1 className="text-xl font-semibold">Saídas</h1>
+          <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+            Registro de gastos e despesas do dia a dia
+          </p>
+        </div>
         {canWrite ? (
           <div className="flex gap-2">
             <Button onClick={() => setCreating("EXPENSE")}>Registrar gasto</Button>

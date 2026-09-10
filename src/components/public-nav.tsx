@@ -413,6 +413,14 @@ export function PublicFooter() {
               </li>
               <li>
                 <Link
+                  href="/precisa-de-advogado-para-superendividamento"
+                  className="text-slate-600 transition-colors hover:text-teal-700"
+                >
+                  Precisa de Advogado?
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/portabilidade-de-credito"
                   className="text-slate-600 transition-colors hover:text-teal-700"
                 >

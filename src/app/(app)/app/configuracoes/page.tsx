@@ -143,9 +143,14 @@ export default function SettingsPage() {
           .
         </p>
 
-        <Link href="/app/meus-dados" className="mt-4 inline-block">
-          <Button variant="secondary">Meus dados</Button>
-        </Link>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href="/app/baixar-dados">
+            <Button>💾 Baixar meus dados (Backup)</Button>
+          </Link>
+          <Link href="/app/meus-dados">
+            <Button variant="secondary">Meus dados cadastrais</Button>
+          </Link>
+        </div>
       </Card>
     </div>
   );

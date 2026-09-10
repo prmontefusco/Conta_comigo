@@ -92,6 +92,7 @@ describe("menu do aplicativo", () => {
 
     expect(hrefs).not.toContain("/app/dividas");
     expect(hrefs).not.toContain("/app/contas-bancarias");
+    expect(hrefs).toContain("/app/entradas");
     expect(hrefs).toContain("/app/dia-a-dia");
     expect(paraDependente.every((section) => section.items.length > 0)).toBe(true);
   });
