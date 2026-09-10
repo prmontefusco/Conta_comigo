@@ -27,7 +27,6 @@ import { InstallmentPlansCard } from "@/modules/cards/ui/installment-plans-card"
 import { NewCardDialog } from "@/modules/cards/ui/new-card-dialog";
 import { NewPurchaseDialog } from "@/modules/cards/ui/new-purchase-dialog";
 import { PayStatementDialog } from "@/modules/cards/ui/pay-statement-dialog";
-import { DocumentImportButton } from "@/modules/receipts/ui/document-import-button";
 import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
@@ -57,10 +56,7 @@ export default function CardsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Cartões</h1>
         {canWrite ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <DocumentImportButton />
-            <Button onClick={() => setCreatingCard(true)}>Novo cartão</Button>
-          </div>
+          <Button onClick={() => setCreatingCard(true)}>Novo cartão</Button>
         ) : null}
       </div>
 
