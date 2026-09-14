@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc, type Firestore } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc, type Firestore } from "firebase/firestore";
 import { instant } from "@/core/date/calendar-date";
 import { err, ok, validationError, type Result } from "@/core/result/result";
 import type { HouseholdId, HouseholdRole, UserId } from "@/modules/shared/domain/common";
@@ -102,6 +102,23 @@ export async function createInvite(input: CreateInviteInput): Promise<Result<{ i
   }
 
   return ok({ id: email });
+}
+
+export interface CancelInviteInput {
+  readonly db: Firestore;
+  readonly householdId: HouseholdId;
+  readonly email: string;
+}
+
+/** Desfaz um convite ainda não aceito. Quem convidou muda de ideia, ou errou o e-mail. */
+export async function cancelInvite(input: CancelInviteInput): Promise<Result<null>> {
+  try {
+    await deleteDoc(doc(input.db, `households/${input.householdId}/invites/${inviteIdFor(input.email)}`));
+  } catch (writeError) {
+    console.error(writeError);
+    return err(validationError("Não foi possível cancelar o convite agora. Tente novamente."));
+  }
+  return ok(null);
 }
 
 export type AcceptInviteProblem =

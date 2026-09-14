@@ -2,7 +2,7 @@ import type { CalendarDate } from "@/core/date/calendar-date";
 import { type Money, add, money, subtract } from "@/core/money/money";
 import type { CardStatement } from "@/modules/cards/domain/credit-card";
 import { classifyDebt, essentialServiceConsequence } from "@/modules/debts/domain/debt-risk";
-import { lateInstallmentCount, type Debt } from "@/modules/debts/domain/debt";
+import { buildSchedule, lateInstallmentCount, type Debt } from "@/modules/debts/domain/debt";
 import { estimateObligationLateFees } from "./late-fees";
 import { isOpen, remainingAmount, type Obligation } from "./obligation";
 
@@ -161,14 +161,24 @@ export function buildTriage(input: BuildTriageInput): TriageResult {
     if (late <= 0) continue;
 
     const risk = classifyDebt(debt);
-    const installment = debt.installmentAmount ?? money(0, currency);
+    const paid = new Set(input.paidDebtInstallments?.get(debt.id) ?? []);
+    const overdueInstallments = buildSchedule(debt).filter(
+      (installment) => installment.dueDate <= input.asOf && !paid.has(installment.number),
+    );
+    // PRICE e SAC frequentemente não têm `installmentAmount` persistido: o
+    // valor correto vem do cronograma calculado, incluindo juros, seguro e
+    // tarifas. Usar o campo opcional fazia parcelas reais aparecerem como R$ 0.
+    const overdueAmount = overdueInstallments.reduce(
+      (total, installment) => add(total, installment.total),
+      money(0, currency),
+    );
 
     items.push({
       id: `debt:${debt.id}`,
       description: `${debt.description} — ${late} ${late === 1 ? "parcela" : "parcelas"} em atraso`,
       tier: risk.guarantee === "COLLATERAL" ? "ASSET_AT_RISK" : "ACCRUING",
       consequence: risk.consequence,
-      amount: money(installment.amount * late, currency),
+      amount: overdueAmount,
       dueDate: input.asOf,
       daysLate: 1,
       dailyCost: money(0, currency),

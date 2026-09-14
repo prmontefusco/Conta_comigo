@@ -82,6 +82,12 @@ describe("domínio de categorias (category)", () => {
     expect(slugs).toContain("moradia");
     expect(slugs).toContain("energia");
     expect(slugs).toContain("alimentacao");
+    expect(slugs).toContain("vestuario");
+    expect(slugs).toContain("calcados");
+    expect(slugs).toContain("eletronicos");
+    expect(slugs).toContain("eletrodomesticos");
+    expect(slugs).toContain("moveis");
+    expect(slugs).toContain("passagens");
     expect(slugs).toContain("salario");
   });
 });

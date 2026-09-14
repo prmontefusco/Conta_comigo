@@ -11,22 +11,26 @@
  */
 
 @theme {
-  --color-ink-900: oklch(0.21 0.02 250);
-  --color-ink-700: oklch(0.36 0.02 250);
-  --color-ink-500: oklch(0.52 0.015 250);
-  --color-ink-300: oklch(0.72 0.012 250);
-  --color-ink-100: oklch(0.92 0.008 250);
-  --color-ink-50: oklch(0.97 0.005 250);
+  --color-ink-900: oklch(0.2 0.025 255);
+  --color-ink-700: oklch(0.35 0.025 255);
+  --color-ink-500: oklch(0.52 0.018 255);
+  --color-ink-300: oklch(0.72 0.014 255);
+  --color-ink-100: oklch(0.92 0.01 255);
+  --color-ink-50: oklch(0.97 0.006 255);
 
   --color-surface: oklch(1 0 0);
-  --color-surface-sunken: oklch(0.98 0.004 250);
+  --color-surface-sunken: oklch(0.98 0.006 255);
   --color-surface-raised: oklch(1 0 0);
 
-  --color-brand-700: oklch(0.42 0.11 195);
-  --color-brand-600: oklch(0.52 0.12 195);
-  --color-brand-500: oklch(0.62 0.12 195);
-  --color-brand-100: oklch(0.94 0.03 195);
-  --color-brand-50: oklch(0.97 0.017 195);
+  --color-brand-800: oklch(0.34 0.18 258);
+  --color-brand-700: oklch(0.44 0.2 257);
+  --color-brand-600: oklch(0.54 0.22 254);
+  --color-brand-500: oklch(0.63 0.2 245);
+  --color-brand-300: oklch(0.78 0.13 235);
+  --color-brand-200: oklch(0.88 0.08 235);
+  --color-brand-100: oklch(0.94 0.045 232);
+  --color-brand-50: oklch(0.975 0.022 225);
+  --color-brand-950: oklch(0.19 0.12 260);
 
   --color-positive-700: oklch(0.44 0.11 155);
   --color-positive-600: oklch(0.54 0.12 155);
@@ -48,13 +52,13 @@
 
 :root {
   color-scheme: light;
-  --page-bg: #f8fafc;
+  --page-bg: #f7fbff;
   --page-fg: var(--color-ink-900);
   --card-bg: rgba(255, 255, 255, 0.92);
-  --card-border: rgba(226, 232, 240, 0.8);
-  --card-shadow: 0 4px 24px -2px rgba(15, 42, 74, 0.04), 0 2px 6px -1px rgba(15, 42, 74, 0.02);
+  --card-border: rgba(207, 226, 246, 0.9);
+  --card-shadow: 0 4px 24px -2px rgba(0, 87, 196, 0.06), 0 2px 6px -1px rgba(7, 58, 130, 0.03);
   --card-shadow-hover:
-    0 12px 32px -4px rgba(15, 42, 74, 0.08), 0 4px 10px -2px rgba(15, 42, 74, 0.03);
+    0 12px 32px -4px rgba(0, 99, 229, 0.12), 0 4px 10px -2px rgba(7, 58, 130, 0.05);
   --muted-fg: var(--color-ink-500);
 
   /*
@@ -75,9 +79,9 @@ html {
 body {
   background-color: var(--page-bg);
   background-image:
-    radial-gradient(ellipse at 85% 5%, rgba(224, 242, 254, 0.55) 0%, transparent 45%),
-    radial-gradient(ellipse at 15% 15%, rgba(236, 253, 245, 0.5) 0%, transparent 40%),
-    radial-gradient(ellipse at 50% 90%, rgba(241, 245, 249, 0.6) 0%, transparent 50%);
+    radial-gradient(ellipse at 85% 5%, rgba(186, 230, 253, 0.7) 0%, transparent 42%),
+    radial-gradient(ellipse at 10% 12%, rgba(219, 234, 254, 0.62) 0%, transparent 38%),
+    radial-gradient(ellipse at 50% 95%, rgba(239, 246, 255, 0.72) 0%, transparent 50%);
   background-attachment: fixed;
   color: var(--page-fg);
   font-family: var(--font-sans);
@@ -100,13 +104,13 @@ body {
 
 .glass-panel:hover {
   box-shadow: var(--card-shadow-hover);
-  border-color: rgba(186, 230, 253, 0.6);
+  border-color: rgba(96, 165, 250, 0.62);
 }
 
 .tab-active {
   background: var(--color-brand-600);
   color: white;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.25);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
 
 /*

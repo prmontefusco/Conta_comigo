@@ -6,6 +6,7 @@ import {
   APP_NAV_SECTIONS,
   DEPENDENT_BLOCKED_PATHS,
   MOBILE_BAR,
+  mobileBarFor,
   navSectionsFor,
 } from "./app-nav";
 
@@ -78,6 +79,36 @@ describe("menu do aplicativo", () => {
 
     for (const item of MOBILE_BAR) {
       expect(conhecidos.has(item.href)).toBe(true);
+    }
+  });
+
+  it("troca movimentos por conta bancária quando ainda não há conta ativa", () => {
+    const secoes = navSectionsFor("OWNER", { hasBankAccount: false });
+    const titulos = secoes.map((section) => section.title);
+    const barra = mobileBarFor({ hasBankAccount: false });
+
+    expect(titulos).not.toContain("Movimentos");
+    expect(barra.map((item) => item.href)).not.toContain("/app/dia-a-dia");
+    expect(barra.map((item) => item.href)).toContain("/app/contas-bancarias");
+  });
+
+  it("troca cartões por contas a pagar na barra de baixo quando o papel é dependente", () => {
+    // /app/cartoes é restrictedForDependent: mantê-lo na barra fixa levaria o
+    // dependente a uma tela que o devolve para /app/dia-a-dia ao abrir.
+    const barra = mobileBarFor({ role: "DEPENDENT" });
+    const hrefs = barra.map((item) => item.href);
+
+    expect(hrefs).not.toContain("/app/cartoes");
+    expect(hrefs).toContain("/app/contas");
+
+    const restritos = new Set(
+      allNavItems()
+        .filter((item) => item.restrictedForDependent)
+        .map((item) => item.href),
+    );
+    for (const href of hrefs) {
+      if (href === "/app/mais") continue;
+      expect(restritos.has(href)).toBe(false);
     }
   });
 

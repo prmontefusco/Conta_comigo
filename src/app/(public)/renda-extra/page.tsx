@@ -68,11 +68,11 @@ export default function Page() {
         </p>
         <p>
           Conheça nosso guia completo sobre{" "}
-          <Link href="/como-procurar-emprego" className="font-medium text-teal-700 underline underline-offset-2">
+          <Link href="/como-procurar-emprego" className="font-medium text-blue-700 underline underline-offset-2">
             Como procurar emprego com método
           </Link>{" "}
           e confira como criar um currículo moderno e gratuito no{" "}
-          <Link href="/como-fazer-curriculo" className="font-medium text-teal-700 underline underline-offset-2">
+          <Link href="/como-fazer-curriculo" className="font-medium text-blue-700 underline underline-offset-2">
             Guia de Criação de Currículo
           </Link>
           .
@@ -81,3 +81,4 @@ export default function Page() {
     </ContentPage>
   );
 }
+

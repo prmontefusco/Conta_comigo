@@ -68,6 +68,7 @@ export default function ActionPlanPage() {
   const [incomeDropText, setIncomeDropText] = useState("30");
   const [serviceCashText, setServiceCashText] = useState("");
   const [scriptId, setScriptId] = useState<ScriptId>("PRAZO");
+  const [showDetails, setShowDetails] = useState(false);
 
   const plan = useMemo(() => buildActionPlan(finance), [finance]);
   const incomeStress = useMemo(
@@ -152,194 +153,221 @@ export default function ActionPlanPage() {
         </ol>
       </Card>
 
-      <DecisionsCard />
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle>Ferramentas e relatório</CardTitle>
+            <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
+              Calendário, simulações, metas e documentos ficam disponíveis quando você precisar.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={() => setShowDetails((current) => !current)}
+            aria-expanded={showDetails}
+          >
+            {showDetails ? "Ocultar detalhes" : "Ver detalhes do plano"}
+          </Button>
+        </div>
+      </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardTitle hint="O que vence primeiro e quanto pressiona o caixa.">
-            Calendário financeiro
-          </CardTitle>
-          <div className="space-y-2">
-            {plan.calendar.slice(0, 12).map((event) => (
-              <div
-                key={`${event.date}-${event.description}-${event.amount.amount}`}
-                className="flex items-center justify-between gap-3 border-b border-[color:var(--card-border)] py-2 last:border-0"
-              >
-                <div>
-                  <p className="text-sm font-medium">{event.description}</p>
-                  <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
-                    {formatCalendarDate(event.date)}
-                  </p>
-                </div>
-                <MoneyText
-                  value={event.amount}
-                  tone={event.direction === "INFLOW" ? "positive" : "outflow"}
+      {showDetails ? (
+        <>
+          <DecisionsCard />
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardTitle hint="O que vence primeiro e quanto pressiona o caixa.">
+                Calendário financeiro
+              </CardTitle>
+              <div className="space-y-2">
+                {plan.calendar.slice(0, 12).map((event) => (
+                  <div
+                    key={`${event.date}-${event.description}-${event.amount.amount}`}
+                    className="flex items-center justify-between gap-3 border-b border-[color:var(--card-border)] py-2 last:border-0"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{event.description}</p>
+                      <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+                        {formatCalendarDate(event.date)}
+                      </p>
+                    </div>
+                    <MoneyText
+                      value={event.amount}
+                      tone={event.direction === "INFLOW" ? "positive" : "outflow"}
+                    />
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card>
+              <CardTitle hint="Quanto o mês aguenta se a renda cair.">
+                Simulador de renda variável
+              </CardTitle>
+              <div className="max-w-xs">
+                <label className="text-sm font-medium" htmlFor="queda-renda">
+                  Queda de renda simulada (%)
+                </label>
+                <input
+                  id="queda-renda"
+                  value={incomeDropText}
+                  onChange={(event) => setIncomeDropText(event.target.value)}
+                  inputMode="numeric"
+                  className="mt-1 min-h-11 w-full rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-3 text-sm"
                 />
               </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card>
-          <CardTitle hint="Quanto o mês aguenta se a renda cair.">
-            Simulador de renda variável
-          </CardTitle>
-          <div className="max-w-xs">
-            <label className="text-sm font-medium" htmlFor="queda-renda">
-              Queda de renda simulada (%)
-            </label>
-            <input
-              id="queda-renda"
-              value={incomeDropText}
-              onChange={(event) => setIncomeDropText(event.target.value)}
-              inputMode="numeric"
-              className="mt-1 min-h-11 w-full rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-3 text-sm"
-            />
-          </div>
-          <dl className="mt-4 grid grid-cols-2 gap-4">
-            <Stat label="Renda média atual" value={incomeStress.currentIncome} />
-            <Stat label="Renda simulada" value={incomeStress.stressedIncome} tone="attention" />
-            <Stat
-              label="Falta no pior mês"
-              value={incomeStress.worstShortfall}
-              tone={incomeStress.worstShortfall.amount > 0 ? "critical" : "positive"}
-            />
-            <CountStat
-              label="Meses descobertos"
-              value={String(incomeStress.deficitMonths)}
-              hint="Quantidade em meses"
-            />
-          </dl>
-          <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
-            Use esse número como piso de segurança para autônomos, comissões ou renda informal.
-          </p>
-        </Card>
-      </div>
-
-      <Card>
-        <CardTitle hint="Ordem combinando consequência, taxa, valor e alívio mensal.">
-          Priorização de dívidas
-        </CardTitle>
-        {plan.priorities.length === 0 ? (
-          <Callout tone="positive">Nenhuma dívida ativa cadastrada.</Callout>
-        ) : (
-          <ul className="space-y-3">
-            {plan.priorities.map((item) => (
-              <li key={item.id} className="rounded-lg border border-[color:var(--card-border)] p-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone={item.tone}>{priorityLabel(item.kind)}</Badge>
-                      <p className="font-medium">{item.title}</p>
-                    </div>
-                    <p className="mt-1 text-sm" style={{ color: "var(--muted-fg)" }}>
-                      {item.detail}
-                    </p>
-                  </div>
-                  <MoneyText value={item.amount} tone="outflow" />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardTitle hint="Metas pequenas para sair do sufoco sem prometer milagre.">
-            Metas de curto prazo
-          </CardTitle>
-          <ul className="space-y-4">
-            {plan.goals.map((goal) => (
-              <li key={goal.title}>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium">{goal.title}</p>
-                  <span className="text-sm font-semibold">{goal.progress}%</span>
-                </div>
-                <ProgressBar
-                  ratio={goal.progress / 100}
-                  label={goal.title}
-                  tone={goal.progress >= 100 ? "positive" : "brand"}
+              <dl className="mt-4 grid grid-cols-2 gap-4">
+                <Stat label="Renda média atual" value={incomeStress.currentIncome} />
+                <Stat label="Renda simulada" value={incomeStress.stressedIncome} tone="attention" />
+                <Stat
+                  label="Falta no pior mês"
+                  value={incomeStress.worstShortfall}
+                  tone={incomeStress.worstShortfall.amount > 0 ? "critical" : "positive"}
                 />
-                <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
-                  {goal.detail}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card>
-          <CardTitle hint="Use antes de ligar para banco, loja ou concessionária.">
-            Central de negociação
-          </CardTitle>
-          <dl className="grid grid-cols-2 gap-4">
-            <Stat
-              label="Parcela máxima"
-              value={plan.negotiationCapacity.maxInstallment}
-              tone={plan.negotiationCapacity.maxInstallment.amount > 0 ? "positive" : "critical"}
-            />
-            <Stat
-              label="Sobra mensal"
-              value={plan.negotiationCapacity.leftOver}
-              tone={plan.negotiationCapacity.leftOver.amount > 0 ? "positive" : "critical"}
-            />
-          </dl>
-          <div className="mt-4">
-            <label className="text-sm font-medium" htmlFor="roteiro">
-              Roteiro
-            </label>
-            <select
-              id="roteiro"
-              value={scriptId}
-              onChange={(event) => setScriptId(event.target.value as ScriptId)}
-              className="mt-1 min-h-11 w-full rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-3 text-sm"
-            >
-              <option value="DETALHAMENTO">Pedir detalhamento</option>
-              <option value="PROPOSTA">Propor parcela que cabe</option>
-              <option value="PORTABILIDADE">Perguntar sobre portabilidade</option>
-              <option value="PRAZO">Pedir prazo</option>
-              <option value="COBRANCA_NAO_RECONHECIDA">Cobrança não reconhecida</option>
-            </select>
+                <CountStat
+                  label="Meses descobertos"
+                  value={String(incomeStress.deficitMonths)}
+                  hint="Quantidade em meses"
+                />
+              </dl>
+              <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
+                Use esse número como piso de segurança para autônomos, comissões ou renda informal.
+              </p>
+            </Card>
           </div>
-          <pre className="mt-3 rounded-lg bg-[color:var(--color-surface-sunken)] p-3 text-xs leading-relaxed whitespace-pre-wrap">
-            {script}
-          </pre>
-          <Link
-            href="/app/negociar"
-            className="mt-3 inline-flex text-sm font-medium text-[color:var(--color-brand-700)] hover:underline"
-          >
-            Abrir calculadora completa
-          </Link>
-        </Card>
-      </div>
 
-      <Card>
-        <CardTitle hint="Resumo imprimível para Procon, Defensoria, mutirão ou atendimento social.">
-          Relatório para atendimento
-        </CardTitle>
-        <div className="mb-4 max-w-xs print:hidden">
-          <MoneyField
-            label="Dinheiro disponível hoje"
-            value={serviceCashText}
-            onChange={(event) => setServiceCashText(event.target.value)}
-            placeholder={(finance.overview.today.spendableCash.amount / 100)
-              .toFixed(2)
-              .replace(".", ",")}
-          />
-        </div>
-        <div className="space-y-3 text-sm">
-          {serviceReport.map((line) => (
-            <p
-              key={line.label}
-              className="flex flex-wrap justify-between gap-3 border-b border-[color:var(--card-border)] pb-2 last:border-0"
-            >
-              <span style={{ color: "var(--muted-fg)" }}>{line.label}</span>
-              <strong>{line.value}</strong>
-            </p>
-          ))}
-        </div>
-      </Card>
+          <Card>
+            <CardTitle hint="Ordem combinando consequência, taxa, valor e alívio mensal.">
+              Priorização de dívidas
+            </CardTitle>
+            {plan.priorities.length === 0 ? (
+              <Callout tone="positive">Nenhuma dívida ativa cadastrada.</Callout>
+            ) : (
+              <ul className="space-y-3">
+                {plan.priorities.map((item) => (
+                  <li
+                    key={item.id}
+                    className="rounded-lg border border-[color:var(--card-border)] p-3"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge tone={item.tone}>{priorityLabel(item.kind)}</Badge>
+                          <p className="font-medium">{item.title}</p>
+                        </div>
+                        <p className="mt-1 text-sm" style={{ color: "var(--muted-fg)" }}>
+                          {item.detail}
+                        </p>
+                      </div>
+                      <MoneyText value={item.amount} tone="outflow" />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardTitle hint="Metas pequenas para sair do sufoco sem prometer milagre.">
+                Metas de curto prazo
+              </CardTitle>
+              <ul className="space-y-4">
+                {plan.goals.map((goal) => (
+                  <li key={goal.title}>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium">{goal.title}</p>
+                      <span className="text-sm font-semibold">{goal.progress}%</span>
+                    </div>
+                    <ProgressBar
+                      ratio={goal.progress / 100}
+                      label={goal.title}
+                      tone={goal.progress >= 100 ? "positive" : "brand"}
+                    />
+                    <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
+                      {goal.detail}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+
+            <Card>
+              <CardTitle hint="Use antes de ligar para banco, loja ou concessionária.">
+                Central de negociação
+              </CardTitle>
+              <dl className="grid grid-cols-2 gap-4">
+                <Stat
+                  label="Parcela máxima"
+                  value={plan.negotiationCapacity.maxInstallment}
+                  tone={
+                    plan.negotiationCapacity.maxInstallment.amount > 0 ? "positive" : "critical"
+                  }
+                />
+                <Stat
+                  label="Sobra mensal"
+                  value={plan.negotiationCapacity.leftOver}
+                  tone={plan.negotiationCapacity.leftOver.amount > 0 ? "positive" : "critical"}
+                />
+              </dl>
+              <div className="mt-4">
+                <label className="text-sm font-medium" htmlFor="roteiro">
+                  Roteiro
+                </label>
+                <select
+                  id="roteiro"
+                  value={scriptId}
+                  onChange={(event) => setScriptId(event.target.value as ScriptId)}
+                  className="mt-1 min-h-11 w-full rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-3 text-sm"
+                >
+                  <option value="DETALHAMENTO">Pedir detalhamento</option>
+                  <option value="PROPOSTA">Propor parcela que cabe</option>
+                  <option value="PORTABILIDADE">Perguntar sobre portabilidade</option>
+                  <option value="PRAZO">Pedir prazo</option>
+                  <option value="COBRANCA_NAO_RECONHECIDA">Cobrança não reconhecida</option>
+                </select>
+              </div>
+              <pre className="mt-3 rounded-lg bg-[color:var(--color-surface-sunken)] p-3 text-xs leading-relaxed whitespace-pre-wrap">
+                {script}
+              </pre>
+              <Link
+                href="/app/negociar"
+                className="mt-3 inline-flex text-sm font-medium text-[color:var(--color-brand-700)] hover:underline"
+              >
+                Abrir calculadora completa
+              </Link>
+            </Card>
+          </div>
+
+          <Card>
+            <CardTitle hint="Resumo imprimível para Procon, Defensoria, mutirão ou atendimento social.">
+              Relatório para atendimento
+            </CardTitle>
+            <div className="mb-4 max-w-xs print:hidden">
+              <MoneyField
+                label="Dinheiro disponível hoje"
+                value={serviceCashText}
+                onChange={(event) => setServiceCashText(event.target.value)}
+                placeholder={(finance.overview.today.spendableCash.amount / 100)
+                  .toFixed(2)
+                  .replace(".", ",")}
+              />
+            </div>
+            <div className="space-y-3 text-sm">
+              {serviceReport.map((line) => (
+                <p
+                  key={line.label}
+                  className="flex flex-wrap justify-between gap-3 border-b border-[color:var(--card-border)] pb-2 last:border-0"
+                >
+                  <span style={{ color: "var(--muted-fg)" }}>{line.label}</span>
+                  <strong>{line.value}</strong>
+                </p>
+              ))}
+            </div>
+          </Card>
+        </>
+      ) : null}
     </div>
   );
 }

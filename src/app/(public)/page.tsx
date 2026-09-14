@@ -1,11 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import {
-  JsonLd,
-  buildSoftwareAppSchema,
-  buildFaqSchema,
-  type FaqItem,
-} from "@/lib/json-ld";
+import { JsonLd, buildSoftwareAppSchema, buildFaqSchema, type FaqItem } from "@/lib/json-ld";
 
 export const metadata: Metadata = {
   // `absolute` evita o sufixo do template do layout raiz, que aqui produziria
@@ -92,25 +87,29 @@ const HOME_FAQS: readonly FaqItem[] = [
 const GUIDES = [
   {
     title: "Lei do Superendividamento (Lei 14.181/2021)",
-    description: "Como funciona a repactuação de dívidas em bloco, carência de 180 dias e prazo de até 5 anos.",
+    description:
+      "Como funciona a repactuação de dívidas em bloco, carência de 180 dias e prazo de até 5 anos.",
     href: "/lei-do-superendividamento",
     tag: "Legislação e Direitos",
   },
   {
     title: "Mínimo Existencial: Decreto nº 11.567/2023",
-    description: "Impeça bancos de confiscarem seu salário e saiba quais despesas são protegidas por lei.",
+    description:
+      "Impeça bancos de confiscarem seu salário e saiba quais despesas são protegidas por lei.",
     href: "/minimo-existencial",
     tag: "Proteção Salarial",
   },
   {
     title: "Como Sair das Dívidas Passo a Passo",
-    description: "Estanque os juros e escolha entre o Método Bola de Neve e Avalanche para quitar tudo.",
+    description:
+      "Estanque os juros e escolha entre o Método Bola de Neve e Avalanche para quitar tudo.",
     href: "/como-sair-das-dividas",
     tag: "Estratégia Prática",
   },
   {
     title: "Orçamento e Gestão Financeira Familiar",
-    description: "Divida despesas da casa sem conflitos, com níveis de privacidade e permissões para o casal.",
+    description:
+      "Divida despesas da casa sem conflitos, com níveis de privacidade e permissões para o casal.",
     href: "/orcamento-familiar",
     tag: "Família e Casal",
   },
@@ -126,39 +125,39 @@ export default function HomePage() {
       <section className="relative overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24">
         {/* Background glow effects */}
         <div className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center">
-          <div className="h-[450px] w-[700px] rounded-full bg-gradient-to-tr from-cyan-200/40 via-teal-100/30 to-emerald-100/40 blur-3xl" />
+          <div className="h-[450px] w-[700px] rounded-full bg-gradient-to-tr from-cyan-200/40 via-blue-100/30 to-emerald-100/40 blur-3xl" />
         </div>
 
         <div className="mx-auto max-w-5xl px-4 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--card-border)] bg-white/80 px-3.5 py-1 text-xs font-medium text-[color:var(--color-brand-700)] shadow-xs backdrop-blur-xs">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="flex h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
             <span>Proteção Legal • Lei 14.181/2021 & Gestão Familiar Colaborativa</span>
           </div>
 
           <h1 className="mt-6 text-3xl font-bold tracking-tight text-neutral-900 sm:text-5xl sm:leading-[1.15]">
             Controle suas contas de hoje e{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[color:var(--color-brand-700)] to-teal-600">
+            <span className="bg-gradient-to-r from-[color:var(--color-brand-700)] to-blue-600 bg-clip-text text-transparent">
               antecipe o seu futuro financeiro
             </span>{" "}
             sem surpresas.
           </h1>
 
-          <p className="mx-auto mt-5 max-w-2xl text-base text-neutral-600 sm:text-lg leading-relaxed">
-            O Conta Comigo reúne o que você tem, o que já está comprometido e o que ainda vai acontecer.
-            Projete até 12 meses à frente, proteja seu salário com o <strong>Mínimo Existencial</strong> e
-            organize as finanças da sua casa em equipe.
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-neutral-600 sm:text-lg">
+            O Conta Comigo reúne o que você tem, o que já está comprometido e o que ainda vai
+            acontecer. Projete até 12 meses à frente, proteja seu salário com o{" "}
+            <strong>Mínimo Existencial</strong> e organize as finanças da sua casa em equipe.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/criar-conta"
-              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[color:var(--color-brand-600)] px-7 font-semibold text-white shadow-md shadow-cyan-900/10 transition-all hover:bg-[color:var(--color-brand-700)] hover:scale-[1.02] active:scale-[0.98]"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[color:var(--color-brand-600)] px-7 font-semibold text-white shadow-md shadow-cyan-900/10 transition-all hover:scale-[1.02] hover:bg-[color:var(--color-brand-700)] active:scale-[0.98]"
             >
               Criar conta gratuita
             </Link>
             <Link
               href="/como-funciona"
-              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[color:var(--card-border)] bg-white/90 px-6 font-medium text-neutral-800 shadow-2xs transition-all hover:bg-neutral-50 hover:border-neutral-300"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[color:var(--card-border)] bg-white/90 px-6 font-medium text-neutral-800 shadow-2xs transition-all hover:border-neutral-300 hover:bg-neutral-50"
             >
               Ver como funciona &rarr;
             </Link>
@@ -167,27 +166,57 @@ export default function HomePage() {
           {/* Micro trust indicators */}
           <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-xs text-neutral-500">
             <div className="flex items-center gap-1.5">
-              <svg className="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <svg
+                className="h-4 w-4 text-emerald-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
               <span>100% gratuito para começar</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <svg className="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <svg
+                className="h-4 w-4 text-emerald-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
               </svg>
               <span>Sem senhas bancárias (Zero risco)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <svg className="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              <svg
+                className="h-4 w-4 text-emerald-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
               </svg>
               <span>Dossiê da Lei 14.181/2021 incluso</span>
             </div>
           </div>
 
           {/* VISUAL DASHBOARD MOCKUP */}
-          <div className="mt-12 overflow-hidden rounded-2xl border border-[color:var(--card-border)] bg-neutral-900/5 p-2 sm:p-3 shadow-2xl backdrop-blur-xs">
+          <div className="mt-12 overflow-hidden rounded-2xl border border-[color:var(--card-border)] bg-neutral-900/5 p-2 shadow-2xl backdrop-blur-xs sm:p-3">
             <div className="overflow-hidden rounded-xl border border-neutral-200/80 bg-white text-left shadow-xs">
               {/* Fake App Browser Chrome */}
               <div className="flex items-center justify-between border-b border-neutral-100 bg-neutral-50/80 px-4 py-3">
@@ -195,75 +224,107 @@ export default function HomePage() {
                   <div className="h-3 w-3 rounded-full bg-rose-400/80" />
                   <div className="h-3 w-3 rounded-full bg-amber-400/80" />
                   <div className="h-3 w-3 rounded-full bg-emerald-400/80" />
-                  <span className="ml-2 text-2xs font-medium text-neutral-400">app.contacomigo.com.br/dashboard</span>
+                  <span className="text-2xs ml-2 font-medium text-neutral-600">
+                    app.contacomigo.com.br/dashboard
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-2xs font-semibold text-emerald-800">
+                  <span className="text-2xs rounded-md bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-800">
                     Casa & Família
                   </span>
                 </div>
               </div>
 
               {/* Mockup Dashboard Content */}
-              <div className="p-4 sm:p-6 bg-slate-50/50 space-y-5">
+              <div className="space-y-5 bg-slate-50/50 p-4 sm:p-6">
                 {/* Stat Cards Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5 shadow-2xs">
-                    <span className="text-2xs font-medium text-neutral-500 uppercase tracking-wider">Saldo Líquido</span>
-                    <p className="mt-1 text-base sm:text-lg font-bold text-neutral-900">R$ 5.420,00</p>
-                    <span className="mt-0.5 inline-block text-2xs text-emerald-600 font-medium">Livre p/ decisões: R$ 2.920</span>
+                    <span className="text-2xs font-medium tracking-wider text-neutral-500 uppercase">
+                      Saldo Líquido
+                    </span>
+                    <p className="mt-1 text-base font-bold text-neutral-900 sm:text-lg">
+                      R$ 5.420,00
+                    </p>
+                    <span className="text-2xs mt-0.5 inline-block font-medium text-emerald-700">
+                      Livre p/ decisões: R$ 2.920
+                    </span>
                   </div>
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5 shadow-2xs">
-                    <span className="text-2xs font-medium text-neutral-500 uppercase tracking-wider">Contas do Mês</span>
-                    <p className="mt-1 text-base sm:text-lg font-bold text-neutral-900">R$ 2.500,00</p>
-                    <span className="mt-0.5 inline-block text-2xs text-neutral-500">6 pendentes • 2 pagas</span>
+                    <span className="text-2xs font-medium tracking-wider text-neutral-500 uppercase">
+                      Contas do Mês
+                    </span>
+                    <p className="mt-1 text-base font-bold text-neutral-900 sm:text-lg">
+                      R$ 2.500,00
+                    </p>
+                    <span className="text-2xs mt-0.5 inline-block text-neutral-500">
+                      6 pendentes • 2 pagas
+                    </span>
                   </div>
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5 shadow-2xs">
-                    <span className="text-2xs font-medium text-neutral-500 uppercase tracking-wider">Runway / Fôlego</span>
-                    <p className="mt-1 text-base sm:text-lg font-bold text-teal-700">3.8 meses</p>
-                    <span className="mt-0.5 inline-block text-2xs text-teal-600 font-medium">Caixa equilibrado</span>
+                    <span className="text-2xs font-medium tracking-wider text-neutral-500 uppercase">
+                      Runway / Fôlego
+                    </span>
+                    <p className="mt-1 text-base font-bold text-blue-700 sm:text-lg">3.8 meses</p>
+                    <span className="text-2xs mt-0.5 inline-block font-medium text-blue-600">
+                      Caixa equilibrado
+                    </span>
                   </div>
                   <div className="rounded-xl border border-neutral-200 bg-white p-3.5 shadow-2xs">
-                    <span className="text-2xs font-medium text-neutral-500 uppercase tracking-wider">Mínimo Existencial</span>
-                    <p className="mt-1 text-base sm:text-lg font-bold text-emerald-700">Preservado</p>
-                    <span className="mt-0.5 inline-block text-2xs text-emerald-600 font-medium">Art. 54-A CDC</span>
+                    <span className="text-2xs font-medium tracking-wider text-neutral-500 uppercase">
+                      Mínimo Existencial
+                    </span>
+                    <p className="mt-1 text-base font-bold text-emerald-700 sm:text-lg">
+                      Preservado
+                    </p>
+                    <span className="text-2xs mt-0.5 inline-block font-medium text-emerald-700">
+                      Art. 54-A CDC
+                    </span>
                   </div>
                 </div>
 
                 {/* Mockup Projection preview */}
                 <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-2xs">
-                  <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+                  <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
                     <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-700">
+                      <h4 className="text-xs font-bold tracking-wider text-neutral-700 uppercase">
                         Projeção Antecipada (Próximos 3 Meses)
                       </h4>
-                      <p className="text-2xs text-neutral-500">Veja o aperto antes que ele aconteça e tome decisões seguras</p>
+                      <p className="text-2xs text-neutral-500">
+                        Veja o aperto antes que ele aconteça e tome decisões seguras
+                      </p>
                     </div>
-                    <span className="rounded-md bg-cyan-50 px-2 py-0.5 text-2xs font-semibold text-cyan-700 border border-cyan-200">
+                    <span className="text-2xs rounded-md border border-cyan-200 bg-cyan-50 px-2 py-0.5 font-semibold text-cyan-700">
                       Antecedência Ativa
                     </span>
                   </div>
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="mt-3 grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
                     <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
                       <div className="flex justify-between font-semibold text-emerald-950">
                         <span>Próximo Mês</span>
                         <span className="text-emerald-700">+ R$ 1.820,00</span>
                       </div>
-                      <p className="mt-1 text-2xs text-emerald-800">Contas e receitas totalmente cobertas.</p>
+                      <p className="text-2xs mt-1 text-emerald-800">
+                        Contas e receitas totalmente cobertas.
+                      </p>
                     </div>
                     <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
                       <div className="flex justify-between font-semibold text-emerald-950">
                         <span>Em 60 Dias</span>
                         <span className="text-emerald-700">+ R$ 640,00</span>
                       </div>
-                      <p className="mt-1 text-2xs text-emerald-800">Término da parcela do seguro auto.</p>
+                      <p className="text-2xs mt-1 text-emerald-800">
+                        Término da parcela do seguro auto.
+                      </p>
                     </div>
                     <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3">
                       <div className="flex justify-between font-semibold text-amber-950">
                         <span>Em 90 Dias (Alerta)</span>
                         <span className="text-amber-700">− R$ 420,00</span>
                       </div>
-                      <p className="mt-1 text-2xs text-amber-800 font-medium">⚠️ IPVA previsto. Ajuste sugerido em compras não essenciais.</p>
+                      <p className="text-2xs mt-1 font-medium text-amber-800">
+                        ⚠️ IPVA previsto. Ajuste sugerido em compras não essenciais.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -276,12 +337,13 @@ export default function HomePage() {
       {/* 4 CORE PILLARS SECTION */}
       <section className="border-y border-[color:var(--card-border)] bg-[color:var(--color-surface-sunken)] py-16">
         <div className="mx-auto max-w-5xl px-4">
-          <div className="text-center max-w-2xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
               O que você conquista com o Conta Comigo
             </h2>
-            <p className="mt-2 text-neutral-600 text-sm sm:text-base">
-              Desenvolvido com fundamentação técnica e jurídica para transformar ansiedade financeira em clareza absoluta.
+            <p className="mt-2 text-sm text-neutral-600 sm:text-base">
+              Desenvolvido com fundamentação técnica e jurídica para transformar ansiedade
+              financeira em clareza absoluta.
             </p>
           </div>
 
@@ -290,14 +352,21 @@ export default function HomePage() {
             <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-6 shadow-2xs">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-100 text-[color:var(--color-brand-700)]">
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <h3 className="mt-4 text-lg font-bold text-neutral-900">
                 1. O mês que não fecha aparece antes de chegar
               </h3>
-              <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
-                A maioria das pessoas só descobre que o dinheiro acabou no dia 25. Com nossa projeção contínua de 3 a 12 meses, você identifica o déficit com antecedência suficiente para cortar despesas ou negociar antes de entrar no cheque especial.
+              <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+                A maioria das pessoas só descobre que o dinheiro acabou no dia 25. Com nossa
+                projeção contínua de 3 a 12 meses, você identifica o déficit com antecedência
+                suficiente para cortar despesas ou negociar antes de entrar no cheque especial.
               </p>
             </div>
 
@@ -305,14 +374,21 @@ export default function HomePage() {
             <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-6 shadow-2xs">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
                 </svg>
               </div>
               <h3 className="mt-4 text-lg font-bold text-neutral-900">
                 2. Proteção Legal ao Superendividamento (Lei 14.181/2021)
               </h3>
-              <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
-                O único aplicativo que calcula o seu <strong>Mínimo Existencial</strong> (Decreto nº 11.567/2023) e emite um Dossiê Técnico fundamentado para você apresentar no Procon ou Defensoria Pública para repactuar todas as suas dívidas em até 5 anos.
+              <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+                O único aplicativo que calcula o seu <strong>Mínimo Existencial</strong> (Decreto nº
+                11.567/2023) e emite um Dossiê Técnico fundamentado para você apresentar no Procon
+                ou Defensoria Pública para repactuar todas as suas dívidas em até 5 anos.
               </p>
             </div>
 
@@ -320,14 +396,21 @@ export default function HomePage() {
             <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-6 shadow-2xs">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
                 </svg>
               </div>
               <h3 className="mt-4 text-lg font-bold text-neutral-900">
                 3. Gestão Familiar & Casal Colaborativo
               </h3>
-              <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
-                Divida despesas compartilhadas sem atrito. Convide cônjuge ou familiares com permissões granulares: cada um pode manter seus gastos pessoais privados enquanto a soma das despesas da residência é gerenciada em conjunto.
+              <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+                Divida despesas compartilhadas sem atrito. Convide cônjuge ou familiares com
+                permissões granulares: cada um pode manter seus gastos pessoais privados enquanto a
+                soma das despesas da residência é gerenciada em conjunto.
               </p>
             </div>
 
@@ -335,14 +418,21 @@ export default function HomePage() {
             <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-6 shadow-2xs">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
                 </svg>
               </div>
               <h3 className="mt-4 text-lg font-bold text-neutral-900">
                 4. Simulador de Decisões e Runway de Caixa
               </h3>
-              <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
-                Pergunte ao seu orçamento antes de passar o cartão: &quot;E se eu parcelar essa viagem em 10 vezes?&quot; ou &quot;E se minha renda diminuir 20%?&quot;. Veja o impacto exato nos meses seguintes antes de assumir o compromisso.
+              <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+                Pergunte ao seu orçamento antes de passar o cartão: &quot;E se eu parcelar essa
+                viagem em 10 vezes?&quot; ou &quot;E se minha renda diminuir 20%?&quot;. Veja o
+                impacto exato nos meses seguintes antes de assumir o compromisso.
               </p>
             </div>
           </div>
@@ -351,49 +441,72 @@ export default function HomePage() {
 
       {/* COMPARISON TABLE: SPREADSHEET VS CONTA COMIGO */}
       <section className="mx-auto max-w-5xl px-4 py-16">
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
+        <div className="mx-auto mb-10 max-w-2xl text-center">
+          <h2 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
             Por que trocar planilhas pelo Conta Comigo?
           </h2>
-          <p className="mt-2 text-neutral-600 text-sm sm:text-base">
-            Planilhas exigem manutenção manual cansativa e não entendem a separação entre competência e caixa.
+          <p className="mt-2 text-sm text-neutral-600 sm:text-base">
+            Planilhas exigem manutenção manual cansativa e não entendem a separação entre
+            competência e caixa.
           </p>
         </div>
 
         <div className="overflow-x-auto rounded-2xl border border-[color:var(--card-border)] bg-white shadow-2xs">
-          <table className="w-full text-left text-sm border-collapse">
+          <table className="w-full border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-neutral-200 bg-neutral-50/80">
                 <th className="p-4 font-semibold text-neutral-700">Situação Financeira</th>
-                <th className="p-4 font-semibold text-neutral-500 w-1/3">Planilha Tradicional / Outros Apps</th>
-                <th className="p-4 font-bold text-[color:var(--color-brand-700)] w-1/3 bg-cyan-50/40">Conta Comigo</th>
+                <th className="w-1/3 p-4 font-semibold text-neutral-500">
+                  Planilha Tradicional / Outros Apps
+                </th>
+                <th className="w-1/3 bg-cyan-50/40 p-4 font-bold text-[color:var(--color-brand-700)]">
+                  Conta Comigo
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
               <tr>
                 <td className="p-4 font-medium text-neutral-900">Previsão de Meses Futuros</td>
-                <td className="p-4 text-neutral-500 text-xs">Apenas olha o passado (&quot;onde gastei&quot;)</td>
-                <td className="p-4 text-emerald-700 text-xs font-semibold bg-cyan-50/20">Projeção de 3 a 12 meses à frente com alertas</td>
+                <td className="p-4 text-xs text-neutral-500">
+                  Apenas olha o passado (&quot;onde gastei&quot;)
+                </td>
+                <td className="bg-cyan-50/20 p-4 text-xs font-semibold text-emerald-700">
+                  Projeção de 3 a 12 meses à frente com alertas
+                </td>
               </tr>
               <tr>
                 <td className="p-4 font-medium text-neutral-900">Cartão de Crédito Parcelado</td>
-                <td className="p-4 text-neutral-500 text-xs">Duplica a despesa na fatura ou perde o controle</td>
-                <td className="p-4 text-emerald-700 text-xs font-semibold bg-cyan-50/20">Separa o mês da compra do desembolso mensal</td>
+                <td className="p-4 text-xs text-neutral-500">
+                  Duplica a despesa na fatura ou perde o controle
+                </td>
+                <td className="bg-cyan-50/20 p-4 text-xs font-semibold text-emerald-700">
+                  Separa o mês da compra do desembolso mensal
+                </td>
               </tr>
               <tr>
                 <td className="p-4 font-medium text-neutral-900">Proteção ao Superendividamento</td>
-                <td className="p-4 text-neutral-500 text-xs">Inexistente (nenhum suporte legal)</td>
-                <td className="p-4 text-emerald-700 text-xs font-semibold bg-cyan-50/20">Cálculo de Mínimo Existencial & Dossiê para o Procon</td>
+                <td className="p-4 text-xs text-neutral-500">Inexistente (nenhum suporte legal)</td>
+                <td className="bg-cyan-50/20 p-4 text-xs font-semibold text-emerald-700">
+                  Cálculo de Mínimo Existencial & Dossiê para o Procon
+                </td>
               </tr>
               <tr>
                 <td className="p-4 font-medium text-neutral-900">Saldo Disponível Real</td>
-                <td className="p-4 text-neutral-500 text-xs">Mistura reservas de emergência com saldo livre</td>
-                <td className="p-4 text-emerald-700 text-xs font-semibold bg-cyan-50/20">Mostra Saldo Total vs Saldo Livre p/ Gastar</td>
+                <td className="p-4 text-xs text-neutral-500">
+                  Mistura reservas de emergência com saldo livre
+                </td>
+                <td className="bg-cyan-50/20 p-4 text-xs font-semibold text-emerald-700">
+                  Mostra Saldo Total vs Saldo Livre p/ Gastar
+                </td>
               </tr>
               <tr>
                 <td className="p-4 font-medium text-neutral-900">Uso Compartilhado Familiar</td>
-                <td className="p-4 text-neutral-500 text-xs">Confuso, sobrescreve fórmulas e expõe tudo</td>
-                <td className="p-4 text-emerald-700 text-xs font-semibold bg-cyan-50/20">Contas conjuntas com permissões de privacidade</td>
+                <td className="p-4 text-xs text-neutral-500">
+                  Confuso, sobrescreve fórmulas e expõe tudo
+                </td>
+                <td className="bg-cyan-50/20 p-4 text-xs font-semibold text-emerald-700">
+                  Contas conjuntas com permissões de privacidade
+                </td>
               </tr>
             </tbody>
           </table>
@@ -409,7 +522,7 @@ export default function HomePage() {
             {QUESTIONS.map((question) => (
               <li
                 key={question}
-                className="rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-4 shadow-2xs font-medium text-neutral-800"
+                className="rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-4 font-medium text-neutral-800 shadow-2xs"
               >
                 {question}
               </li>
@@ -581,7 +694,7 @@ export default function HomePage() {
                 key={faq.question}
                 className="group rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-5 open:bg-[color:var(--color-surface-sunken)]"
               >
-                <summary className="flex cursor-pointer items-center justify-between font-semibold text-base">
+                <summary className="flex cursor-pointer items-center justify-between text-base font-semibold">
                   <span>{faq.question}</span>
                   <span className="ml-4 text-xl text-[color:var(--muted-fg)] transition-transform group-open:rotate-45">
                     +
@@ -618,20 +731,20 @@ export default function HomePage() {
               Fale conosco ou tire dúvidas
             </Link>
           </div>
-          <p className="mt-4 text-xs text-neutral-500">
+          <p className="mt-4 text-xs text-neutral-600">
             Dúvidas diretas com o criador (Paulo Roberto)? WhatsApp:{" "}
             <a
               href="https://wa.me/5567992753760"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-teal-700 font-semibold hover:underline"
+              className="font-semibold text-blue-700 hover:underline"
             >
               (67) 99275-3760
             </a>{" "}
             • E-mail:{" "}
             <a
               href="mailto:prmontefusco@gmail.com"
-              className="text-teal-700 font-semibold hover:underline"
+              className="font-semibold text-blue-700 hover:underline"
             >
               prmontefusco@gmail.com
             </a>

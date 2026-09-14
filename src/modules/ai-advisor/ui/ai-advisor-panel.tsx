@@ -148,7 +148,8 @@ export function AIAdvisorPanel() {
                   </h4>
                   {step.estimatedDaysToComplete ? (
                     <span className="text-2xs rounded-md bg-[color:var(--color-ink-100)] px-2 py-0.5 font-medium text-[color:var(--page-fg)]">
-                      Meta: {step.estimatedDaysToComplete} dias
+                      Meta: {step.estimatedDaysToComplete}{" "}
+                      {step.estimatedDaysToComplete === 1 ? "dia" : "dias"}
                     </span>
                   ) : null}
                 </div>
@@ -156,7 +157,7 @@ export function AIAdvisorPanel() {
                   {step.description}
                 </p>
                 <p className="mt-1.5 text-xs font-medium text-[color:var(--color-positive-700)]">
-                  💡 Impacto: {step.impact}
+                  <span aria-hidden="true">💡 </span>Impacto: {step.impact}
                 </p>
               </div>
             </div>
@@ -168,7 +169,7 @@ export function AIAdvisorPanel() {
       <Card className="border-2 border-[color:var(--color-brand-600)]/30 bg-gradient-to-b from-[color:var(--card-bg)] to-[color:var(--color-surface-sunken)]">
         <div className="flex items-center justify-between gap-2 border-b border-[color:var(--card-border)] pb-3">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🤖</span>
+            <span aria-hidden="true" className="text-2xl">🤖</span>
             <div>
               <CardTitle hint="Tire dúvidas, peça dicas de negociação ou estratégias personalizadas de economia.">
                 Consultor Financeiro Inteligente

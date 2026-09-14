@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatMoney } from "@/core/money/format";
 import { fromDecimalString, money } from "@/core/money/money";
-import { Badge, Button, Card, CardTitle, Spinner, Stat } from "@/components/ui/primitives";
+import { Badge, Button, Callout, Card, CardTitle, Spinner, Stat } from "@/components/ui/primitives";
 import { MoneyField, TextField } from "@/components/ui/form";
 import { firstWholeMonth } from "@/modules/forecast/domain/forecast";
 import { useFinance } from "@/modules/household/ui/finance-provider";
@@ -30,6 +30,7 @@ const TONE_STATUS: Record<
   StatusSuperendividamento,
   "critical" | "attention" | "positive" | "brand"
 > = {
+  DADOS_INSUFICIENTES: "attention",
   SUPERENDIVIDADO_CRITICO: "critical",
   SUPERENDIVIDADO_MODERADO: "critical",
   ALERTA_ENDIVIDAMENTO: "attention",
@@ -65,8 +66,12 @@ export default function SuperendividamentoPage() {
   useEffect(() => {
     if (profile?.declaredMonthlyIncome && profile.declaredMonthlyIncome.amount > 0) {
       setRendaText((profile.declaredMonthlyIncome.amount / 100).toString());
+    } else if (initialInflow.amount > 0) {
+      setRendaText((current) =>
+        Number(current.replace(",", ".")) > 0 ? current : (initialInflow.amount / 100).toString(),
+      );
     }
-  }, [profile?.declaredMonthlyIncome]);
+  }, [profile?.declaredMonthlyIncome, initialInflow.amount]);
 
   useEffect(() => {
     if (profile?.familyMembers && profile.familyMembers.length > 0) {
@@ -82,84 +87,20 @@ export default function SuperendividamentoPage() {
   );
 
   // 1. Despesas Essenciais (Mínimo Existencial)
-  const [essenciais, setEssenciais] = useState<DespesaEssencialItem[]>([
-    {
-      id: "e1",
-      categoria: "MORADIA",
-      descricao: "Aluguel / Condomínio / Moradia",
-      valorMensal: money(140000, currency),
-    },
-    {
-      id: "e2",
-      categoria: "UTILIDADES",
-      descricao: "Energia elétrica, água e gás de cozinha",
-      valorMensal: money(38000, currency),
-    },
-    {
-      id: "e3",
-      categoria: "ALIMENTACAO",
-      descricao: "Alimentação básica essencial e feira",
-      valorMensal: money(110000, currency),
-    },
-    {
-      id: "e4",
-      categoria: "SAUDE",
-      descricao: "Medicamentos contínuos e farmácia",
-      valorMensal: money(25000, currency),
-    },
-    {
-      id: "e5",
-      categoria: "TRANSPORTE",
-      descricao: "Transporte público / locomoção para o trabalho",
-      valorMensal: money(22000, currency),
-    },
-  ]);
+  //
+  // Começa vazio de propósito: cada linha aqui vira uma afirmação "sob as
+  // penas da lei" no texto da petição gerada mais abaixo. Um valor de
+  // exemplo pré-preenchido correria o risco de ser copiado sem revisão.
+  const [essenciais, setEssenciais] = useState<DespesaEssencialItem[]>([]);
 
-  // 2. Gastos JÁ CORTADOS (Prova de Boa-Fé para o Juiz)
-  const [cortes, setCortes] = useState<GastoCortadoItem[]>([
-    {
-      id: "c1",
-      categoria: "STREAMING_APPS",
-      descricao: "Netflix, Amazon Prime e assinaturas de streaming",
-      economiaMensal: money(8990, currency),
-      dataCorte: "Cancelados recentemente",
-    },
-    {
-      id: "c2",
-      categoria: "DELIVERY_RESTAURANTES",
-      descricao: "Refeições fora de casa e aplicativos de delivery",
-      economiaMensal: money(35000, currency),
-      dataCorte: "Suspensos totalmente",
-    },
-    {
-      id: "c3",
-      categoria: "LAZER_VIAGENS",
-      descricao: "Passeios, viagens e compras de vestuário não essenciais",
-      economiaMensal: money(25000, currency),
-      dataCorte: "Zerados",
-    },
-    {
-      id: "c4",
-      categoria: "SERVICOS_SUPERFLUOS",
-      descricao: "Academia e mensalidades de clubes",
-      economiaMensal: money(12000, currency),
-      dataCorte: "Cancelados",
-    },
-  ]);
+  // 2. Gastos JÁ CORTADOS (Prova de Boa-Fé para o Juiz) — mesmo motivo do item 1.
+  const [cortes, setCortes] = useState<GastoCortadoItem[]>([]);
 
-  // 3. Bens e Patrimônio (afastando suspeita de dilapidação)
-  const [bens] = useState<BemPatrimonial[]>([
-    {
-      id: "b1",
-      descricao: "Móveis e utensílios que guarnecem a residência familiar",
-      tipo: "IMOVEL_RESIDENCIAL",
-      valorEstimado: money(800000, currency),
-      bemDeFamilia: true,
-    },
-  ]);
+  // 3. Bens e Patrimônio (afastando suspeita de dilapidação) — mesmo motivo.
+  const [bens] = useState<BemPatrimonial[]>([]);
 
   // 4. Credores (importados das dívidas ativas da família)
-  const [credores] = useState<CredorDividaItem[]>(() => {
+  const credores = useMemo<CredorDividaItem[]>(() => {
     return finance.debts
       .filter((d) => d.status !== "SETTLED")
       .map((d) => ({
@@ -170,7 +111,7 @@ export default function SuperendividamentoPage() {
         valorParcelaMensal: d.installmentAmount ?? money(35000, currency),
         parcelasRestantes: d.installmentCount,
       }));
-  });
+  }, [finance.debts, finance.paidDebtInstallments, currency]);
 
   // Novos itens para adicionar dinamicamente
   const [novoEssencialNome, setNovoEssencialNome] = useState("");
@@ -183,9 +124,9 @@ export default function SuperendividamentoPage() {
   const [gerandoIA, setGerandoIA] = useState(false);
 
   // Aba ativa: DIAGNOSTICO, DOSSIE ou PETICAO
-  const [modoVisualizacao, setModoVisualizacao] = useState<
-    "DIAGNOSTICO" | "DOSSIE" | "PETICAO"
-  >("DIAGNOSTICO");
+  const [modoVisualizacao, setModoVisualizacao] = useState<"DIAGNOSTICO" | "DOSSIE" | "PETICAO">(
+    "DIAGNOSTICO",
+  );
   const [orgaoDestino, setOrgaoDestino] = useState<OrgaoDestino>("CEJUSC");
   const [peticaoCopiada, setPeticaoCopiada] = useState(false);
   const [documentosChecados, setDocumentosChecados] = useState<Record<string, boolean>>({});
@@ -380,6 +321,7 @@ export default function SuperendividamentoPage() {
           <button
             type="button"
             onClick={() => setModoVisualizacao("DOSSIE")}
+            disabled={diagnostico.status === "DADOS_INSUFICIENTES"}
             className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
               modoVisualizacao === "DOSSIE"
                 ? "bg-[color:var(--color-brand-600)] text-white shadow-2xs"
@@ -391,6 +333,7 @@ export default function SuperendividamentoPage() {
           <button
             type="button"
             onClick={() => setModoVisualizacao("PETICAO")}
+            disabled={diagnostico.status === "DADOS_INSUFICIENTES"}
             className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
               modoVisualizacao === "PETICAO"
                 ? "bg-[color:var(--color-brand-600)] text-white shadow-2xs"
@@ -408,46 +351,59 @@ export default function SuperendividamentoPage() {
       </div>
 
       {/* Aviso Importante de Escopo do Software & Isenção de Garantia */}
-      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-950 print:hidden dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
+      <details className="rounded-xl border border-[color:var(--color-attention-600)]/35 bg-[color:var(--color-attention-100)]/65 p-4 text-xs text-[color:var(--color-ink-900)] print:hidden">
+        <summary className="cursor-pointer font-semibold text-[color:var(--color-attention-700)]">
+          O aplicativo organiza dados, mas não substitui orientação jurídica nem garante resultado
+        </summary>
         <div className="flex items-start gap-3">
           <span className="text-base leading-none">⚖️</span>
           <div className="space-y-1.5">
-            <p className="font-bold uppercase tracking-wider text-2xs text-amber-800 dark:text-amber-300">
+            <p className="text-2xs font-bold tracking-wider text-[color:var(--color-attention-700)] uppercase">
               Aviso Importante: Finalidade do Conta Comigo & Ausência de Garantia Jurídica
             </p>
             <p className="leading-relaxed">
-              O <strong>Conta Comigo</strong> é exclusivamente uma aplicação tecnológica destinada ao{" "}
-              <strong>suporte no controle orçamentário</strong>, auxílio e orientação na organização financeira para{" "}
-              <strong>diminuição do endividamento</strong> e <strong>suporte na preparação da documentação inicial e cálculos técnicos</strong>.
+              O <strong>Conta Comigo</strong> é exclusivamente uma aplicação tecnológica destinada
+              ao <strong>suporte no controle orçamentário</strong>, auxílio e orientação na
+              organização financeira para <strong>diminuição do endividamento</strong> e{" "}
+              <strong>suporte na preparação da documentação inicial e cálculos técnicos</strong>.
             </p>
-            <p className="leading-relaxed text-amber-900/90 dark:text-amber-300/90">
-              O aplicativo <strong>não presta consultoria ou assessoria jurídica privativa</strong> e{" "}
-              <strong>não garante que a ação ou requerimento seja aceito, deferido ou ganho</strong>, nem que os credores aceitem as propostas formuladas. A concessão de liminares, homologação de acordos ou imposição de planos compulsórios dependem única e exclusivamente da análise soberana do juiz, conciliador ou órgão público competente (CEJUSC, Procon ou Defensoria Pública).
+            <p className="leading-relaxed text-[color:var(--color-ink-700)]">
+              O aplicativo <strong>não presta consultoria ou assessoria jurídica privativa</strong>{" "}
+              e{" "}
+              <strong>não garante que a ação ou requerimento seja aceito, deferido ou ganho</strong>
+              , nem que os credores aceitem as propostas formuladas. A concessão de liminares,
+              homologação de acordos ou imposição de planos compulsórios dependem única e
+              exclusivamente da análise soberana do juiz, conciliador ou órgão público competente
+              (CEJUSC, Procon ou Defensoria Pública).
             </p>
           </div>
         </div>
-      </div>
+      </details>
 
       {/* MODO 1: DIAGNÓSTICO E FORMULÁRIO */}
       {modoVisualizacao === "DIAGNOSTICO" && (
         <div className="space-y-6 print:hidden">
           {/* Card de Enquadramento */}
-          <Card className="border-l-4 border-l-[color:var(--color-critical-600)]">
+          <Card className="border-l-4 border-l-[color:var(--color-attention-600)]">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--card-border)] pb-4">
               <div>
                 <span className="text-xs font-bold tracking-wider text-[color:var(--color-critical-600)] uppercase">
                   Resultado do Diagnóstico
                 </span>
                 <h3 className="text-lg font-bold text-[color:var(--page-fg)]">
-                  {diagnostico.status === "SUPERENDIVIDADO_CRITICO"
-                    ? "Situação Crítica: Enquadramento Pleno na Lei 14.181/2021"
-                    : diagnostico.status === "SUPERENDIVIDADO_MODERADO"
-                      ? "Superendividamento Moderado Detectado"
-                      : "Comprometimento sob Atenção"}
+                  {diagnostico.status === "DADOS_INSUFICIENTES"
+                    ? "Complete os dados antes da avaliação"
+                    : diagnostico.status === "SUPERENDIVIDADO_CRITICO"
+                      ? "Há indícios fortes de superendividamento"
+                      : diagnostico.status === "SUPERENDIVIDADO_MODERADO"
+                        ? "Há indícios de superendividamento"
+                        : "Comprometimento sob Atenção"}
                 </h3>
               </div>
               <Badge tone={TONE_STATUS[diagnostico.status]}>
-                {diagnostico.percentualComprometimentoAtual}% da renda em dívidas
+                {diagnostico.status === "DADOS_INSUFICIENTES"
+                  ? "Dados incompletos"
+                  : `${diagnostico.percentualComprometimentoAtual}% da renda em dívidas`}
               </Badge>
             </div>
 
@@ -491,12 +447,14 @@ export default function SuperendividamentoPage() {
               />
               <div>
                 <label
+                  htmlFor="dependentes"
                   className="text-xs font-semibold tracking-wider uppercase"
                   style={{ color: "var(--muted-fg)" }}
                 >
                   Número de Dependentes (Filhos / Cônjuge sem renda)
                 </label>
                 <input
+                  id="dependentes"
                   type="number"
                   min={0}
                   max={10}
@@ -648,53 +606,78 @@ export default function SuperendividamentoPage() {
           </Card>
 
           {/* Seção 4: Proposta de Repactuação em até 60 Meses */}
-          <Card>
-            <CardTitle hint="Proposta calculada conforme o art. 104-A do CDC com carência de 180 dias e rateio proporcional.">
-              4. Proposta de Plano de Repactuação em 60 Meses (5 Anos)
-            </CardTitle>
+          {diagnostico.status === "DADOS_INSUFICIENTES" ? (
+            <Card>
+              <CardTitle>4. Proposta de repactuação</CardTitle>
+              <div className="mt-4">
+                <Callout tone="attention">
+                  A proposta será calculada somente depois que você informar e revisar a renda, as
+                  despesas essenciais e ao menos uma dívida. Assim, valores incompletos não parecem
+                  uma proposta válida.
+                </Callout>
+              </div>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li>{renda.amount > 0 ? "✓" : "○"} Renda líquida informada</li>
+                <li>{essenciais.length > 0 ? "✓" : "○"} Despesas essenciais revisadas</li>
+                <li>{credores.length > 0 ? "✓" : "○"} Ao menos uma dívida cadastrada</li>
+              </ul>
+            </Card>
+          ) : (
+            <Card>
+              <CardTitle hint="Proposta calculada conforme o art. 104-A do CDC com carência de 180 dias e rateio proporcional.">
+                4. Proposta de Plano de Repactuação em 60 Meses (5 Anos)
+              </CardTitle>
 
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr
-                    className="border-b border-[color:var(--card-border)] text-xs uppercase"
-                    style={{ color: "var(--muted-fg)" }}
-                  >
-                    <th className="pb-2">Credor / Banco</th>
-                    <th className="pb-2">Saldo Devedor</th>
-                    <th className="pb-2">% do Passivo</th>
-                    <th className="pb-2">Parcela Proposta Mensal</th>
-                    <th className="pb-2">Total em 60 Meses</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[color:var(--card-border)]">
-                  {diagnostico.planoRepactuacao.credoresPropostas.map((prop) => (
-                    <tr key={prop.credorId}>
-                      <td className="py-2.5 font-medium text-[color:var(--page-fg)]">
-                        {prop.instituicao}
-                      </td>
-                      <td className="py-2.5">{formatMoney(prop.saldoDevedor)}</td>
-                      <td className="py-2.5">{prop.percentualDoTotal}%</td>
-                      <td className="py-2.5 font-bold text-[color:var(--color-positive-600)]">
-                        {formatMoney(prop.parcelaPropostaMensal)}
-                      </td>
-                      <td className="py-2.5">{formatMoney(prop.totalAPagarEm60Meses)}</td>
+              <div
+                className="mt-4 overflow-x-auto"
+                tabIndex={0}
+                aria-label="Tabela da proposta de repactuação; use as setas para navegar horizontalmente"
+              >
+                <table
+                  aria-label="Proposta de repactuação em 60 meses"
+                  className="w-full text-left text-sm"
+                >
+                  <thead>
+                    <tr
+                      className="border-b border-[color:var(--card-border)] text-xs uppercase"
+                      style={{ color: "var(--muted-fg)" }}
+                    >
+                      <th className="pb-2">Credor / Banco</th>
+                      <th className="pb-2">Saldo Devedor</th>
+                      <th className="pb-2">% do Passivo</th>
+                      <th className="pb-2">Parcela Proposta Mensal</th>
+                      <th className="pb-2">Total em 60 Meses</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-[color:var(--card-border)]">
+                    {diagnostico.planoRepactuacao.credoresPropostas.map((prop) => (
+                      <tr key={prop.credorId}>
+                        <td className="py-2.5 font-medium text-[color:var(--page-fg)]">
+                          {prop.instituicao}
+                        </td>
+                        <td className="py-2.5">{formatMoney(prop.saldoDevedor)}</td>
+                        <td className="py-2.5">{prop.percentualDoTotal}%</td>
+                        <td className="py-2.5 font-bold text-[color:var(--color-positive-600)]">
+                          {formatMoney(prop.parcelaPropostaMensal)}
+                        </td>
+                        <td className="py-2.5">{formatMoney(prop.totalAPagarEm60Meses)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--card-border)] pt-4">
-              <span className="text-xs" style={{ color: "var(--muted-fg)" }}>
-                Prazo: <strong>60 meses</strong> | Carência: <strong>180 dias</strong> (Art. 104-A,
-                § 2º)
-              </span>
-              <Button onClick={() => setModoVisualizacao("DOSSIE")} className="text-xs">
-                Visualizar Dossiê Completo Formatado &rarr;
-              </Button>
-            </div>
-          </Card>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--card-border)] pt-4">
+                <span className="text-xs" style={{ color: "var(--muted-fg)" }}>
+                  Prazo: <strong>60 meses</strong> | Carência: <strong>180 dias</strong> (Art.
+                  104-A, § 2º)
+                </span>
+                <Button onClick={() => setModoVisualizacao("DOSSIE")} className="text-xs">
+                  Visualizar Dossiê Completo Formatado &rarr;
+                </Button>
+              </div>
+            </Card>
+          )}
         </div>
       )}
 
@@ -1040,7 +1023,7 @@ export default function SuperendividamentoPage() {
                   <strong className="text-xs">🏛️ CEJUSC (Tribunal de Justiça)</strong>
                   {orgaoDestino === "CEJUSC" && <Badge tone="brand">Selecionado</Badge>}
                 </div>
-                <p className="mt-1 text-2xs text-[color:var(--muted-fg)]">
+                <p className="text-2xs mt-1 text-[color:var(--muted-fg)]">
                   Fórum da sua comarca. Gratuito e sem advogado para conciliação pré-processual.
                 </p>
               </button>
@@ -1058,7 +1041,7 @@ export default function SuperendividamentoPage() {
                   <strong className="text-xs">🏢 PROCON (Núcleo PAS)</strong>
                   {orgaoDestino === "PROCON" && <Badge tone="brand">Selecionado</Badge>}
                 </div>
-                <p className="mt-1 text-2xs text-[color:var(--muted-fg)]">
+                <p className="text-2xs mt-1 text-[color:var(--muted-fg)]">
                   Atendimento administrativo municipal ou estadual. Gratuito e presencial.
                 </p>
               </button>
@@ -1076,7 +1059,7 @@ export default function SuperendividamentoPage() {
                   <strong className="text-xs">⚖️ Defensoria Pública (NUDECON)</strong>
                   {orgaoDestino === "DEFENSORIA" && <Badge tone="brand">Selecionado</Badge>}
                 </div>
-                <p className="mt-1 text-2xs text-[color:var(--muted-fg)]">
+                <p className="text-2xs mt-1 text-[color:var(--muted-fg)]">
                   Assistência jurídica integral e gratuita para quem não tem dinheiro para advogado.
                 </p>
               </button>
@@ -1092,10 +1075,8 @@ export default function SuperendividamentoPage() {
                 </CardTitle>
               </div>
               <span className="text-xs font-semibold text-[color:var(--color-brand-700)]">
-                {
-                  Object.values(documentosChecados).filter(Boolean).length
-                }{" "}
-                de {CHECKLIST_DOCUMENTOS_EXIGIDOS.length} conferidos
+                {Object.values(documentosChecados).filter(Boolean).length} de{" "}
+                {CHECKLIST_DOCUMENTOS_EXIGIDOS.length} conferidos
               </span>
             </div>
 
@@ -1132,7 +1113,7 @@ export default function SuperendividamentoPage() {
           </Card>
 
           {/* Folha da Petição Inicial (Formatada para tela e para impressão A4) */}
-          <div className="rounded-2xl border border-[color:var(--card-border)] bg-white p-8 text-neutral-900 shadow-sm print:border-none print:p-0 print:shadow-none sm:p-12">
+          <div className="rounded-2xl border border-[color:var(--card-border)] bg-white p-8 text-neutral-900 shadow-sm sm:p-12 print:border-none print:p-0 print:shadow-none">
             <div className="mx-auto max-w-3xl space-y-6 font-serif text-sm leading-relaxed whitespace-pre-line text-neutral-900">
               {textoPeticao}
             </div>

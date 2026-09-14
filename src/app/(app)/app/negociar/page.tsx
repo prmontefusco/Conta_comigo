@@ -47,6 +47,9 @@ export default function NegotiatePage() {
   const [downPaymentText, setDownPaymentText] = useState("");
   const [balanceText, setBalanceText] = useState("");
   const [debtId, setDebtId] = useState("");
+  const [activeTool, setActiveTool] = useState<
+    "PROPOSTA" | "PRAZO" | "FEIRAO" | "PORTABILIDADE" | "ROTEIRO"
+  >("ROTEIRO");
 
   if (finance.loading) return <Spinner label="Carregando seus números" />;
 
@@ -103,15 +106,12 @@ export default function NegotiatePage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Negociar dívidas</h1>
-        <Link href="/app/superendividamento">
-          <Button variant="secondary" className="text-xs">
-            ⚖️ Acessar Lei do Superendividamento
-          </Button>
-        </Link>
       </div>
 
       <Callout tone="info" title="Muitas dívidas ao mesmo tempo?">
-        Se você está lidando com vários bancos e a soma das parcelas invade o seu sustento básico, a <strong>Lei do Superendividamento (Lei 14.181/2021)</strong> permite negociar todas em bloco com carência de 180 dias e prazo de até 5 anos.
+        Se você está lidando com vários bancos e a soma das parcelas invade o seu sustento básico, a{" "}
+        <strong>Lei do Superendividamento (Lei 14.181/2021)</strong> permite negociar todas em bloco
+        com carência de 180 dias e prazo de até 5 anos.
         <div className="mt-1.5">
           <Link href="/app/superendividamento" className="text-xs font-bold underline">
             Abrir Dossiê de Superendividamento &rarr;
@@ -193,157 +193,196 @@ export default function NegotiatePage() {
       </Card>
 
       <Card>
-        <CardTitle hint="Cole aqui o que o credor ofereceu.">Avaliar a proposta recebida</CardTitle>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <MoneyField
-            label="Valor da parcela proposta"
-            value={installmentText}
-            onChange={(event) => setInstallmentText(event.target.value)}
-            placeholder="0,00"
-          />
-          <TextField
-            label="Número de parcelas"
-            type="number"
-            min={1}
-            max={240}
-            value={installmentCount}
-            onChange={(event) => setInstallmentCount(event.target.value)}
-          />
-          <MoneyField
-            label="Entrada pedida"
-            value={downPaymentText}
-            onChange={(event) => setDownPaymentText(event.target.value)}
-            placeholder="0,00"
-          />
-          <MoneyField
-            label="Saldo que o credor diz que você deve"
-            value={balanceText}
-            onChange={(event) => setBalanceText(event.target.value)}
-            placeholder="0,00"
-            hint="Com ele dá para ver os juros embutidos no acordo."
-          />
-        </div>
-
-        {evaluation ? (
-          <div className="mt-5 space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge tone={verdictTone(evaluation.verdict)}>
-                {VERDICT_LABELS[evaluation.verdict]}
-              </Badge>
-              <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
-                {verdictExplanation(evaluation.verdict, capacity.maxInstallment)}
-              </p>
-            </div>
-
-            <dl className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <Stat label="Total do acordo" value={evaluation.totalPaid} tone="outflow" />
-              <Stat
-                label={evaluation.headroom.amount >= 0 ? "Folga na parcela" : "Acima do que cabe"}
-                value={evaluation.headroom}
-                tone={evaluation.headroom.amount >= 0 ? "positive" : "critical"}
-              />
-              <div>
-                <dt className="text-sm" style={{ color: "var(--muted-fg)" }}>
-                  Renda comprometida depois
-                </dt>
-                <dd className="tabular mt-0.5 text-xl font-semibold">
-                  {Math.round(evaluation.commitmentRatioAfter * 100)}%
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm" style={{ color: "var(--muted-fg)" }}>
-                  Juros embutidos
-                </dt>
-                <dd className="tabular mt-0.5 text-xl font-semibold">
-                  {evaluation.impliedMonthlyRate === null
-                    ? "—"
-                    : `${evaluation.impliedMonthlyRate.toLocaleString("pt-BR", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}% a.m.`}
-
-                  <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
-                    {evaluation.impliedMonthlyRate === null
-                      ? "Informe o saldo devedor para calcular."
-                      : "Calculado a partir do saldo e das parcelas."}
-                  </p>
-                </dd>
-              </div>
-            </dl>
-
-            {evaluation.differenceVsClaimed ? (
-              <Callout
-                tone={evaluation.differenceVsClaimed.amount >= 0 ? "info" : "attention"}
-                title={
-                  evaluation.differenceVsClaimed.amount >= 0
-                    ? "O acordo custa menos que o saldo cobrado"
-                    : "O acordo custa mais que o saldo cobrado"
-                }
-              >
-                Somando entrada e parcelas, o acordo sai por {formatMoney(evaluation.totalPaid)}{" "}
-                para quitar {formatMoney(fromDecimalString(balanceText)!)}. A diferença é de{" "}
-                {formatMoney({
-                  amount: Math.abs(evaluation.differenceVsClaimed.amount),
-                  currency: evaluation.differenceVsClaimed.currency,
-                })}
-                {evaluation.differenceVsClaimed.amount >= 0
-                  ? " a menos."
-                  : " a mais — é o custo de parcelar."}
-              </Callout>
-            ) : null}
-          </div>
-        ) : (
-          <p className="mt-4 text-sm" style={{ color: "var(--muted-fg)" }}>
-            Informe o valor da parcela proposta para ver se ela cabe.
-          </p>
-        )}
-      </Card>
-
-      <TermExtensionCard />
-
-      <FeiraoCalculatorCard
-        capacity={capacity}
-        availableCash={finance.totalCash}
-        minimumReserveCushion={finance.protectedReserve}
-      />
-
-      <PortabilidadeCard />
-
-      <Card>
-        <CardTitle hint="Leia em voz alta. Não precisa improvisar.">
-          O que dizer ao credor
-        </CardTitle>
-
-        {debts.length > 0 ? (
-          <SelectField
-            label="Sobre qual dívida"
-            value={debtId}
-            onChange={(event) => setDebtId(event.target.value)}
-            options={[
-              { value: "", label: "Não preencher automaticamente" },
-              ...debts.map((debt) => ({
-                value: debt.id,
-                label: debt.institution
-                  ? `${debt.description} · ${debt.institution}`
-                  : debt.description,
-              })),
-            ]}
-            hint="Preenche o roteiro com o credor, a descrição e o saldo que o app conhece."
-          />
-        ) : null}
-
-        <div className="mt-4 space-y-3">
-          {NEGOTIATION_SCRIPTS.map((script) => (
-            <ScriptBlock key={script.id} script={script} params={scriptParams} />
+        <CardTitle>O que você precisa fazer agora?</CardTitle>
+        <p className="mb-3 text-sm" style={{ color: "var(--muted-fg)" }}>
+          Escolha uma tarefa. Mostramos uma ferramenta por vez para facilitar a decisão.
+        </p>
+        <div
+          className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"
+          role="group"
+          aria-label="Ferramenta de negociação"
+        >
+          {(
+            [
+              ["ROTEIRO", "Preparar ligação"],
+              ["PROPOSTA", "Avaliar proposta"],
+              ["PRAZO", "Pedir outro prazo"],
+              ["FEIRAO", "Comparar feirão"],
+              ["PORTABILIDADE", "Ver portabilidade"],
+            ] as const
+          ).map(([value, label]) => (
+            <Button
+              key={value}
+              variant={activeTool === value ? "primary" : "secondary"}
+              onClick={() => setActiveTool(value)}
+              aria-pressed={activeTool === value}
+            >
+              {label}
+            </Button>
           ))}
         </div>
-
-        <p className="mt-4 text-xs" style={{ color: "var(--muted-fg)" }}>
-          Os roteiros são um apoio para a conversa. O Conta comigo não negocia por você, não tem
-          relação com nenhum credor e não garante resultado.
-        </p>
       </Card>
+
+      {activeTool === "PROPOSTA" ? (
+        <Card>
+          <CardTitle hint="Cole aqui o que o credor ofereceu.">
+            Avaliar a proposta recebida
+          </CardTitle>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <MoneyField
+              label="Valor da parcela proposta"
+              value={installmentText}
+              onChange={(event) => setInstallmentText(event.target.value)}
+              placeholder="0,00"
+            />
+            <TextField
+              label="Número de parcelas"
+              type="number"
+              min={1}
+              max={240}
+              value={installmentCount}
+              onChange={(event) => setInstallmentCount(event.target.value)}
+            />
+            <MoneyField
+              label="Entrada pedida"
+              value={downPaymentText}
+              onChange={(event) => setDownPaymentText(event.target.value)}
+              placeholder="0,00"
+            />
+            <MoneyField
+              label="Saldo que o credor diz que você deve"
+              value={balanceText}
+              onChange={(event) => setBalanceText(event.target.value)}
+              placeholder="0,00"
+              hint="Com ele dá para ver os juros embutidos no acordo."
+            />
+          </div>
+
+          {evaluation ? (
+            <div className="mt-5 space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge tone={verdictTone(evaluation.verdict)}>
+                  {VERDICT_LABELS[evaluation.verdict]}
+                </Badge>
+                <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
+                  {verdictExplanation(evaluation.verdict, capacity.maxInstallment)}
+                </p>
+              </div>
+
+              <dl className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <Stat label="Total do acordo" value={evaluation.totalPaid} tone="outflow" />
+                <Stat
+                  label={evaluation.headroom.amount >= 0 ? "Folga na parcela" : "Acima do que cabe"}
+                  value={evaluation.headroom}
+                  tone={evaluation.headroom.amount >= 0 ? "positive" : "critical"}
+                />
+                <div>
+                  <dt className="text-sm" style={{ color: "var(--muted-fg)" }}>
+                    Renda comprometida depois
+                  </dt>
+                  <dd className="tabular mt-0.5 text-xl font-semibold">
+                    {Math.round(evaluation.commitmentRatioAfter * 100)}%
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm" style={{ color: "var(--muted-fg)" }}>
+                    Juros embutidos
+                  </dt>
+                  <dd className="tabular mt-0.5 text-xl font-semibold">
+                    {evaluation.impliedMonthlyRate === null
+                      ? "—"
+                      : `${evaluation.impliedMonthlyRate.toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}% a.m.`}
+
+                    <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
+                      {evaluation.impliedMonthlyRate === null
+                        ? "Informe o saldo devedor para calcular."
+                        : "Calculado a partir do saldo e das parcelas."}
+                    </p>
+                  </dd>
+                </div>
+              </dl>
+
+              {evaluation.differenceVsClaimed ? (
+                <Callout
+                  tone={evaluation.differenceVsClaimed.amount >= 0 ? "info" : "attention"}
+                  title={
+                    evaluation.differenceVsClaimed.amount >= 0
+                      ? "O acordo custa menos que o saldo cobrado"
+                      : "O acordo custa mais que o saldo cobrado"
+                  }
+                >
+                  Somando entrada e parcelas, o acordo sai por {formatMoney(evaluation.totalPaid)}{" "}
+                  para quitar {formatMoney(fromDecimalString(balanceText)!)}. A diferença é de{" "}
+                  {formatMoney({
+                    amount: Math.abs(evaluation.differenceVsClaimed.amount),
+                    currency: evaluation.differenceVsClaimed.currency,
+                  })}
+                  {evaluation.differenceVsClaimed.amount >= 0
+                    ? " a menos."
+                    : " a mais — é o custo de parcelar."}
+                </Callout>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-4 text-sm" style={{ color: "var(--muted-fg)" }}>
+              Informe o valor da parcela proposta para ver se ela cabe.
+            </p>
+          )}
+        </Card>
+      ) : null}
+
+      {activeTool === "PRAZO" ? <TermExtensionCard /> : null}
+
+      {activeTool === "FEIRAO" ? (
+        <FeiraoCalculatorCard
+          capacity={capacity}
+          availableCash={finance.totalCash}
+          minimumReserveCushion={finance.protectedReserve}
+        />
+      ) : null}
+
+      {activeTool === "PORTABILIDADE" ? <PortabilidadeCard /> : null}
+
+      {activeTool === "ROTEIRO" ? (
+        <Card>
+          <CardTitle hint="Leia em voz alta. Não precisa improvisar.">
+            O que dizer ao credor
+          </CardTitle>
+
+          {debts.length > 0 ? (
+            <SelectField
+              label="Sobre qual dívida"
+              value={debtId}
+              onChange={(event) => setDebtId(event.target.value)}
+              options={[
+                { value: "", label: "Não preencher automaticamente" },
+                ...debts.map((debt) => ({
+                  value: debt.id,
+                  label: debt.institution
+                    ? `${debt.description} · ${debt.institution}`
+                    : debt.description,
+                })),
+              ]}
+              hint="Preenche o roteiro com o credor, a descrição e o saldo que o app conhece."
+            />
+          ) : null}
+
+          <div className="mt-4 space-y-3">
+            {NEGOTIATION_SCRIPTS.map((script) => (
+              <ScriptBlock key={script.id} script={script} params={scriptParams} />
+            ))}
+          </div>
+
+          <p className="mt-4 text-xs" style={{ color: "var(--muted-fg)" }}>
+            Os roteiros são um apoio para a conversa. O Conta comigo não negocia por você, não tem
+            relação com nenhum credor e não garante resultado.
+          </p>
+        </Card>
+      ) : null}
     </div>
   );
 }

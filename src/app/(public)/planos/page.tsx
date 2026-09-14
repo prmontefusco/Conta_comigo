@@ -18,7 +18,7 @@ export default function PlanosPage() {
     <div className="mx-auto max-w-5xl px-4 py-12 sm:py-16">
       {/* Hero Header */}
       <div className="mx-auto max-w-3xl text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-teal-200/80 bg-teal-50/80 px-3.5 py-1 text-xs font-semibold text-teal-800 shadow-2xs">
+        <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-blue-50/80 px-3.5 py-1 text-xs font-semibold text-blue-800 shadow-2xs">
           <span>✨</span>
           <span>Toda conta nova começa com {TRIAL_DAYS} dias de Premium</span>
         </div>
@@ -43,7 +43,7 @@ export default function PlanosPage() {
       <div className="mt-16 rounded-2xl border border-slate-200/70 bg-white/80 p-6 shadow-xs backdrop-blur-sm sm:p-8">
         <div className="grid gap-6 sm:grid-cols-3">
           <div className="flex items-start gap-3.5">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-xl text-teal-700">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xl text-blue-700">
               🛡️
             </span>
             <div>
@@ -56,7 +56,7 @@ export default function PlanosPage() {
           </div>
 
           <div className="flex items-start gap-3.5">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-xl text-teal-700">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xl text-blue-700">
               🔒
             </span>
             <div>
@@ -70,7 +70,7 @@ export default function PlanosPage() {
           </div>
 
           <div className="flex items-start gap-3.5">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-xl text-teal-700">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xl text-blue-700">
               ⚡
             </span>
             <div>
@@ -142,7 +142,7 @@ export default function PlanosPage() {
         <div className="mt-5">
           <Link
             href="/criar-conta"
-            className="inline-flex min-h-12 items-center rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 px-8 font-semibold text-white shadow-sm transition-all hover:from-teal-700 hover:to-cyan-700 hover:shadow-md"
+            className="inline-flex min-h-12 items-center rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-8 font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-cyan-700 hover:shadow-md"
           >
             Criar minha conta
           </Link>
@@ -151,3 +151,4 @@ export default function PlanosPage() {
     </div>
   );
 }
+

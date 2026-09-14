@@ -76,9 +76,15 @@ service cloud.firestore {
         && request.resource.data.createdBy == resource.data.createdBy;
     }
 
+    // 1_000_000_000 centavos = R$ 10.000.000,00. A ceiling on a single field,
+    // not on money in general: it exists to catch a typo'd extra zero on one
+    // entry, not to cap a household's actual wealth. Matches the client-side
+    // ceiling in fromDecimalString() (src/core/money/money.ts).
     function isIntegerMoney(value) {
       return value is map
         && value.amount is int
+        && value.amount >= -1000000000
+        && value.amount <= 1000000000
         && value.currency is string;
     }
 
@@ -536,6 +542,33 @@ service cloud.firestore {
         allow read: if isMember(householdId);
         allow create: if canWrite(householdId) && validNewDocument(householdId);
         allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
+        allow delete: if canWrite(householdId);
+      }
+
+      match /properties/{propertyId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId) && validNewDocument(householdId);
+        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
+        allow delete: if canWrite(householdId);
+      }
+
+      match /irpfRecords/{recordId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId)
+          && validNewDocument(householdId)
+          && request.resource.data.taxYear is int
+          && request.resource.data.taxYear >= 2000
+          && request.resource.data.taxYear <= 2100
+          && (!('amount' in request.resource.data.keys())
+              || isIntegerMoney(request.resource.data.amount));
+        allow update: if canWrite(householdId)
+          && immutableAudit()
+          && reasonableSize()
+          && request.resource.data.taxYear is int
+          && request.resource.data.taxYear >= 2000
+          && request.resource.data.taxYear <= 2100
+          && (!('amount' in request.resource.data.keys())
+              || isIntegerMoney(request.resource.data.amount));
         allow delete: if canWrite(householdId);
       }
 

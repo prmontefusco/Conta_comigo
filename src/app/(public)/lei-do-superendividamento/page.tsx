@@ -80,7 +80,7 @@ export default function Page() {
           <p>
             Os bancos não podem debitar parcelas de consignado ou empréstimos na sua conta a ponto de deixá-lo
             sem dinheiro para alimentação, medicamentos, água e moradia. Veja detalhadamente em nosso artigo sobre{" "}
-            <Link href="/minimo-existencial" className="text-teal-700 underline font-medium">
+            <Link href="/minimo-existencial" className="text-blue-700 underline font-medium">
               como calcular e proteger seu Mínimo Existencial
             </Link>.
           </p>
@@ -101,7 +101,7 @@ export default function Page() {
           />
           <p className="mt-3">
             Para saber como formalizar essa petição, acesse o guia prático da{" "}
-            <Link href="/acao-de-repactuacao-de-dividas" className="text-teal-700 underline font-medium">
+            <Link href="/acao-de-repactuacao-de-dividas" className="text-blue-700 underline font-medium">
               Ação de Repactuação de Dívidas passo a passo
             </Link>.
           </p>
@@ -112,7 +112,7 @@ export default function Page() {
             Um dos maiores motivos de indeferimento de pedidos na Justiça é a falta de discriminação dos gastos essenciais.
             Juízes costumam rejeitar a liminar se o extrato bancário trouxer assinaturas ou gastos sem a prova de que já foram cancelados.
             Confira o nosso passo a passo completo sobre{" "}
-            <Link href="/como-provar-superendividamento" className="text-teal-700 underline font-medium">
+            <Link href="/como-provar-superendividamento" className="text-blue-700 underline font-medium">
               como provar superendividamento na Justiça e demonstrar cortes reais
             </Link>.
           </p>
@@ -129,7 +129,7 @@ export default function Page() {
           />
           <p className="mt-3">
             Tire todas as dúvidas detalhadas em nosso guia sobre{" "}
-            <Link href="/precisa-de-advogado-para-superendividamento" className="text-teal-700 underline font-medium">
+            <Link href="/precisa-de-advogado-para-superendividamento" className="text-blue-700 underline font-medium">
               se precisa de advogado para Superendividamento e como agir sozinho
             </Link>.
           </p>
@@ -138,3 +138,4 @@ export default function Page() {
     </>
   );
 }
+

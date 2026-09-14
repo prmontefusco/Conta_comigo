@@ -57,16 +57,16 @@ export default function Page() {
           ou se chama para a entrevista. Um currículo desorganizado, sem dados de contato claros ou com erros de português
           elimina candidatos excelentes antes mesmo de terem a chance de conversar.
         </p>
-        <div className="rounded-2xl border-2 border-teal-200 bg-teal-50/60 p-6">
-          <h3 className="text-lg font-semibold text-teal-900">Precisa criar ou atualizar seu currículo agora?</h3>
-          <p className="mt-2 text-sm leading-relaxed text-teal-800">
+        <div className="rounded-2xl border-2 border-blue-200 bg-blue-50/60 p-6">
+          <h3 className="text-lg font-semibold text-blue-900">Precisa criar ou atualizar seu currículo agora?</h3>
+          <p className="mt-2 text-sm leading-relaxed text-blue-800">
             Se você precisa fazer um currículo profissional, bonito, moderno e no formato exato que os recrutadores
             e sistemas de seleção exigem, acesse o{" "}
             <a
               href="https://cvlivre.com.br/"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-bold underline underline-offset-2 hover:text-teal-950"
+              className="font-bold underline underline-offset-2 hover:text-blue-950"
             >
               CV Livre (cvlivre.com.br)
             </a>
@@ -77,7 +77,7 @@ export default function Page() {
               href="https://cvlivre.com.br/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-800"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-800"
             >
               Criar meu currículo no CV Livre ↗
             </a>
@@ -95,3 +95,4 @@ export default function Page() {
     </ContentPage>
   );
 }
+

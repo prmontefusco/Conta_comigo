@@ -72,6 +72,13 @@ describe("parsing user input", () => {
     expect(fromDecimalString("")).toBeNull();
     expect(fromDecimalString("abc")).toBeNull();
   });
+
+  it("returns null for an implausible single entry instead of accepting a typo'd extra zero", () => {
+    expect(fromDecimalString("10.000.000,00")?.amount).toBe(1_000_000_000);
+    expect(fromDecimalString("10.000.000,01")).toBeNull();
+    expect(fromDecimalString("150.000.000,00")).toBeNull();
+    expect(fromDecimalString("-150.000.000,00")).toBeNull();
+  });
 });
 
 describe("arithmetic", () => {

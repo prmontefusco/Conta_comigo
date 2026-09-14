@@ -46,10 +46,16 @@ import {
   debtSchema,
   decisionSchema,
   goalSchema,
+  irpfRecordSchema,
   obligationSchema,
+  propertySchema,
   recurringRuleSchema,
   reserveSchema,
   transactionSchema,
+  vehicleSchema,
+  type PropertyDoc,
+  type IrpfRecordDoc,
+  type VehicleDoc,
 } from "@/modules/shared/infrastructure/schemas";
 import { limitsFor } from "@/modules/billing/domain/plan-limits";
 import type { UserPlan } from "@/modules/billing/domain/subscription";
@@ -115,6 +121,9 @@ export interface FinanceData {
   readonly reserves: readonly Reserve[];
   readonly goals: readonly Goal[];
   readonly budgets: readonly Budget[];
+  readonly vehicles: readonly VehicleDoc[];
+  readonly properties: readonly PropertyDoc[];
+  readonly irpfRecords: readonly IrpfRecordDoc[];
   /**
    * O que a família registrou ter decidido, do mais recente para o mais
    * antigo. Não entra em nenhum cálculo: uma anotação nunca move um saldo.
@@ -151,6 +160,9 @@ type CollectionState = {
   goals: Goal[];
   budgets: Budget[];
   decisions: Decision[];
+  vehicles: VehicleDoc[];
+  properties: PropertyDoc[];
+  irpfRecords: IrpfRecordDoc[];
 };
 
 const EMPTY_STATE: CollectionState = {
@@ -166,6 +178,9 @@ const EMPTY_STATE: CollectionState = {
   goals: [],
   budgets: [],
   decisions: [],
+  vehicles: [],
+  properties: [],
+  irpfRecords: [],
 };
 
 const SUBSCRIPTIONS = [
@@ -181,6 +196,9 @@ const SUBSCRIPTIONS = [
   ["goals", goalSchema],
   ["budgets", budgetSchema],
   ["decisions", decisionSchema],
+  ["vehicles", vehicleSchema],
+  ["properties", propertySchema],
+  ["irpfRecords", irpfRecordSchema],
 ] as const satisfies ReadonlyArray<readonly [keyof CollectionState, z.ZodType]>;
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
@@ -371,6 +389,9 @@ export function deriveFinanceData(
     reserves: state.reserves,
     goals: state.goals,
     budgets: state.budgets,
+    vehicles: state.vehicles,
+    properties: state.properties,
+    irpfRecords: state.irpfRecords,
     decisions: sortDecisions(state.decisions),
     budgetStatus,
     totalCash: cash,

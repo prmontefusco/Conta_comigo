@@ -6,7 +6,9 @@ import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { logger } from "@/lib/observability/logger";
 
 /**
- * Firebase Admin SDK, for the payments surface only.
+ * Firebase Admin SDK, for server routes that need privileges Security Rules
+ * never grant a browser: payments, and creating a household member's account
+ * without routing them through self-signup.
  *
  * `server-only` at the top is load-bearing: importing this file from a Client
  * Component becomes a build error rather than a privileged handle shipped to a

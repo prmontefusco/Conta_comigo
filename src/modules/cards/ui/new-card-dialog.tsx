@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { deleteField } from "firebase/firestore";
 import { fromDecimalString } from "@/core/money/money";
 import { Button, Callout } from "@/components/ui/primitives";
 import { FormError, MoneyField, SelectField, TextField } from "@/components/ui/form";
@@ -38,6 +39,7 @@ export function NewCardDialog({
 
   const [name, setName] = useState("");
   const [issuer, setIssuer] = useState("");
+  const [lastFourDigits, setLastFourDigits] = useState("");
   const [limitText, setLimitText] = useState("");
   const [closingDay, setClosingDay] = useState("25");
   const [dueDay, setDueDay] = useState("5");
@@ -59,6 +61,7 @@ export function NewCardDialog({
     if (!card) {
       setName("");
       setIssuer("");
+      setLastFourDigits("");
       setLimitText("");
       setClosingDay("25");
       setDueDay("5");
@@ -70,6 +73,7 @@ export function NewCardDialog({
 
     setName(card.name);
     setIssuer(card.issuer ?? "");
+    setLastFourDigits(card.lastFourDigits ?? "");
     setLimitText((card.creditLimit.amount / 100).toFixed(2).replace(".", ","));
     setClosingDay(String(card.closingDay));
     setDueDay(String(card.dueDay));
@@ -115,6 +119,10 @@ export function NewCardDialog({
       setError("O dia de vencimento precisa estar entre 1 e 31.");
       return;
     }
+    if (lastFourDigits.trim() && !/^\d{4}$/.test(lastFourDigits.trim())) {
+      setError("Os últimos dígitos precisam ser 4 números.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -125,9 +133,15 @@ export function NewCardDialog({
         closingDay: closing,
         dueDay: due,
         visibility: visibility as never,
-        // `null` apaga o campo de verdade; `undefined` sairia do payload e
-        // deixaria o titular antigo no documento.
-        holderMemberId: card ? holderMemberId || null : holderMemberId || undefined,
+        // `deleteField()` apaga o campo de verdade; `undefined` sairia do
+        // payload e deixaria o valor antigo no documento. Gravar `null` direto
+        // pareceria funcionar, mas o schema só aceita o campo ausente
+        // (`.optional()`, não `.nullable()`) — um `null` de verdade quebra a
+        // leitura do documento inteiro na próxima sincronização.
+        holderMemberId: card ? holderMemberId || deleteField() : holderMemberId || undefined,
+        lastFourDigits: card
+          ? lastFourDigits.trim() || deleteField()
+          : lastFourDigits.trim() || undefined,
         archived: card ? archived : false,
       };
 
@@ -191,6 +205,15 @@ export function NewCardDialog({
           value={issuer}
           onChange={(event) => setIssuer(event.target.value)}
           placeholder="Opcional"
+        />
+
+        <TextField
+          label="Últimos 4 dígitos"
+          value={lastFourDigits}
+          onChange={(event) => setLastFourDigits(event.target.value.replace(/\D/g, "").slice(0, 4))}
+          placeholder="1234"
+          inputMode="numeric"
+          hint="Opcional. Ajuda a diferenciar cartões do mesmo banco e bandeira, e a importação de fatura usa isso para reconhecer o cartão certo sozinha."
         />
 
         <MoneyField

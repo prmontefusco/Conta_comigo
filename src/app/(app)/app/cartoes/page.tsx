@@ -22,6 +22,7 @@ import {
   type CreditCard,
 } from "@/modules/cards/domain/credit-card";
 import { BillingCalendarCard } from "@/modules/cards/ui/billing-calendar-card";
+import { CardStatementImportButton } from "@/modules/cards/ui/card-statement-import-button";
 import { CommittedMonthsCard } from "@/modules/cards/ui/committed-months-card";
 import { InstallmentPlansCard } from "@/modules/cards/ui/installment-plans-card";
 import { NewCardDialog } from "@/modules/cards/ui/new-card-dialog";
@@ -56,7 +57,10 @@ export default function CardsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Cartões</h1>
         {canWrite ? (
-          <Button onClick={() => setCreatingCard(true)}>Novo cartão</Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {cards.length > 0 ? <CardStatementImportButton /> : null}
+            <Button onClick={() => setCreatingCard(true)}>Novo cartão</Button>
+          </div>
         ) : null}
       </div>
 
@@ -153,7 +157,9 @@ function CardSummary({
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <CardTitle hint={`Fecha dia ${card.closingDay} · vence dia ${card.dueDay}`}>
+          <CardTitle
+            hint={`${card.lastFourDigits ? `final ${card.lastFourDigits} · ` : ""}Fecha dia ${card.closingDay} · vence dia ${card.dueDay}`}
+          >
             {card.name}
           </CardTitle>
           {card.holderMemberId || card.visibility === "PERSONAL" ? (

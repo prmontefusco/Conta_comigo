@@ -1,5 +1,5 @@
 import type { CalendarDate } from "@/core/date/calendar-date";
-import { type Money, add, clampToZero, subtract, sum, zero } from "@/core/money/money";
+import { type Money, add, clampToZero, money, subtract, sum, zero } from "@/core/money/money";
 import type {
   AccountId,
   AuditFields,
@@ -140,7 +140,7 @@ export function goalProgress(
 
   const monthlyContributionNeeded =
     monthsRemaining && monthsRemaining > 0
-      ? { amount: Math.ceil(missing.amount / monthsRemaining), currency: missing.currency }
+      ? money(Math.ceil(missing.amount / monthsRemaining), missing.currency)
       : undefined;
 
   return {

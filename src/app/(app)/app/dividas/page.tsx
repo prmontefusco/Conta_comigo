@@ -69,6 +69,9 @@ export default function DebtsPage() {
   const summary = summariseDebts(finance.debts, finance.asOf, paidByDebt);
   const active = sortByRisk(finance.debts.filter((debt) => debt.status !== "SETTLED"));
   const settled = finance.debts.filter((debt) => debt.status === "SETTLED");
+  const hasSecuredDebt = active.some((debt) =>
+    ["VEHICLE_FINANCING", "REAL_ESTATE_FINANCING", "EQUIPMENT_FINANCING"].includes(debt.kind),
+  );
 
   return (
     <div className="space-y-4">
@@ -84,8 +87,16 @@ export default function DebtsPage() {
 
       <FinancialInsightCard
         tag="Estratégia de quitação"
-        title="Dívida com garantia pede atenção especial"
-        description="Financiamento de veículo ou imóvel envolve um bem da família. Quando há atraso, o risco é diferente de uma dívida comum, então vale olhar esse compromisso com prioridade."
+        title={
+          hasSecuredDebt
+            ? "Proteja primeiro o bem em garantia"
+            : "Priorize o que causa mais dano agora"
+        }
+        description={
+          hasSecuredDebt
+            ? "Há financiamento com bem em garantia. Quando existe atraso, esse compromisso precisa de atenção antes de uma cobrança sem garantia."
+            : "Nenhum contrato ativo registrado envolve bem em garantia. Compare juros, atraso e impacto mensal antes de escolher a ordem de pagamento."
+        }
         tips={[
           "Se o carro, a moto ou a casa entram na renda ou na segurança da família, essa parcela precisa aparecer no topo da análise.",
           "Pelo método avalanche, a sobra vai para a dívida com maior taxa. Ele reduz custo, mas só funciona quando o mês fecha.",

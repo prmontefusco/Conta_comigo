@@ -8,7 +8,6 @@ import { isNegative, money, subtract, sum } from "@/core/money/money";
 import { Button, Card, CardTitle, Stat } from "@/components/ui/primitives";
 import { firstWholeMonth } from "@/modules/forecast/domain/forecast";
 import { HealthScoreCard } from "@/modules/ai-advisor/ui/health-score-card";
-import { AlertsList } from "@/modules/alerts/ui/alerts-list";
 import { MonthBlock, Next30DaysBlock } from "@/modules/dashboard/ui/month-block";
 import { TodayBlock } from "@/modules/dashboard/ui/today-block";
 import { outstandingPrincipal } from "@/modules/debts/domain/debt";
@@ -106,7 +105,7 @@ export function DashboardTabs() {
               : "text-[color:var(--page-fg)] hover:bg-[color:var(--card-bg)]"
           }`}
         >
-          <span>📊</span>
+          <span aria-hidden="true">📊</span>
           <span>Visão Geral</span>
         </button>
 
@@ -119,7 +118,7 @@ export function DashboardTabs() {
               : "text-[color:var(--page-fg)] hover:bg-[color:var(--card-bg)]"
           }`}
         >
-          <span>🟢</span>
+          <span aria-hidden="true">🟢</span>
           <span>Entradas ({formatMoney(monthlyInflows)})</span>
         </button>
 
@@ -132,7 +131,7 @@ export function DashboardTabs() {
               : "text-[color:var(--page-fg)] hover:bg-[color:var(--card-bg)]"
           }`}
         >
-          <span>🔴</span>
+          <span aria-hidden="true">🔴</span>
           <span>Despesas ({formatMoney(monthlyOutflows)})</span>
         </button>
 
@@ -145,7 +144,7 @@ export function DashboardTabs() {
               : "text-[color:var(--page-fg)] hover:bg-[color:var(--card-bg)]"
           }`}
         >
-          <span>🔵</span>
+          <span aria-hidden="true">🔵</span>
           <span>Reservas ({formatMoney(finance.protectedReserve)})</span>
         </button>
 
@@ -158,7 +157,7 @@ export function DashboardTabs() {
               : "text-[color:var(--page-fg)] hover:bg-[color:var(--card-bg)]"
           }`}
         >
-          <span>🏛️</span>
+          <span aria-hidden="true">🏛️</span>
           <span>Dívidas ({formatMoney(totalDebtBalance)})</span>
         </button>
       </div>
@@ -171,7 +170,6 @@ export function DashboardTabs() {
           <QuantitativeHealthScoreCard score={quantitativeHealthScore} />
           <HealthScoreCard />
           <TodayBlock />
-          <AlertsList alerts={finance.alerts} />
           <MonthBlock />
           <RunwayCard />
           <Next30DaysBlock />

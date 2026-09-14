@@ -158,6 +158,7 @@ const transactionCommon = base.extend({
   notes: notesSchema,
   tags: z.array(z.string().trim().max(40)).max(20).optional(),
   vehicleId: idSchema.optional(),
+  propertyId: idSchema.optional(),
 });
 
 const debtBreakdownSchema = z.object({
@@ -255,6 +256,7 @@ export const obligationSchema = base.extend({
   visibility: visibilitySchema,
   responsibleMemberId: idSchema.optional(),
   vehicleId: idSchema.optional(),
+  propertyId: idSchema.optional(),
   status: z.enum(["SCHEDULED", "PARTIALLY_SETTLED", "SETTLED", "CANCELED"]),
   settledAmount: moneySchema,
   settlementTransactionIds: z.array(idSchema).default([]),
@@ -292,6 +294,7 @@ export const cardPurchaseSchema = base.extend({
   visibility: visibilitySchema,
   responsibleMemberId: idSchema.optional(),
   vehicleId: idSchema.optional(),
+  propertyId: idSchema.optional(),
   refunded: z.boolean().optional(),
   notes: notesSchema,
 });
@@ -357,6 +360,7 @@ export const recurringRuleSchema = base.extend({
   visibility: visibilitySchema,
   responsibleMemberId: idSchema.optional(),
   vehicleId: idSchema.optional(),
+  propertyId: idSchema.optional(),
   active: z.boolean().default(true),
   notes: notesSchema,
 });
@@ -441,7 +445,44 @@ export const vehicleSchema = base.extend({
   brand: z.string().trim().max(60).optional(),
   model: z.string().trim().max(60).optional(),
   year: z.number().int().min(1900).max(2100).optional(),
+  ipvaDueDate: calendarDateSchema.optional(),
   ownerMemberId: idSchema.optional(),
+  archived: z.boolean().default(false),
+});
+
+export const propertySchema = base.extend({
+  name: labelSchema,
+  kind: z.enum(["HOME", "RENTAL", "COMMERCIAL", "LAND", "OTHER"]),
+  address: z.string().trim().max(200).optional(),
+  iptuDueDate: calendarDateSchema.optional(),
+  ownerMemberId: idSchema.optional(),
+  archived: z.boolean().default(false),
+});
+
+export const irpfRecordSchema = base.extend({
+  taxYear: z.number().int().min(2000).max(2100),
+  kind: z.enum([
+    "HEALTH",
+    "EDUCATION",
+    "INCOME",
+    "DEPENDENT",
+    "ALIMONY",
+    "RENT",
+    "ASSET",
+    "DEBT",
+    "DONATION",
+    "OTHER",
+  ]),
+  title: labelSchema,
+  amount: moneySchema.optional(),
+  paidOn: calendarDateSchema.optional(),
+  taxpayerMemberId: idSchema.optional(),
+  relatedMemberId: idSchema.optional(),
+  documentName: z.string().trim().max(160).optional(),
+  documentIssuer: z.string().trim().max(160).optional(),
+  documentIdentifier: z.string().trim().max(80).optional(),
+  fileName: z.string().trim().max(180).optional(),
+  notes: notesSchema,
   archived: z.boolean().default(false),
 });
 
@@ -461,3 +502,5 @@ export type ReserveDoc = z.infer<typeof reserveSchema>;
 export type GoalDoc = z.infer<typeof goalSchema>;
 export type DecisionDoc = z.infer<typeof decisionSchema>;
 export type VehicleDoc = z.infer<typeof vehicleSchema>;
+export type PropertyDoc = z.infer<typeof propertySchema>;
+export type IrpfRecordDoc = z.infer<typeof irpfRecordSchema>;

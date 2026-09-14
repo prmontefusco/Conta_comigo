@@ -14,6 +14,7 @@ import type {
   CreditCardId,
   HouseholdId,
   MemberId,
+  PropertyId,
   TransactionId,
   VehicleId,
   Visibility,
@@ -72,6 +73,7 @@ export interface CardPurchase extends AuditFields {
   readonly visibility: Visibility;
   readonly responsibleMemberId?: MemberId;
   readonly vehicleId?: VehicleId;
+  readonly propertyId?: PropertyId;
   readonly refunded?: boolean;
   readonly notes?: string;
 }
@@ -94,6 +96,8 @@ export interface CardInstallment {
   readonly categoryId: CategoryId;
   readonly visibility: Visibility;
   readonly responsibleMemberId?: MemberId;
+  readonly vehicleId?: VehicleId;
+  readonly propertyId?: PropertyId;
 }
 
 export type CardStatementStatus = "OPEN" | "CLOSED" | "PARTIALLY_PAID" | "PAID";
@@ -197,6 +201,8 @@ export function buildInstallments(purchase: CardPurchase, card: CreditCard): Car
       ...(purchase.responsibleMemberId
         ? { responsibleMemberId: purchase.responsibleMemberId }
         : {}),
+      ...(purchase.vehicleId ? { vehicleId: purchase.vehicleId } : {}),
+      ...(purchase.propertyId ? { propertyId: purchase.propertyId } : {}),
     };
   });
 }

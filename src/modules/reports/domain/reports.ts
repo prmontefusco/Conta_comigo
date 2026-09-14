@@ -7,7 +7,7 @@ import {
   type CalendarDate,
   type MonthKey,
 } from "@/core/date/calendar-date";
-import { add, subtract, sum, zero, type Money } from "@/core/money/money";
+import { add, money, subtract, sum, zero, type Money } from "@/core/money/money";
 import type { CardStatement } from "@/modules/cards/domain/credit-card";
 import { buildSchedule, type Debt } from "@/modules/debts/domain/debt";
 import { isOpen, remainingAmount, type Obligation } from "@/modules/obligations/domain/obligation";
@@ -278,10 +278,7 @@ export function spendingTrend(
 export function averageOf(points: readonly TrendPoint[]): Money {
   const active = points.filter((point) => point.amount.amount > 0);
   if (active.length === 0) return zero();
-  return {
-    amount: Math.round(sum(active.map((p) => p.amount)).amount / active.length),
-    currency: "BRL",
-  };
+  return money(Math.round(sum(active.map((p) => p.amount)).amount / active.length), "BRL");
 }
 
 /* ------------------------------------------------------------------ */

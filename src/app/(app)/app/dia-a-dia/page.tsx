@@ -60,15 +60,12 @@ import { useSession } from "@/modules/household/ui/session-provider";
  * people actually ask, and an infinite scroll of every purchase ever made
  * answers a different one.
  */
-type Filter = "ALL" | "OUT" | "IN";
-
 export default function DailyPage() {
   const finance = useFinance();
   const { canWrite, household, user } = useSession();
   const { active: members, nameOf } = useMembers();
 
   const [month, setMonth] = useState<MonthKey>(monthKeyOf(finance.asOf));
-  const [filter, setFilter] = useState<Filter>("ALL");
   const [creating, setCreating] = useState<"EXPENSE" | "INCOME" | null>(null);
   const [editing, setEditing] = useState<DailyEntry | null>(null);
   const [confirming, setConfirming] = useState<Obligation | null>(null);
@@ -113,7 +110,8 @@ export default function DailyPage() {
     () => plannedEntriesInMonth({ obligations: finance.obligations, month, asOf: finance.asOf }),
     [finance.obligations, month, finance.asOf],
   );
-  const plannedSum = useMemo(() => plannedTotals(planned), [planned]);
+  const plannedOutflows = useMemo(() => planned.filter((entry) => entry.direction === "OUT"), [planned]);
+  const plannedSum = useMemo(() => plannedTotals(plannedOutflows), [plannedOutflows]);
 
   // Lançamentos datados para frente que foram gravados antes de esta tela
   // separar plano de fato. Sem a conversão, eles não seriam contados em
@@ -123,7 +121,7 @@ export default function DailyPage() {
     [finance.transactions, finance.asOf],
   );
 
-  const visible = realised.filter((entry) => filter === "ALL" || entry.direction === filter);
+  const visible = realised.filter((entry) => entry.direction === "OUT");
   const days = groupByDay(visible);
 
   const currentMonth = monthKeyOf(finance.asOf);
@@ -132,22 +130,6 @@ export default function DailyPage() {
 
   return (
     <div className="space-y-4">
-      {/* Seletor rápido Saídas / Entradas para navegação veloz tanto no Desktop quanto no Mobile */}
-      <div className="flex rounded-xl border border-[color:var(--card-border)] bg-[color:var(--color-surface-sunken)] p-1">
-        <Link
-          href="/app/dia-a-dia"
-          className="flex-1 rounded-lg bg-[color:var(--card-bg)] px-3 py-2 text-center text-xs font-bold text-[color:var(--color-brand-700)] shadow-2xs"
-        >
-          🧾 Saídas (Gastos)
-        </Link>
-        <Link
-          href="/app/entradas"
-          className="flex-1 rounded-lg px-3 py-2 text-center text-xs font-medium text-[color:var(--muted-fg)] transition hover:text-[color:var(--page-fg)]"
-        >
-          💰 Entradas (Recebimentos)
-        </Link>
-      </div>
-
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Saídas</h1>
@@ -158,9 +140,6 @@ export default function DailyPage() {
         {canWrite ? (
           <div className="flex gap-2">
             <Button onClick={() => setCreating("EXPENSE")}>Registrar gasto</Button>
-            <Button variant="secondary" onClick={() => setCreating("INCOME")}>
-              Recebi
-            </Button>
           </div>
         ) : null}
       </div>
@@ -236,7 +215,6 @@ export default function DailyPage() {
         </div>
 
         <dl className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Stat label="Entrou" value={totals.received} tone="positive" />
           <Stat label="Saiu" value={totals.spent} tone="outflow" />
           <Stat
             label="Sobrou"
@@ -260,35 +238,18 @@ export default function DailyPage() {
       <Card>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <CardTitle>Lançamentos</CardTitle>
-          <div className="flex gap-2">
-            {(
-              [
-                ["ALL", "Tudo"],
-                ["OUT", "Gastos"],
-                ["IN", "Recebimentos"],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                onClick={() => setFilter(value)}
-                aria-pressed={filter === value}
-                className={[
-                  "min-h-11 shrink-0 rounded-full px-4 text-sm font-medium",
-                  filter === value
-                    ? "bg-[color:var(--color-brand-600)] text-white"
-                    : "border border-[color:var(--card-border)]",
-                ].join(" ")}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <Link
+            href="/app/entradas"
+            className="text-xs font-semibold text-[color:var(--color-brand-700)] underline-offset-2 hover:underline"
+          >
+            Ver recebimentos
+          </Link>
         </div>
 
         {days.length === 0 ? (
           <EmptyState
             title="Nada registrado neste mês"
-            description="Mercado, combustível, farmácia, estacionamento, a diária que você recebeu. É o registro do dia a dia que mostra para onde o dinheiro está indo de verdade."
+            description="Mercado, combustível, farmácia, estacionamento. É o registro do dia a dia que mostra para onde o dinheiro está indo de verdade."
             action={
               canWrite ? (
                 <Button onClick={() => setCreating("EXPENSE")}>Registrar gasto</Button>
@@ -315,6 +276,7 @@ export default function DailyPage() {
                       entry={entry}
                       categoryLabel={categoryName(categories, entry.categoryId)}
                       sourceLabel={sourceLabelFor(entry, finance)}
+                      assetLabel={assetLabelFor(entry, finance)}
                       memberLabel={
                         entry.responsibleMemberId ? nameOf(entry.responsibleMemberId) : null
                       }
@@ -328,33 +290,24 @@ export default function DailyPage() {
         )}
       </Card>
 
-      {planned.length > 0 ? (
+      {plannedOutflows.length > 0 ? (
         <Card>
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <CardTitle hint="Ainda não entrou nem saiu da conta. Entra na projeção; não entra nos totais acima.">
+            <CardTitle hint="Ainda não saiu da conta. Entra na projeção; não entra nos totais acima.">
               Planejado para {formatMonthKey(month)}
             </CardTitle>
             <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
-              {plannedSum.toReceive.amount > 0 ? (
-                <>
-                  a receber <MoneyText value={plannedSum.toReceive} size="sm" tone="positive" />
-                </>
-              ) : null}
-              {plannedSum.toReceive.amount > 0 && plannedSum.toPay.amount > 0 ? " · " : null}
-              {plannedSum.toPay.amount > 0 ? (
-                <>
-                  a pagar <MoneyText value={plannedSum.toPay} size="sm" tone="outflow" />
-                </>
-              ) : null}
+              a pagar <MoneyText value={plannedSum.toPay} size="sm" tone="outflow" />
             </p>
           </div>
 
           <ul className="divide-y divide-[color:var(--card-border)]">
-            {planned.map((entry) => (
+            {plannedOutflows.map((entry) => (
               <PlannedRow
                 key={entry.id}
                 entry={entry}
                 categoryLabel={categoryName(categories, entry.categoryId)}
+                assetLabel={assetLabelFor(entry, finance)}
                 onConfirm={
                   canWrite
                     ? () => {
@@ -448,12 +401,14 @@ function EntryRow({
   entry,
   categoryLabel,
   sourceLabel,
+  assetLabel,
   memberLabel,
   onEdit,
 }: {
   entry: DailyEntry;
   categoryLabel: string;
   sourceLabel: string;
+  assetLabel: string | null;
   memberLabel: string | null;
   onEdit?: () => void;
 }) {
@@ -464,9 +419,13 @@ function EntryRow({
         <p className="truncate text-xs" style={{ color: "var(--muted-fg)" }}>
           {categoryLabel} · {sourceLabel}
         </p>
-        {memberLabel || entry.visibility === "PERSONAL" || (entry.installmentCount ?? 1) > 1 ? (
+        {memberLabel ||
+        assetLabel ||
+        entry.visibility === "PERSONAL" ||
+        (entry.installmentCount ?? 1) > 1 ? (
           <div className="mt-1 flex flex-wrap gap-1.5">
             {memberLabel ? <Badge>{memberLabel}</Badge> : null}
+            {assetLabel ? <Badge tone="neutral">{assetLabel}</Badge> : null}
             {entry.visibility === "PERSONAL" ? <Badge tone="neutral">Pessoal</Badge> : null}
             {(entry.installmentCount ?? 1) > 1 ? (
               <Badge tone="attention">{entry.installmentCount}x</Badge>
@@ -529,10 +488,12 @@ function money(cents: number): string {
 function PlannedRow({
   entry,
   categoryLabel,
+  assetLabel,
   onConfirm,
 }: {
   entry: PlannedEntry;
   categoryLabel: string;
+  assetLabel: string | null;
   onConfirm?: () => void;
 }) {
   return (
@@ -547,6 +508,11 @@ function PlannedRow({
             <Badge tone="critical">Passou da data</Badge>
           </span>
         ) : null}
+        {assetLabel ? (
+          <span className="mt-1 ml-1 inline-block">
+            <Badge tone="neutral">{assetLabel}</Badge>
+          </span>
+        ) : null}
       </div>
 
       <div className="shrink-0 text-right">
@@ -557,10 +523,25 @@ function PlannedRow({
         />
         {onConfirm ? (
           <Button variant="ghost" className="mt-1 block w-full text-xs" onClick={onConfirm}>
-            {entry.direction === "IN" ? "Recebi" : "Paguei"}
+            Paguei
           </Button>
         ) : null}
       </div>
     </li>
   );
+}
+
+function assetLabelFor(
+  entry: Pick<DailyEntry | PlannedEntry, "vehicleId" | "propertyId">,
+  finance: ReturnType<typeof useFinance>,
+): string | null {
+  if (entry.vehicleId) {
+    const vehicle = finance.vehicles.find((item) => item.id === entry.vehicleId);
+    return vehicle ? `Veículo: ${vehicle.name}` : "Veículo removido";
+  }
+  if (entry.propertyId) {
+    const property = finance.properties.find((item) => item.id === entry.propertyId);
+    return property ? `Imóvel: ${property.name}` : "Imóvel removido";
+  }
+  return null;
 }

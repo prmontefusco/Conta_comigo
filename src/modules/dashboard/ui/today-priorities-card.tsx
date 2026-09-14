@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { formatCalendarDate } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
-import { Card } from "@/components/ui/primitives";
+import { Card, MoneyText } from "@/components/ui/primitives";
 import { alertActionLabel, alertAppHref } from "@/modules/alerts/domain/alert-actions";
 import type { AlertSeverity } from "@/modules/alerts/domain/alerts";
 import { buildTodayPriorities } from "@/modules/dashboard/domain/today-priorities";
+import { safeToSpendToday } from "@/modules/dashboard/domain/overview";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 
 /**
@@ -35,6 +37,10 @@ const SEVERITY_STYLE: Record<Exclude<AlertSeverity, "INFO">, { bar: string; chip
 export function TodayPrioritiesCard() {
   const finance = useFinance();
   const priorities = buildTodayPriorities({ alerts: finance.alerts });
+  const safeToSpend = safeToSpendToday(finance.overview, finance.forecast);
+  const dueToday = finance.overview.today.dueSoon.filter(
+    (obligation) => obligation.dueDate === finance.asOf,
+  );
 
   if (priorities.items.length === 0) {
     return (
@@ -51,6 +57,12 @@ export function TodayPrioritiesCard() {
           <QuietLink href="/app/decisoes">Registrar uma decisão</QuietLink>
           <QuietLink href="/app/avisos">Abrir a caixa de avisos</QuietLink>
         </div>
+        <ActionCenter
+          safeToSpend={safeToSpend}
+          overdueCount={finance.overview.today.overdue.length}
+          dueTodayCount={dueToday.length}
+          hasDebts={finance.debts.length > 0 || finance.overview.today.cardDebt.amount > 0}
+        />
       </Card>
     );
   }
@@ -126,7 +138,110 @@ export function TodayPrioritiesCard() {
         ) : null}
         <QuietLink href="/app/decisoes">Registrar o que a família decidiu</QuietLink>
       </div>
+
+      <ActionCenter
+        safeToSpend={safeToSpend}
+        overdueCount={finance.overview.today.overdue.length}
+        dueTodayCount={dueToday.length}
+        hasDebts={finance.debts.length > 0 || finance.overview.today.cardDebt.amount > 0}
+      />
     </Card>
+  );
+}
+
+function ActionCenter({
+  safeToSpend,
+  overdueCount,
+  dueTodayCount,
+  hasDebts,
+}: {
+  safeToSpend: ReturnType<typeof safeToSpendToday>;
+  overdueCount: number;
+  dueTodayCount: number;
+  hasDebts: boolean;
+}) {
+  return (
+    <div className="mt-4 border-t border-[color:var(--card-border)] pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold">Ações de hoje</h3>
+          <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
+            Caminhos curtos para resolver sem procurar no menu.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <QuietLink href="/app/lancar">Adicionar rápido</QuietLink>
+          <QuietLink href="/app/mais">Ver todos os atalhos</QuietLink>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <ActionTile
+          href="/app/dia-a-dia"
+          title="Posso gastar"
+          value={<MoneyText value={safeToSpend.amount} size="sm" />}
+          detail={
+            safeToSpend.untilDate
+              ? `Até ${formatCalendarDate(safeToSpend.untilDate)}`
+              : "Até a próxima entrada confirmada"
+          }
+        />
+        <ActionTile
+          href="/app/contas"
+          title="Contas"
+          value={overdueCount > 0 ? `${overdueCount} atrasada(s)` : `${dueTodayCount} hoje`}
+          detail={overdueCount > 0 ? "Regularizar primeiro" : "Ver vencimentos"}
+          urgent={overdueCount > 0}
+        />
+        <ActionTile
+          href={hasDebts ? "/app/superendividamento" : "/app/dividas"}
+          title="Dívidas"
+          value={hasDebts ? "Revisar suporte" : "Mapear dívidas"}
+          detail={hasDebts ? "Checar superendividamento" : "Cadastrar contratos"}
+        />
+        <ActionTile
+          href="/app/plano"
+          title="Plano"
+          value="Próximo passo"
+          detail="Ações para esta semana"
+        />
+      </div>
+    </div>
+  );
+}
+
+function ActionTile({
+  href,
+  title,
+  value,
+  detail,
+  urgent = false,
+}: {
+  href: string;
+  title: string;
+  value: ReactNode;
+  detail: string;
+  urgent?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`rounded-lg border p-3 transition hover:bg-[color:var(--color-surface-sunken)] ${
+        urgent ? "border-[color:var(--color-critical-600)]" : "border-[color:var(--card-border)]"
+      }`}
+    >
+      <span
+        className={`text-xs font-bold tracking-wide uppercase ${
+          urgent ? "text-[color:var(--tone-critical)]" : "text-[color:var(--color-brand-700)]"
+        }`}
+      >
+        {title}
+      </span>
+      <span className="mt-1 block text-sm font-semibold">{value}</span>
+      <span className="mt-0.5 block text-xs" style={{ color: "var(--muted-fg)" }}>
+        {detail}
+      </span>
+    </Link>
   );
 }
 

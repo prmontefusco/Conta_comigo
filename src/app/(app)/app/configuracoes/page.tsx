@@ -5,7 +5,7 @@ import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { instant } from "@/core/date/calendar-date";
 import { Button, Callout, Card, CardTitle } from "@/components/ui/primitives";
-import { FormError, SelectField, TextField } from "@/components/ui/form";
+import { FormError, SelectField } from "@/components/ui/form";
 import { getDb } from "@/lib/firebase/client";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { PWAInstallCard } from "@/components/pwa-install-prompt";
@@ -31,7 +31,6 @@ const TIMEZONES = [
 export default function SettingsPage() {
   const { household, canAdminister } = useSession();
 
-  const [name, setName] = useState(household?.name ?? "");
   const [timezone, setTimezone] = useState(household?.settings.timezone ?? "America/Sao_Paulo");
   const [strategy, setStrategy] = useState(
     household?.settings.cardCompetenceStrategy ?? "PURCHASE_DATE",
@@ -48,15 +47,9 @@ export default function SettingsPage() {
     setSaved(false);
 
     if (!household) return;
-    if (name.trim().length < 2) {
-      setError("Dê um nome ao grupo.");
-      return;
-    }
-
     setSaving(true);
     try {
       await updateDoc(doc(getDb(), "households", household.id), {
-        name: name.trim(),
         settings: { ...household.settings, timezone, cardCompetenceStrategy: strategy },
         updatedAt: instant(),
       });
@@ -71,10 +64,10 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Configurações</h1>
+      <h1 className="text-xl font-semibold">Configurações da conta</h1>
 
       <Card>
-        <CardTitle>Grupo</CardTitle>
+        <CardTitle>Preferências do aplicativo</CardTitle>
 
         {!canAdminister ? (
           <Callout tone="info">
@@ -92,14 +85,6 @@ export default function SettingsPage() {
               Configurações salvas.
             </p>
           ) : null}
-
-          <TextField
-            label="Nome do grupo"
-            required
-            disabled={!canAdminister}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
 
           <SelectField
             label="Fuso horário"

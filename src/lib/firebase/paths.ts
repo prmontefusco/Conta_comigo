@@ -36,7 +36,10 @@ export const paths = {
   budgets: (householdId: HouseholdId) => `households/${householdId}/budgets`,
   reserves: (householdId: HouseholdId) => `households/${householdId}/reserves`,
   goals: (householdId: HouseholdId) => `households/${householdId}/goals`,
+  decisions: (householdId: HouseholdId) => `households/${householdId}/decisions`,
   vehicles: (householdId: HouseholdId) => `households/${householdId}/vehicles`,
+  properties: (householdId: HouseholdId) => `households/${householdId}/properties`,
+  irpfRecords: (householdId: HouseholdId) => `households/${householdId}/irpfRecords`,
 } as const;
 
 /** Sub-collection names, for rules and for tests that iterate over all of them. */
@@ -52,7 +55,10 @@ export const HOUSEHOLD_SUBCOLLECTIONS = [
   "budgets",
   "reserves",
   "goals",
+  "decisions",
   "vehicles",
+  "properties",
+  "irpfRecords",
 ] as const;
 
 export type HouseholdSubcollection = (typeof HOUSEHOLD_SUBCOLLECTIONS)[number];

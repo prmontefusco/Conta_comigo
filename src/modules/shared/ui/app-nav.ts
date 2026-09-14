@@ -34,27 +34,26 @@ export interface NavSection {
   readonly items: readonly NavItem[];
 }
 
+export interface NavContext {
+  readonly hasBankAccount?: boolean;
+  readonly role?: HouseholdRole | null;
+}
+
 export const APP_NAV_SECTIONS: readonly NavSection[] = [
   {
-    title: "Visão Geral",
+    title: "Hoje",
     items: [
       { href: "/app", label: "Início", icon: "🏠" },
       { href: "/app/avisos", label: "Avisos", icon: "🔔" },
+      { href: "/app/lancar", label: "Adicionar rápido", icon: "➕" },
     ],
   },
   {
-    title: "Dia a Dia & Contas",
+    title: "Movimentos",
     items: [
-      {
-        href: "/app/contas-bancarias",
-        label: "Informações bancárias e Saldos",
-        icon: "🏦",
-        restrictedForDependent: true,
-      },
       { href: "/app/entradas", label: "Entradas", icon: "💰" },
       { href: "/app/dia-a-dia", label: "Saídas", icon: "🧾" },
       { href: "/app/contas", label: "Contas a Pagar", icon: "📄" },
-      { href: "/app/cartoes", label: "Cartões", icon: "💳", restrictedForDependent: true },
       {
         href: "/app/recorrentes",
         label: "Contas que se repetem",
@@ -70,10 +69,44 @@ export const APP_NAV_SECTIONS: readonly NavSection[] = [
     ],
   },
   {
-    title: "Planejamento & Futuro",
+    title: "Cartões",
+    items: [
+      {
+        href: "/app/cartoes",
+        label: "Faturas e parcelas",
+        icon: "💳",
+        restrictedForDependent: true,
+      },
+    ],
+  },
+  {
+    title: "Dívidas",
     items: [
       { href: "/app/emergencia", label: "Pagar primeiro", icon: "🚨" },
-      { href: "/app/plano", label: "Plano de ação", icon: "🧭" },
+      {
+        href: "/app/dividas",
+        label: "Dívidas e empréstimos",
+        icon: "🏛️",
+        restrictedForDependent: true,
+      },
+      {
+        href: "/app/negociar",
+        label: "Negociar dívidas",
+        icon: "🤝",
+        restrictedForDependent: true,
+      },
+      {
+        href: "/app/superendividamento",
+        label: "Superendividamento",
+        icon: "⚖️",
+        restrictedForDependent: true,
+      },
+      { href: "/app/plano", label: "Plano de recuperação", icon: "🧭" },
+    ],
+  },
+  {
+    title: "Planejamento",
+    items: [
       {
         href: "/app/orcamento",
         label: "Orçamento do mês",
@@ -98,43 +131,60 @@ export const APP_NAV_SECTIONS: readonly NavSection[] = [
     ],
   },
   {
-    title: "Dívidas & Recuperação",
+    title: "Cadastros",
     items: [
       {
-        href: "/app/dividas",
-        label: "Dívidas & Empréstimos",
+        href: "/app/meus-dados",
+        label: "Dados pessoais",
+        icon: "👤",
+      },
+      { href: "/app/membros", label: "Família", icon: "👥" },
+      {
+        href: "/app/contas-bancarias",
+        label: "Contas bancárias",
+        icon: "🏦",
+        restrictedForDependent: true,
+      },
+      {
+        href: "/app/cadastro-cartoes",
+        label: "Cartões de crédito",
+        icon: "💳",
+        restrictedForDependent: true,
+      },
+      {
+        href: "/app/cadastro-emprestimos",
+        label: "Empréstimos",
         icon: "🏛️",
         restrictedForDependent: true,
       },
+      { href: "/app/veiculos", label: "Veículos", icon: "🚗", restrictedForDependent: true },
+      { href: "/app/imoveis", label: "Imóveis", icon: "🏘️", restrictedForDependent: true },
+    ],
+  },
+  {
+    title: "IRPF",
+    items: [
       {
-        href: "/app/negociar",
-        label: "Negociar dívidas",
-        icon: "🤝",
-        restrictedForDependent: true,
-      },
-      {
-        href: "/app/superendividamento",
-        label: "Superendividamento",
-        icon: "⚖️",
+        href: "/app/irpf",
+        label: "Imposto de renda",
+        icon: "🧾",
         restrictedForDependent: true,
       },
     ],
   },
   {
-    title: "Registro & Relatórios",
+    title: "Relatórios",
     items: [
       { href: "/app/decisoes", label: "Decisões da família", icon: "🗒️" },
       { href: "/app/relatorios", label: "Relatórios", icon: "📊", restrictedForDependent: true },
-      { href: "/app/baixar-dados", label: "Baixar meus dados (Backup)", icon: "💾" },
     ],
   },
   {
-    title: "Minha Conta",
+    title: "Configurações",
     items: [
-      { href: "/app/meus-dados", label: "Meus Dados & Família", icon: "👤" },
-      { href: "/app/membros", label: "Membros e permissões", icon: "👥" },
+      { href: "/app/configuracoes", label: "Configurações da conta", icon: "⚙️" },
       { href: "/app/assinatura", label: "Assinatura", icon: "💳" },
-      { href: "/app/configuracoes", label: "Configurações", icon: "⚙️" },
+      { href: "/app/baixar-dados", label: "Backup e exportação", icon: "💾" },
     ],
   },
   {
@@ -156,12 +206,28 @@ export const APP_NAV_SECTIONS: readonly NavSection[] = [
  */
 export const MOBILE_BAR: readonly NavItem[] = [
   { href: "/app", label: "Início", icon: "🏠" },
-  { href: "/app/avisos", label: "Avisos", icon: "🔔" },
-  { href: "/app/dia-a-dia", label: "Saídas", icon: "🧾" },
-  { href: "/app/emergencia", label: "Pagar 1º", icon: "🚨" },
-  { href: "/app/plano", label: "Plano", icon: "🧭" },
+  { href: "/app/lancar", label: "Adicionar", icon: "➕" },
+  { href: "/app/dia-a-dia", label: "Movimentos", icon: "🧾" },
+  { href: "/app/cartoes", label: "Cartões", icon: "💳" },
   { href: "/app/mais", label: "Mais", icon: "⋯" },
 ];
+
+export function mobileBarFor(context: NavContext = {}): readonly NavItem[] {
+  const isDependent = context.role === "DEPENDENT";
+
+  return MOBILE_BAR.map((item) => {
+    if (item.href === "/app/dia-a-dia" && context.hasBankAccount === false) {
+      return { href: "/app/contas-bancarias", label: "Conta", icon: "🏦" };
+    }
+    // Cartões é escondido de dependentes no menu completo (restrictedForDependent);
+    // a barra fixa precisa de um substituto em vez de levar a uma tela que o
+    // redireciona de volta.
+    if (item.href === "/app/cartoes" && isDependent) {
+      return { href: "/app/contas", label: "Contas", icon: "📄" };
+    }
+    return item;
+  });
+}
 
 /**
  * Para onde um dependente é devolvido ao tentar abrir uma tela que não é dele.
@@ -177,16 +243,25 @@ export const DEPENDENT_BLOCKED_PATHS: readonly string[] = [
   "/app/projecao",
   "/app/cartoes",
   "/app/importar",
+  "/app/irpf",
+  "/app/imoveis",
+  "/app/veiculos",
+  "/app/cadastro-cartoes",
+  "/app/cadastro-emprestimos",
 ];
 
 /** As seções que este papel pode ver, sem seção vazia. */
-export function navSectionsFor(role: HouseholdRole | null): NavSection[] {
+export function navSectionsFor(role: HouseholdRole | null, context: NavContext = {}): NavSection[] {
   const isDependent = role === "DEPENDENT";
 
-  return APP_NAV_SECTIONS.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => !(isDependent && item.restrictedForDependent)),
-  })).filter((section) => section.items.length > 0);
+  return APP_NAV_SECTIONS.filter(
+    (section) => context.hasBankAccount !== false || section.title !== "Movimentos",
+  )
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !(isDependent && item.restrictedForDependent)),
+    }))
+    .filter((section) => section.items.length > 0);
 }
 
 /** Todo destino do menu, em ordem. Serve aos testes e a quem precisa da lista crua. */

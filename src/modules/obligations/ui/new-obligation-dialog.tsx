@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { deleteField } from "firebase/firestore";
 import { addMonths, todayIn, type CalendarDate, calendarDate } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
 import { allocate, fromDecimalString, type Money } from "@/core/money/money";
@@ -63,6 +64,7 @@ export function NewObligationDialog({
   const [confidence, setConfidence] = useState("CONFIRMED");
   const [visibility, setVisibility] = useState("HOUSEHOLD");
   const [memberId, setMemberId] = useState("");
+  const [assetRef, setAssetRef] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -86,6 +88,7 @@ export function NewObligationDialog({
       setConfidence("CONFIRMED");
       setVisibility("HOUSEHOLD");
       setMemberId("");
+      setAssetRef("");
       return;
     }
 
@@ -98,6 +101,13 @@ export function NewObligationDialog({
     setConfidence(obligation.confidence);
     setVisibility(obligation.visibility);
     setMemberId(obligation.responsibleMemberId ?? "");
+    setAssetRef(
+      obligation.vehicleId
+        ? `vehicle:${obligation.vehicleId}`
+        : obligation.propertyId
+          ? `property:${obligation.propertyId}`
+          : "",
+    );
   }, [open, obligation, defaultDirection]);
 
   const relevantCategories = categories.filter((category) =>
@@ -169,11 +179,20 @@ export function NewObligationDialog({
           amount,
           dueDate: due,
           competenceDate: due,
-          categoryId: categoryId || null,
+          // `deleteField()` remove o campo de verdade. Um `null` literal
+          // pareceria funcionar, mas o schema só aceita o campo ausente e a
+          // leitura do documento quebraria na próxima sincronização.
+          categoryId: categoryId || deleteField(),
           expenseNature: expenseNature as never,
           confidence: confidence as never,
           visibility: visibility as never,
-          responsibleMemberId: memberId || null,
+          responsibleMemberId: memberId || deleteField(),
+          vehicleId: assetRef.startsWith("vehicle:")
+            ? assetRef.slice("vehicle:".length)
+            : deleteField(),
+          propertyId: assetRef.startsWith("property:")
+            ? assetRef.slice("property:".length)
+            : deleteField(),
         } as never);
       } else if (shape === "RECURRING") {
         await collections.recurringRules.create({
@@ -191,6 +210,7 @@ export function NewObligationDialog({
           confidence: confidence as never,
           visibility: visibility as never,
           ...(memberId ? { responsibleMemberId: memberId } : {}),
+          ...assetFields(assetRef),
           active: true,
         } as never);
       } else {
@@ -215,6 +235,7 @@ export function NewObligationDialog({
             visibility: visibility as never,
             status: "SCHEDULED",
             ...(memberId ? { responsibleMemberId: memberId } : {}),
+            ...assetFields(assetRef),
             settledAmount: { amount: 0, currency: "BRL" },
             settlementTransactionIds: [],
             ...(shape === "INSTALLMENTS"
@@ -470,6 +491,8 @@ export function NewObligationDialog({
           emptyLabel="Do grupo"
         />
 
+        <AssetField value={assetRef} onChange={setAssetRef} />
+
         <SelectField
           label="Esta conta é"
           value={visibility}
@@ -533,4 +556,38 @@ export function NewObligationDialog({
       </form>
     </Modal>
   );
+}
+
+function AssetField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const { vehicles, properties } = useFinance();
+  const activeVehicles = vehicles.filter((vehicle) => !vehicle.archived);
+  const activeProperties = properties.filter((property) => !property.archived);
+
+  if (activeVehicles.length === 0 && activeProperties.length === 0) return null;
+
+  return (
+    <SelectField
+      label="Associar a veículo ou imóvel"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      hint="Opcional. Use quando a conta for do carro, da casa, de reforma, imposto ou manutenção. Isso ajuda nos relatórios por veículo/imóvel."
+      options={[
+        { value: "", label: "Não associar" },
+        ...activeVehicles.map((vehicle) => ({
+          value: `vehicle:${vehicle.id}`,
+          label: `Veículo: ${vehicle.name}`,
+        })),
+        ...activeProperties.map((property) => ({
+          value: `property:${property.id}`,
+          label: `Imóvel: ${property.name}`,
+        })),
+      ]}
+    />
+  );
+}
+
+function assetFields(assetRef: string) {
+  if (assetRef.startsWith("vehicle:")) return { vehicleId: assetRef.slice("vehicle:".length) };
+  if (assetRef.startsWith("property:")) return { propertyId: assetRef.slice("property:".length) };
+  return {};
 }

@@ -5,6 +5,7 @@ import { Card, CardTitle } from "@/components/ui/primitives";
 import { planStatusLabel } from "@/modules/billing/domain/plan-status";
 import { formatDays, usePlanEndDate, usePlanStatus } from "@/modules/billing/ui/use-plan-status";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { useFinance } from "@/modules/household/ui/finance-provider";
 import { ROLE_LABELS } from "@/modules/household/domain/household";
 import { navSectionsFor } from "@/modules/shared/ui/app-nav";
 import { PWAInstallCard } from "@/components/pwa-install-prompt";
@@ -28,10 +29,12 @@ import { PWAInstallCard } from "@/components/pwa-install-prompt";
  */
 export default function MorePage() {
   const { household, role } = useSession();
+  const finance = useFinance();
   const plan = usePlanStatus();
   const planEndDate = usePlanEndDate(plan.endsAt);
 
-  const sections = navSectionsFor(role);
+  const hasBankAccount = finance.accounts.some((account) => !account.archived);
+  const sections = navSectionsFor(role, { hasBankAccount });
 
   return (
     <div className="space-y-4">

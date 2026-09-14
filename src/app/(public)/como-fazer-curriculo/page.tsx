@@ -48,7 +48,7 @@ export default function Page() {
           Você não precisa sofrer tentando alinhar margens no Word ou pagar assinaturas caras para conseguir
           um PDF limpo e formatado.
         </p>
-        <div className="rounded-2xl border-2 border-teal-300 bg-gradient-to-br from-teal-50 to-cyan-50 p-6 shadow-sm">
+        <div className="rounded-2xl border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-cyan-50 p-6 shadow-sm">
           <div className="flex items-center gap-3">
             <span className="text-2xl">📄</span>
             <h3 className="text-xl font-bold text-slate-900">
@@ -61,7 +61,7 @@ export default function Page() {
               href="https://cvlivre.com.br/"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-bold text-teal-700 underline underline-offset-2 hover:text-teal-900"
+              className="font-bold text-blue-700 underline underline-offset-2 hover:text-blue-900"
             >
               https://cvlivre.com.br/
             </a>{" "}
@@ -81,7 +81,7 @@ export default function Page() {
               href="https://cvlivre.com.br/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-teal-600 px-6 font-semibold text-white shadow-sm transition-all hover:bg-teal-700 hover:shadow"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-6 font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow"
             >
               Acessar cvlivre.com.br e criar currículo agora ↗
             </a>
@@ -116,3 +116,4 @@ export default function Page() {
     </ContentPage>
   );
 }
+

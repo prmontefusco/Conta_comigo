@@ -22,6 +22,7 @@ import type {
   HouseholdId,
   MemberId,
   ObligationId,
+  PropertyId,
   RecurringRuleId,
   TransactionId,
   VehicleId,
@@ -96,6 +97,7 @@ export interface Obligation extends AuditFields {
   readonly visibility: Visibility;
   readonly responsibleMemberId?: MemberId;
   readonly vehicleId?: VehicleId;
+  readonly propertyId?: PropertyId;
 
   readonly status: ObligationStatus;
   readonly settledAmount: Money;

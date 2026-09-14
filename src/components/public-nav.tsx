@@ -166,7 +166,7 @@ export function PublicHeader() {
                   <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
                     Aprenda a recuperar o controle
                   </span>
-                  <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700">
+                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-[color:var(--color-brand-700)]">
                     Conteúdos Gratuitos
                   </span>
                 </div>
@@ -182,7 +182,7 @@ export function PublicHeader() {
                         <span className="text-base transition-transform group-hover:scale-110">
                           {guide.icon}
                         </span>
-                        <span className="text-sm font-medium text-slate-900 group-hover:text-teal-700">
+                        <span className="text-sm font-medium text-slate-900 group-hover:text-[color:var(--color-brand-700)]">
                           {guide.title}
                         </span>
                       </div>
@@ -221,7 +221,7 @@ export function PublicHeader() {
 
           <Link
             href="/criar-conta"
-            className="inline-flex min-h-10 items-center rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 px-4.5 text-sm font-medium text-white shadow-sm transition-all hover:from-teal-700 hover:to-cyan-700 hover:shadow"
+            className="inline-flex min-h-10 items-center rounded-xl bg-gradient-to-r from-[color:var(--color-brand-700)] to-[color:var(--color-brand-500)] px-4.5 text-sm font-medium text-white shadow-sm transition-all hover:from-[color:var(--color-brand-800)] hover:to-[color:var(--color-brand-600)] hover:shadow"
           >
             Começar agora
           </Link>
@@ -269,7 +269,7 @@ export function PublicHeader() {
 
             <Link
               href="/planos"
-              className="rounded-lg bg-teal-50/60 px-3 py-2 text-base font-medium text-teal-800 hover:bg-teal-50"
+              className="rounded-lg bg-blue-50/60 px-3 py-2 text-base font-medium text-blue-800 hover:bg-blue-50"
             >
               💎 Planos (30 dias grátis)
             </Link>
@@ -308,7 +308,7 @@ export function PublicHeader() {
               </Link>
               <Link
                 href="/criar-conta"
-                className="flex min-h-11 items-center justify-center rounded-xl bg-teal-600 text-sm font-medium text-white shadow-sm hover:bg-teal-700"
+                className="flex min-h-11 items-center justify-center rounded-xl bg-[color:var(--color-brand-600)] text-sm font-medium text-white shadow-sm hover:bg-[color:var(--color-brand-700)]"
               >
                 Criar conta gratuita
               </Link>
@@ -358,7 +358,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/como-sair-das-dividas"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Passo a Passo Quitação
                 </Link>
@@ -366,7 +366,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/negociar-dividas"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Negociar com Bancos
                 </Link>
@@ -374,7 +374,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/rotativo-e-cheque-especial"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Rotativo e Cheque Especial
                 </Link>
@@ -382,7 +382,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/lei-do-superendividamento"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Lei do Superendividamento
                 </Link>
@@ -390,7 +390,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/como-provar-superendividamento"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Como Provar na Justiça
                 </Link>
@@ -398,7 +398,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/minimo-existencial"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Mínimo Existencial (Decreto 11.567)
                 </Link>
@@ -406,7 +406,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/acao-de-repactuacao-de-dividas"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Ação de Repactuação
                 </Link>
@@ -414,7 +414,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/precisa-de-advogado-para-superendividamento"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Precisa de Advogado?
                 </Link>
@@ -422,7 +422,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/portabilidade-de-credito"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Portabilidade de Crédito
                 </Link>
@@ -430,7 +430,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/score-de-credito"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Score de Crédito
                 </Link>
@@ -447,7 +447,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/reserva-de-emergencia"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Reserva de Emergência
                 </Link>
@@ -455,7 +455,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/regra-50-30-20"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Regra 50-30-20
                 </Link>
@@ -463,7 +463,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/seguranca-financeira"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Segurança a Longo Prazo
                 </Link>
@@ -471,7 +471,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/orcamento-familiar"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Orçamento Familiar
                 </Link>
@@ -479,7 +479,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/financas-para-autonomos"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Finanças para Autônomos
                 </Link>
@@ -487,7 +487,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/corte-inteligente-de-gastos"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Corte Inteligente de Gastos
                 </Link>
@@ -504,7 +504,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/como-fazer-curriculo"
-                  className="font-medium text-teal-700 transition-colors hover:text-teal-800"
+                  className="font-medium text-[color:var(--color-brand-700)] transition-colors hover:text-blue-800"
                 >
                   Criar Currículo (CV Livre)
                 </Link>
@@ -512,7 +512,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/como-procurar-emprego"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Como Procurar Emprego
                 </Link>
@@ -520,7 +520,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/mudanca-de-carreira"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Mudança de Carreira
                 </Link>
@@ -528,7 +528,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/renda-extra"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Ideias de Renda Extra
                 </Link>
@@ -536,7 +536,7 @@ export function PublicFooter() {
               <li>
                 <Link
                   href="/preparacao-para-entrevistas"
-                  className="text-slate-600 transition-colors hover:text-teal-700"
+                  className="text-slate-600 transition-colors hover:text-[color:var(--color-brand-700)]"
                 >
                   Entrevistas de Emprego
                 </Link>
@@ -546,7 +546,7 @@ export function PublicFooter() {
                   href="https://cvlivre.com.br/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-teal-700"
+                  className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-[color:var(--color-brand-700)]"
                 >
                   cvlivre.com.br ↗
                 </a>
@@ -558,22 +558,22 @@ export function PublicFooter() {
         {/* Linha adicional: Institucional & Planos */}
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-slate-200/80 pt-6 text-xs text-slate-500">
           <div className="flex flex-wrap items-center gap-4">
-            <Link href="/planos" className="font-medium text-teal-700 hover:text-teal-800">
+            <Link href="/planos" className="font-medium text-[color:var(--color-brand-700)] hover:text-blue-800">
               Planos & Preços (30 dias grátis)
             </Link>
-            <Link href="/como-funciona" className="hover:text-teal-700">
+            <Link href="/como-funciona" className="hover:text-[color:var(--color-brand-700)]">
               Como Funciona
             </Link>
-            <Link href="/contato" className="font-medium text-teal-700 hover:text-teal-800">
+            <Link href="/contato" className="font-medium text-[color:var(--color-brand-700)] hover:text-blue-800">
               Fale Conosco / Contato
             </Link>
-            <Link href="/educacao-financeira" className="hover:text-teal-700">
+            <Link href="/educacao-financeira" className="hover:text-[color:var(--color-brand-700)]">
               Educação Financeira
             </Link>
-            <Link href="/privacidade" className="hover:text-teal-700">
+            <Link href="/privacidade" className="hover:text-[color:var(--color-brand-700)]">
               Privacidade
             </Link>
-            <Link href="/termos" className="hover:text-teal-700">
+            <Link href="/termos" className="hover:text-[color:var(--color-brand-700)]">
               Termos de Uso
             </Link>
           </div>
@@ -583,7 +583,7 @@ export function PublicFooter() {
               href="https://wa.me/5567992753760"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-teal-700 font-medium hover:underline"
+              className="text-[color:var(--color-brand-700)] font-medium hover:underline"
             >
               (67) 99275-3760
             </a>
@@ -610,3 +610,4 @@ export function PublicFooter() {
     </footer>
   );
 }
+

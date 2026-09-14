@@ -14,7 +14,7 @@ export function CurrentGoalHeroCard() {
   if (finance.loading) return null;
 
   // Identifica a próxima milestone não concluída
-  const nextMilestone = timeline.milestones.find((m) => !m.isCompleted) ?? timeline.milestones[0];
+  const nextMilestone = timeline.milestones.find((m) => !m.isCompleted);
 
   const hasDebts = timeline.totalDebtAmount.amount > 0;
   const isStarterFunded = timeline.starterReserve.isComplete;
@@ -31,7 +31,7 @@ export function CurrentGoalHeroCard() {
               Linha d&apos;água · Meta Atual da Família
             </span>
             <h2 className="text-lg font-bold text-[color:var(--page-fg)]">
-              {nextMilestone?.title ?? "Construir Estabilidade"}
+              {nextMilestone?.title ?? "O plano ainda não fecha"}
             </h2>
           </div>
         </div>
@@ -52,14 +52,19 @@ export function CurrentGoalHeroCard() {
         </div>
       </div>
 
-      <p className="mt-3 text-sm text-[color:var(--page-fg)]">{nextMilestone?.description}</p>
+      <p className="mt-3 text-sm text-[color:var(--page-fg)]">
+        {nextMilestone?.description ??
+          "Antes de criar uma meta com prazo, renegocie os compromissos mínimos até o mês voltar a ter sobra."}
+      </p>
 
       {/* Barra de Progresso com Métricas */}
       <div className="mt-4 rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-4">
         <div className="flex items-center justify-between text-xs font-medium">
           <span style={{ color: "var(--muted-fg)" }}>Progresso desta meta</span>
           <span className="tabular font-bold text-[color:var(--color-brand-600)]">
-            {nextMilestone ? Math.round(nextMilestone.progressPercentage) : 0}% concluído
+            {nextMilestone
+              ? `${Math.round(nextMilestone.progressPercentage)}% concluído`
+              : "Sem prazo viável"}
           </span>
         </div>
 
@@ -73,7 +78,19 @@ export function CurrentGoalHeroCard() {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-          {!isStarterFunded ? (
+          {!nextMilestone ? (
+            <>
+              <span style={{ color: "var(--muted-fg)" }}>
+                As parcelas mínimas ainda superam a capacidade mensal da família.
+              </span>
+              <Link
+                href="/app/negociar"
+                className="font-semibold text-[color:var(--color-brand-700)]"
+              >
+                Abrir negociação →
+              </Link>
+            </>
+          ) : !isStarterFunded ? (
             <>
               <span style={{ color: "var(--muted-fg)" }}>
                 Guardado:{" "}

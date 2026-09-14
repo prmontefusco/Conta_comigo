@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const APP_URL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:5002";
+const APP_URL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 
 /**
  * End-to-end tests run against the full local stack: App Hosting emulator
@@ -30,7 +30,7 @@ export default defineConfig({
   webServer: process.env.E2E_NO_SERVER
     ? undefined
     : {
-        command: "npm run dev:local",
+        command: "npm run app",
         url: APP_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 240_000,

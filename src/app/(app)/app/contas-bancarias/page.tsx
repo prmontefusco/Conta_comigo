@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { deleteField } from "firebase/firestore";
 import { formatCalendarDate } from "@/core/date/calendar-date";
 import { fromDecimalString } from "@/core/money/money";
 import {
@@ -47,6 +48,7 @@ export default function AccountsPage() {
   const { canWrite } = useSession();
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
+  const [transferring, setTransferring] = useState(false);
 
   if (finance.loading) return <Spinner label="Carregando suas contas" />;
 
@@ -58,7 +60,14 @@ export default function AccountsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Informações bancárias e Saldos</h1>
-        {canWrite ? <Button onClick={() => setCreating(true)}>Nova conta</Button> : null}
+        {canWrite ? (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => setTransferring(true)}>
+              Transferir entre contas
+            </Button>
+            <Button onClick={() => setCreating(true)}>Nova conta</Button>
+          </div>
+        ) : null}
       </div>
 
       <Card>
@@ -186,7 +195,183 @@ export default function AccountsPage() {
           setEditing(null);
         }}
       />
+
+      <TransferDialog
+        open={transferring}
+        accounts={active}
+        onClose={() => setTransferring(false)}
+        onCreateAccount={() => {
+          setTransferring(false);
+          setCreating(true);
+        }}
+      />
     </div>
+  );
+}
+
+/**
+ * Dinheiro que muda de lugar, não que entra ou sai da casa.
+ *
+ * Sacar da conta corrente para levar na carteira, ou guardar na poupança, não
+ * é gasto nem receita — as duas pontas continuam sendo dinheiro do grupo. Sem
+ * esta tela, a única forma de representar isso era um gasto de um lado e uma
+ * receita do outro, e cada uma delas mentia: uma dizia que o dinheiro tinha
+ * sido consumido, a outra que a casa tinha ficado mais rica. `TRANSFER` já
+ * existia no domínio (dois efeitos de caixa que se cancelam,
+ * `cashEffect` em transaction.ts) - faltava só a tela.
+ */
+function TransferDialog({
+  open,
+  accounts,
+  onClose,
+  onCreateAccount,
+}: {
+  open: boolean;
+  accounts: readonly Account[];
+  onClose: () => void;
+  onCreateAccount: () => void;
+}) {
+  const { household } = useSession();
+  const { asOf } = useFinance();
+  const collections = useCollections();
+
+  const [fromAccountId, setFromAccountId] = useState("");
+  const [toAccountId, setToAccountId] = useState("");
+  const [amountText, setAmountText] = useState("");
+  const [date, setDate] = useState<string>(asOf);
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setFromAccountId(accounts[0]?.id ?? "");
+    setToAccountId(accounts[1]?.id ?? "");
+    setAmountText("");
+    setDate(asOf);
+    setDescription("");
+    setError(null);
+  }, [open, accounts, asOf]);
+
+  if (!open) return null;
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+    if (!household) return;
+
+    const amount = fromDecimalString(amountText);
+    if (!amount || amount.amount <= 0) {
+      setError("Informe um valor maior que zero.");
+      return;
+    }
+    if (!fromAccountId || !toAccountId) {
+      setError("Escolha de onde e para onde o dinheiro vai.");
+      return;
+    }
+    if (fromAccountId === toAccountId) {
+      setError("Escolha duas contas diferentes.");
+      return;
+    }
+    const when = date as never;
+
+    setSaving(true);
+    try {
+      await collections.transactions.create({
+        householdId: household.id,
+        kind: "TRANSFER",
+        amount,
+        fromAccountId,
+        toAccountId,
+        transactionDate: when,
+        competenceDate: when,
+        description: description.trim() || "Transferência entre contas",
+        visibility: "HOUSEHOLD",
+      } as never);
+      onClose();
+    } catch (saveError) {
+      console.error(saveError);
+      setError("Não foi possível salvar agora. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (accounts.length < 2) {
+    return (
+      <Modal open={open} onClose={onClose} title="Transferir entre contas">
+        <div className="space-y-4">
+          <Callout tone="attention" title="Falta uma segunda conta">
+            Uma transferência precisa de origem e destino. Cadastre outra conta — por exemplo, uma
+            Carteira para o dinheiro físico — e volte aqui.
+          </Callout>
+          <div className="flex gap-2">
+            <Button className="flex-1" onClick={onCreateAccount}>
+              Cadastrar conta
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Fechar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Transferir entre contas"
+      description="Dinheiro que muda de lugar, não gasto nem receita. O total da casa não muda."
+    >
+      <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        {error ? <FormError>{error}</FormError> : null}
+
+        <SelectField
+          label="De onde sai"
+          required
+          value={fromAccountId}
+          onChange={(event) => setFromAccountId(event.target.value)}
+          options={accounts.map((account) => ({ value: account.id, label: account.name }))}
+        />
+
+        <SelectField
+          label="Para onde vai"
+          required
+          value={toAccountId}
+          onChange={(event) => setToAccountId(event.target.value)}
+          options={accounts.map((account) => ({ value: account.id, label: account.name }))}
+        />
+
+        <MoneyField
+          label="Valor"
+          required
+          value={amountText}
+          onChange={(event) => setAmountText(event.target.value)}
+          placeholder="0,00"
+        />
+
+        <DateField label="Data" required value={date} onChange={(event) => setDate(event.target.value)} />
+
+        <TextField
+          label="Descrição"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          placeholder="Saque para carteira"
+          hint="Opcional."
+        />
+
+        <div className="flex gap-2 pt-2">
+          <Button type="submit" className="flex-1" disabled={saving}>
+            {saving ? "Salvando…" : "Transferir"}
+          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -302,9 +487,10 @@ function AccountDialog({
 
       if (account) {
         // `undefined` some do payload antes de chegar ao Firestore, então um
-        // campo apagado no formulário ficaria com o valor antigo. `null` apaga
-        // de verdade — é o que "tirei o limite do cheque especial" significa.
-        await collections.accounts.update(account.id, blankToNull(fields) as never);
+        // campo apagado no formulário ficaria com o valor antigo.
+        // `blankToDeleted` troca por `deleteField()`, que é o que "tirei o
+        // limite do cheque especial" precisa significar de verdade.
+        await collections.accounts.update(account.id, blankToDeleted(fields) as never);
       } else {
         await collections.accounts.create({ householdId: household.id, ...fields } as never);
       }
@@ -510,8 +696,15 @@ function touchesAccount(transaction: Transaction, accountId: string): boolean {
   );
 }
 
-function blankToNull(fields: Record<string, unknown>): Record<string, unknown> {
+/**
+ * Faz `undefined` apagar o campo de verdade, em vez de só sumir do payload.
+ *
+ * `deleteField()`, não `null`: o schema desses campos opcionais aceita o
+ * campo ausente, não um `null` literal. Gravar `null` pareceria funcionar,
+ * mas quebraria a leitura do documento na próxima sincronização.
+ */
+function blankToDeleted(fields: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(fields).map(([key, value]) => [key, value === undefined ? null : value]),
+    Object.entries(fields).map(([key, value]) => [key, value === undefined ? deleteField() : value]),
   );
 }

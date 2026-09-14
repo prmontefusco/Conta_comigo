@@ -105,7 +105,7 @@ export async function POST(request: Request) {
       // é o comportamento correto — mas quem opera precisa saber qual dos dois.
       logger.error("Checkout indisponível por configuração.", {
         operation: "checkout",
-        reason: error.message,
+        ...describeError(error),
       });
       return NextResponse.json(
         { error: error.code, message: "Os pagamentos ainda não estão disponíveis." },
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
       // exposto como se fosse culpa da pessoa, e nada que ela pudesse resolver.
       logger.error("O provedor recusou a cobrança.", {
         operation: "checkout",
-        providerMessage: error.message,
+        ...describeError(error),
       });
       return NextResponse.json(
         {

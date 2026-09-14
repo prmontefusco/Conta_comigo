@@ -21,6 +21,11 @@ export interface MembersState {
   /** Everyone who currently has access, in a stable order for selects. */
   readonly active: readonly MembershipDoc[];
   readonly loading: boolean;
+  /**
+   * Set when the subscription itself failed (rede ou permissão) - distinto de
+   * uma lista genuinamente vazia, que também deixa `members` em `[]`.
+   */
+  readonly error: string | null;
   /** A member's name, or a neutral label. Never a raw id. */
   nameOf(memberId: string | undefined): string;
 }
@@ -28,26 +33,39 @@ export interface MembersState {
 export function useMembers(): MembersState {
   const { household } = useSession();
   const [members, setMembers] = useState<MembershipDoc[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const householdId = household?.id ?? null;
 
   useEffect(() => {
     if (!householdId) {
       setMembers([]);
+      setError(null);
       return;
     }
 
     const path = `households/${householdId}/members`;
     return onSnapshot(
       collection(getDb(), path),
-      (snapshot) =>
+      (snapshot) => {
+        setError(null);
         setMembers(
           snapshot.docs.map((document) =>
             parseDocument(membershipSchema, document.id, document.data(), path),
           ),
-        ),
-      // A failure here must not blank out the form that asked for the list.
-      () => setMembers([]),
+        );
+      },
+      // A failure here must not blank out the form that asked for the list -
+      // mas precisa ficar distinguível de um grupo que genuinamente não tem
+      // outros membros, para quem estiver depurando por que ninguém aparece.
+      (subscriptionError) => {
+        setError(
+          subscriptionError.code === "permission-denied"
+            ? "Você não tem acesso à lista de membros deste grupo."
+            : "Não foi possível carregar os membros agora.",
+        );
+        setMembers([]);
+      },
     );
   }, [householdId]);
 
@@ -62,10 +80,11 @@ export function useMembers(): MembersState {
       members: all,
       active,
       loading: members === null,
+      error,
       nameOf(memberId) {
         if (!memberId) return "Do grupo";
         return index.get(memberId)?.displayName ?? "Pessoa removida";
       },
     };
-  }, [members]);
+  }, [members, error]);
 }

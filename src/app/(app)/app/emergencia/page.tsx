@@ -109,12 +109,28 @@ export default function EmergencyPage() {
           ) : null}
         </dl>
 
+        {availableCash.amount > 0 &&
+        triage.payableNow.amount === 0 &&
+        triage.unpayable.amount > 0 ? (
+          <div className="mt-4">
+            <Callout tone="attention">
+              Nenhuma conta cabe inteira nos {formatMoney(availableCash)} disponíveis. O valor não
+              foi perdido: mantenha-o protegido enquanto você pede parcelamento ou uma entrada que
+              caiba, antes de assumir um acordo.
+            </Callout>
+          </div>
+        ) : null}
+
         {lateFees.count > 0 ? (
-          <p className="text-2xs mt-3" style={{ color: "var(--muted-fg)" }}>
-            Estimativa pelo padrão de consumo no Brasil: multa de 2% uma vez, mais 1% ao mês de
-            juros proporcionais aos dias. O valor do seu boleto pode diferir — serve para saber a
-            ordem de grandeza, não para conferir a cobrança.
-          </p>
+          <details className="mt-3 text-xs" style={{ color: "var(--muted-fg)" }}>
+            <summary className="cursor-pointer font-medium">
+              Como calculamos os juros estimados
+            </summary>
+            <p className="text-2xs mt-2">
+              Usamos multa de 2% uma vez, mais 1% ao mês de juros proporcionais aos dias. O valor do
+              boleto pode diferir; esta estimativa serve para indicar a ordem de grandeza.
+            </p>
+          </details>
         ) : null}
       </Card>
 
@@ -226,10 +242,12 @@ export default function EmergencyPage() {
         </Card>
       ) : null}
 
-      <div className="space-y-4 pt-2">
-        <RunwayCard />
-        <ReserveTiersCard />
-      </div>
+      {triage.unpayable.amount === 0 ? (
+        <div className="space-y-4 pt-2">
+          <RunwayCard />
+          <ReserveTiersCard />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -20,7 +20,11 @@ import {
   type Subscription,
   type UserPlan,
 } from "@/modules/billing/domain/subscription";
-import type { HouseholdRole } from "@/modules/shared/domain/common";
+import {
+  canDeleteRecords as canDeleteRecordsForRole,
+  canWrite as canWriteForRole,
+  type HouseholdRole,
+} from "@/modules/shared/domain/common";
 import {
   householdSchema,
   membershipSchema,
@@ -51,6 +55,8 @@ interface SessionValue {
   readonly membership: MembershipDoc | null;
   readonly role: HouseholdRole | null;
   readonly canWrite: boolean;
+  /** Só MEMBER, ADMIN e OWNER podem excluir registros; OPERATOR lança mas não apaga. */
+  readonly canDeleteRecords: boolean;
   readonly canAdminister: boolean;
   readonly subscription: Subscription | null;
   /**
@@ -249,7 +255,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       household,
       membership,
       role,
-      canWrite: role === "OWNER" || role === "ADMIN" || role === "MEMBER",
+      canWrite: role !== null && canWriteForRole(role),
+      canDeleteRecords: role !== null && canDeleteRecordsForRole(role),
       canAdminister: role === "OWNER" || role === "ADMIN",
       subscription,
       effectivePlan,

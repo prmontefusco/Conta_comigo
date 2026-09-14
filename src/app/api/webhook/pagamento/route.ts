@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual as nodeTimingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { SubscriptionService } from "@/modules/billing/application/subscription-service";
 import { describeError, logger } from "@/lib/observability/logger";
@@ -84,14 +85,18 @@ export async function POST(request: Request) {
   }
 }
 
-/** Comparação em tempo constante, para o segredo não vazar pelo tempo de resposta. */
+/**
+ * Comparação em tempo constante, para o segredo não vazar pelo tempo de resposta.
+ *
+ * Compara hashes de tamanho fixo em vez das strings originais: um `return`
+ * antecipado quando os tamanhos diferem também é um vazamento por tempo (ainda
+ * que menor), já que revela o comprimento do segredo a quem for capaz de medir
+ * a diferença. Hashear primeiro remove a variável do tamanho da equação.
+ */
 function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let index = 0; index < a.length; index += 1) {
-    diff |= a.charCodeAt(index) ^ b.charCodeAt(index);
-  }
-  return diff === 0;
+  const hashA = createHash("sha256").update(a).digest();
+  const hashB = createHash("sha256").update(b).digest();
+  return nodeTimingSafeEqual(hashA, hashB);
 }
 
 function readUnknown(data: unknown, key: string): unknown {

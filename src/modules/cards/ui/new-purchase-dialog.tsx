@@ -46,6 +46,7 @@ export function NewPurchaseDialog({
   const [categoryId, setCategoryId] = useState("");
   const [visibility, setVisibility] = useState("HOUSEHOLD");
   const [memberId, setMemberId] = useState("");
+  const [assetRef, setAssetRef] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -60,6 +61,7 @@ export function NewPurchaseDialog({
     setInstallments("1");
     setCategoryId(defaultCategoryId);
     setMemberId("");
+    setAssetRef("");
     setError(null);
   }, [cardId, asOf, defaultCategoryId]);
 
@@ -114,6 +116,7 @@ export function NewPurchaseDialog({
         installmentCount: parts,
         visibility: visibility as never,
         ...(memberId ? { responsibleMemberId: memberId } : {}),
+        ...assetFields(assetRef),
       } as never);
       onClose();
     } catch (saveError) {
@@ -188,6 +191,8 @@ export function NewPurchaseDialog({
           emptyLabel="Do grupo (ninguém em especial)"
         />
 
+        <AssetField value={assetRef} onChange={setAssetRef} />
+
         <SelectField
           label="Esta compra é"
           value={visibility}
@@ -228,6 +233,40 @@ export function NewPurchaseDialog({
       </form>
     </Modal>
   );
+}
+
+function AssetField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const { vehicles, properties } = useFinance();
+  const activeVehicles = vehicles.filter((vehicle) => !vehicle.archived);
+  const activeProperties = properties.filter((property) => !property.archived);
+
+  if (activeVehicles.length === 0 && activeProperties.length === 0) return null;
+
+  return (
+    <SelectField
+      label="Associar a veículo ou imóvel"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      hint="Opcional. Use quando a compra for do carro, da casa, de reforma ou manutenção. Isso ajuda nos relatórios por veículo/imóvel."
+      options={[
+        { value: "", label: "Não associar" },
+        ...activeVehicles.map((vehicle) => ({
+          value: `vehicle:${vehicle.id}`,
+          label: `Veículo: ${vehicle.name}`,
+        })),
+        ...activeProperties.map((property) => ({
+          value: `property:${property.id}`,
+          label: `Imóvel: ${property.name}`,
+        })),
+      ]}
+    />
+  );
+}
+
+function assetFields(assetRef: string) {
+  if (assetRef.startsWith("vehicle:")) return { vehicleId: assetRef.slice("vehicle:".length) };
+  if (assetRef.startsWith("property:")) return { propertyId: assetRef.slice("property:".length) };
+  return {};
 }
 
 function calendarDateOrNull(value: string) {

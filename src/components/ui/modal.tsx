@@ -59,7 +59,7 @@ export function Modal({
       ref={ref}
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-[var(--radius-card)] bg-[color:var(--card-bg)] p-0 text-[color:var(--page-fg)] backdrop:bg-black/40"
+      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-[color:var(--color-surface)] p-0 text-[color:var(--page-fg)] shadow-2xl backdrop:bg-slate-950/55"
       onClick={(event) => {
         // Clicking the backdrop (the dialog element itself) closes it.
         if (event.target === ref.current) onClose();

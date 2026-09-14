@@ -120,11 +120,11 @@ export default function ContatoPage() {
           </div>
 
           {/* Card de Compromisso */}
-          <div className="rounded-2xl border border-teal-200 bg-teal-50/50 p-5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-teal-900 flex items-center gap-1.5">
+          <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
               <span>🛡️</span> Privacidade e Segurança
             </h3>
-            <p className="mt-2 text-xs text-teal-800 leading-relaxed">
+            <p className="mt-2 text-xs text-blue-800 leading-relaxed">
               Respeitamos integralmente a Lei Geral de Proteção de Dados (LGPD). Seus dados de contato
               serão utilizados estritamente para responder à sua mensagem. Jamais compartilhamos ou
               vendemos suas informações.
@@ -140,3 +140,4 @@ export default function ContatoPage() {
     </div>
   );
 }
+

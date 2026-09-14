@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import {
   addMonthsToKey,
   formatCalendarDate,
@@ -13,6 +12,7 @@ import { money } from "@/core/money/money";
 import {
   Badge,
   Button,
+  Callout,
   Card,
   CardTitle,
   EmptyState,
@@ -33,12 +33,14 @@ import {
   type PlannedEntry,
 } from "@/modules/daily/domain/daily-entries";
 import { NewEntryDialog } from "@/modules/daily/ui/new-entry-dialog";
+import { Modal } from "@/components/ui/modal";
 import { QuickIncomeBar } from "@/modules/daily/ui/quick-income-bar";
 import { SettleObligationDialog } from "@/modules/obligations/ui/settle-obligation-dialog";
 import type { Obligation } from "@/modules/obligations/domain/obligation";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useMembers } from "@/modules/household/ui/use-members";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { useCollections } from "@/modules/shared/ui/use-collections";
 
 /**
  * Tela dedicada ao registro e acompanhamento de Entradas e Recebimentos extras.
@@ -49,12 +51,16 @@ import { useSession } from "@/modules/household/ui/session-provider";
  */
 export default function EntradasPage() {
   const finance = useFinance();
-  const { canWrite } = useSession();
+  const collections = useCollections();
+  const { canWrite, canDeleteRecords } = useSession();
   const { active: members, nameOf } = useMembers();
 
   const [month, setMonth] = useState<MonthKey>(monthKeyOf(finance.asOf));
   const [creating, setCreating] = useState<"EXPENSE" | "INCOME" | null>(null);
   const [editing, setEditing] = useState<DailyEntry | null>(null);
+  const [deleting, setDeleting] = useState<DailyEntry | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
   const [confirming, setConfirming] = useState<Obligation | null>(null);
 
   const entries = useMemo(
@@ -122,24 +128,28 @@ export default function EntradasPage() {
 
   if (finance.loading) return <Spinner label="Carregando suas entradas" />;
 
+  async function deleteEntry() {
+    if (!deleting) return;
+
+    setDeleteSaving(true);
+    setDeleteError(null);
+    try {
+      if (deleting.kind === "CARD_PURCHASE") {
+        await collections.cardPurchases.remove(deleting.id);
+      } else {
+        await collections.transactions.remove(deleting.id);
+      }
+      setDeleting(null);
+    } catch (error) {
+      console.error(error);
+      setDeleteError("Não foi possível excluir este recebimento agora.");
+    } finally {
+      setDeleteSaving(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
-      {/* Seletor rápido Saídas / Entradas para navegação veloz tanto no Desktop quanto no Mobile */}
-      <div className="flex rounded-xl border border-[color:var(--card-border)] bg-[color:var(--color-surface-sunken)] p-1">
-        <Link
-          href="/app/dia-a-dia"
-          className="flex-1 rounded-lg px-3 py-2 text-center text-xs font-medium text-[color:var(--muted-fg)] transition hover:text-[color:var(--page-fg)]"
-        >
-          🧾 Saídas (Gastos)
-        </Link>
-        <Link
-          href="/app/entradas"
-          className="flex-1 rounded-lg bg-[color:var(--card-bg)] px-3 py-2 text-center text-xs font-bold text-[color:var(--color-brand-700)] shadow-2xs"
-        >
-          💰 Entradas (Recebimentos)
-        </Link>
-      </div>
-
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Entradas</h1>
@@ -240,6 +250,11 @@ export default function EntradasPage() {
                         entry.responsibleMemberId ? nameOf(entry.responsibleMemberId) : null
                       }
                       onEdit={canWrite ? () => setEditing(entry) : undefined}
+                      onDelete={
+                        canDeleteRecords && !entry.settlesObligationId
+                          ? () => setDeleting(entry)
+                          : undefined
+                      }
                     />
                   ))}
                 </ul>
@@ -337,6 +352,49 @@ export default function EntradasPage() {
       />
 
       <SettleObligationDialog obligation={confirming} onClose={() => setConfirming(null)} />
+
+      <Modal
+        open={Boolean(deleting)}
+        onClose={() => {
+          if (!deleteSaving) {
+            setDeleting(null);
+            setDeleteError(null);
+          }
+        }}
+        title="Excluir recebimento"
+        description="Use quando um valor foi lançado por engano."
+      >
+        {deleting ? (
+          <Callout tone="critical" title="Excluir este recebimento?">
+            <p className="text-sm">
+              <strong>{deleting.description}</strong> sai do saldo, dos relatórios e da projeção na
+              mesma hora. Não dá para desfazer.
+            </p>
+            {deleteError ? <p className="mt-2 text-sm font-medium">{deleteError}</p> : null}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void deleteEntry()}
+                disabled={deleteSaving || !collections.ready}
+              >
+                {deleteSaving ? "Excluindo..." : "Excluir recebimento"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setDeleting(null);
+                  setDeleteError(null);
+                }}
+                disabled={deleteSaving}
+              >
+                Manter
+              </Button>
+            </div>
+          </Callout>
+        ) : null}
+      </Modal>
     </div>
   );
 }
@@ -347,15 +405,17 @@ function IncomeEntryRow({
   sourceLabel,
   memberLabel,
   onEdit,
+  onDelete,
 }: {
   entry: DailyEntry;
   categoryLabel: string;
   sourceLabel: string;
   memberLabel: string | null;
   onEdit?: () => void;
+  onDelete?: () => void;
 }) {
-  const content = (
-    <>
+  return (
+    <li className="flex flex-wrap items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1 text-left">
         <p className="truncate font-medium">{entry.description}</p>
         <p className="truncate text-xs" style={{ color: "var(--muted-fg)" }}>
@@ -370,27 +430,29 @@ function IncomeEntryRow({
       </div>
       <div className="shrink-0 text-right">
         <MoneyText value={entry.amount} size="sm" tone="positive" />
-        {onEdit ? (
-          <p className="text-2xs" style={{ color: "var(--muted-fg)" }}>
-            corrigir
-          </p>
+        {onEdit || onDelete ? (
+          <div className="mt-1 flex justify-end gap-2">
+            {onEdit ? (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="text-2xs font-semibold text-[color:var(--color-brand-700)] hover:underline"
+              >
+                Corrigir
+              </button>
+            ) : null}
+            {onDelete ? (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="text-2xs font-semibold text-[color:var(--tone-critical)] hover:underline"
+              >
+                Excluir
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
-    </>
-  );
-
-  if (!onEdit) return <li className="flex items-center gap-3 py-2.5">{content}</li>;
-
-  return (
-    <li>
-      <button
-        type="button"
-        onClick={onEdit}
-        aria-label={`Corrigir ${entry.description}`}
-        className="flex w-full items-center gap-3 py-2.5 text-left transition hover:opacity-80"
-      >
-        {content}
-      </button>
     </li>
   );
 }

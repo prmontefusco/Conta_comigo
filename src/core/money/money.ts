@@ -13,6 +13,16 @@ export const DEFAULT_CURRENCY: CurrencyCode = "BRL";
 /** Number of decimal places each currency uses. */
 const CURRENCY_EXPONENT: Record<CurrencyCode, number> = { BRL: 2 };
 
+/**
+ * A ceiling for a single hand-typed amount: R$ 10.000.000,00.
+ *
+ * Not a limit on money in general - a household's total net worth, a 60-month
+ * repayment sum, or any other computed total can legitimately exceed this.
+ * It only guards the one moment a typo turns into a corrupted balance: a
+ * stray extra zero on a single field, caught before it ever becomes a Money.
+ */
+const MAX_SINGLE_ENTRY_MINOR_UNITS = 1_000_000_000;
+
 export interface Money {
   /** Integer amount in minor units. May be negative. */
   readonly amount: number;
@@ -100,6 +110,7 @@ export function fromDecimalString(
   if (!Number.isFinite(parsed)) return null;
 
   const result = fromDecimal(parsed, currency);
+  if (Math.abs(result.amount) > MAX_SINGLE_ENTRY_MINOR_UNITS) return null;
   return negative ? negate(result) : result;
 }
 

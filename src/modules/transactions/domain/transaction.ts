@@ -10,6 +10,7 @@ import type {
   HouseholdId,
   MemberId,
   ObligationId,
+  PropertyId,
   ReserveId,
   TransactionId,
   VehicleId,
@@ -63,6 +64,7 @@ interface TransactionBase extends AuditFields {
   readonly notes?: string;
   readonly tags?: readonly string[];
   readonly vehicleId?: VehicleId;
+  readonly propertyId?: PropertyId;
 }
 
 export interface IncomeTransaction extends TransactionBase {

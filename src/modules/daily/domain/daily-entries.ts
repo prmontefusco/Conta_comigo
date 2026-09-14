@@ -7,6 +7,8 @@ import type {
   CategoryId,
   CreditCardId,
   MemberId,
+  PropertyId,
+  VehicleId,
   Visibility,
 } from "@/modules/shared/domain/common";
 import type { Transaction } from "@/modules/transactions/domain/transaction";
@@ -44,6 +46,8 @@ export interface DailyEntry {
   readonly creditCardId?: CreditCardId;
   readonly installmentCount?: number;
   readonly responsibleMemberId?: MemberId;
+  readonly vehicleId?: VehicleId;
+  readonly propertyId?: PropertyId;
   readonly visibility: Visibility;
   /** True when the money has not left an account yet - a card purchase. */
   readonly paidLater: boolean;
@@ -82,6 +86,8 @@ export function buildDailyEntries(input: BuildDailyEntriesInput): DailyEntry[] {
       ...(transaction.responsibleMemberId
         ? { responsibleMemberId: transaction.responsibleMemberId }
         : {}),
+      ...(transaction.vehicleId ? { vehicleId: transaction.vehicleId } : {}),
+      ...(transaction.propertyId ? { propertyId: transaction.propertyId } : {}),
       visibility: transaction.visibility,
       paidLater: false,
       ...(transaction.settlesObligationId
@@ -108,6 +114,8 @@ export function buildDailyEntries(input: BuildDailyEntriesInput): DailyEntry[] {
       ...(purchase.responsibleMemberId
         ? { responsibleMemberId: purchase.responsibleMemberId }
         : {}),
+      ...(purchase.vehicleId ? { vehicleId: purchase.vehicleId } : {}),
+      ...(purchase.propertyId ? { propertyId: purchase.propertyId } : {}),
       visibility: purchase.visibility,
       paidLater: true,
     });
@@ -156,6 +164,8 @@ export interface PlannedEntry {
   readonly categoryId?: CategoryId;
   readonly visibility: Visibility;
   readonly responsibleMemberId?: MemberId;
+  readonly vehicleId?: VehicleId;
+  readonly propertyId?: PropertyId;
   /** Verdadeiro quando a data esperada já passou e nada foi confirmado. */
   readonly late: boolean;
 }
@@ -195,6 +205,8 @@ export function plannedEntriesInMonth(input: PlannedEntriesInput): PlannedEntry[
       ...(obligation.responsibleMemberId
         ? { responsibleMemberId: obligation.responsibleMemberId }
         : {}),
+      ...(obligation.vehicleId ? { vehicleId: obligation.vehicleId } : {}),
+      ...(obligation.propertyId ? { propertyId: obligation.propertyId } : {}),
       late: obligation.dueDate < input.asOf,
     });
   }

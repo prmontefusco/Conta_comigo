@@ -7,17 +7,21 @@ import { Modal } from "@/components/ui/modal";
 import { getDb } from "@/lib/firebase/client";
 import {
   addDependent,
-  addMemberByUid,
   changeMemberRole,
   removeMember,
 } from "@/modules/household/application/manage-members";
 import { canAddOne } from "@/modules/billing/domain/plan-limits";
-import { INVITE_VALID_DAYS, createInvite } from "@/modules/household/application/invites";
+import {
+  INVITE_VALID_DAYS,
+  cancelInvite,
+  createInvite,
+} from "@/modules/household/application/invites";
 import { ROLE_DESCRIPTIONS, ROLE_LABELS } from "@/modules/household/domain/household";
 import { useMembers } from "@/modules/household/ui/use-members";
+import { usePendingInvites } from "@/modules/household/ui/use-pending-invites";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useFinance } from "@/modules/household/ui/finance-provider";
-import { InviteFamilyModal } from "@/modules/household/ui/invite-family-modal";
+import { CreateMemberAccountDialog } from "@/modules/household/ui/create-member-account-dialog";
 import { AuditFeedCard } from "@/modules/household/ui/audit-feed-card";
 import {
   createFamilyAuditEvent,
@@ -38,13 +42,12 @@ import type { HouseholdRole } from "@/modules/shared/domain/common";
  */
 export default function MembersPage() {
   const { household, user, canAdminister } = useSession();
-  const { active, loading } = useMembers();
+  const { active, loading, error: membersError } = useMembers();
+  const { invites: pendingInvites, error: invitesError } = usePendingInvites();
   const finance = useFinance();
-  const [adding, setAdding] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState(false);
   const [addingDependent, setAddingDependent] = useState(false);
   const [invitingByEmail, setInvitingByEmail] = useState(false);
-  const [invitingFamily, setInvitingFamily] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const auditEvents = useMemo(() => {
     if (!household) return [];
@@ -115,19 +118,22 @@ export default function MembersPage() {
         </div>
         {canAdminister ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => setInvitingByEmail(true)}>Convidar por e-mail</Button>
-            <Button variant="secondary" onClick={() => setInvitingFamily(true)}>
-              👨‍👩‍👧‍👦 Cadastrar Familiar
+            <Button onClick={() => setCreatingAccount(true)}>Adicionar membro</Button>
+            <Button variant="secondary" onClick={() => setInvitingByEmail(true)}>
+              Convidar por e-mail
             </Button>
             <Button variant="secondary" onClick={() => setAddingDependent(true)}>
               Adicionar pessoa sem acesso
             </Button>
-            <Button variant="secondary" onClick={() => setAdding(true)}>
-              Adicionar por código
-            </Button>
           </div>
         ) : null}
       </div>
+
+      {membersError || invitesError ? (
+        <Callout tone="critical" title="Não foi possível carregar tudo">
+          {membersError ?? invitesError}
+        </Callout>
+      ) : null}
 
       <Card>
         <CardTitle hint={household?.name}>Quem tem acesso</CardTitle>
@@ -147,104 +153,26 @@ export default function MembersPage() {
         </ul>
       </Card>
 
-      <AuditFeedCard events={auditEvents} />
-
-      <Card>
-        <CardTitle hint="Passe este código para quem for entrar no seu grupo.">
-          Seu identificador
-        </CardTitle>
-        <p className="tabular rounded-lg border border-[color:var(--card-border)] p-3 text-sm break-all">
-          {user?.uid}
-        </p>
-        <Button
-          variant="secondary"
-          className="mt-2"
-          onClick={async () => {
-            if (!user?.uid) return;
-            try {
-              await navigator.clipboard.writeText(user.uid);
-              setCopied(true);
-            } catch {
-              setCopied(false);
-            }
-          }}
-        >
-          {copied ? "Copiado" : "Copiar identificador"}
-        </Button>
-        <p className="mt-2 text-xs" style={{ color: "var(--muted-fg)" }}>
-          Ele identifica sua conta e não dá acesso a nada sozinho. Quem administra o grupo precisa
-          dele para incluir você.
-        </p>
-      </Card>
-
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[color:var(--card-border)] pb-3">
-          <CardTitle hint="Convide seu cônjuge ou familiar para organizar as finanças juntos">
-            👨‍👩‍👧‍👦 Compartilhamento Familiar
+      {canAdminister && pendingInvites.length > 0 ? (
+        <Card>
+          <CardTitle hint="Ainda não foram aceitos. Cancele se digitou o e-mail errado ou desistiu.">
+            Convites pendentes
           </CardTitle>
-          <span className="rounded-md bg-[color:var(--color-surface-sunken)] px-2 py-0.5 text-xs font-semibold text-[color:var(--color-brand-600)]">
-            Acesso Conjunto
-          </span>
-        </div>
+          <ul className="divide-y divide-[color:var(--card-border)]">
+            {pendingInvites.map((invite) => (
+              <PendingInviteRow
+                key={invite.id}
+                email={invite.email}
+                role={invite.role}
+                expiresAt={invite.expiresAt}
+                householdId={household?.id ?? ""}
+              />
+            ))}
+          </ul>
+        </Card>
+      ) : null}
 
-        <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
-          Sair das dívidas e conquistar metas em família é muito mais rápido quando os dois
-          acompanham os mesmos números. Envie um convite direto pelo WhatsApp com as orientações de
-          entrada.
-        </p>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button
-            type="button"
-            onClick={() => {
-              const text = encodeURIComponent(
-                `Oi! Criei nosso painel de planejamento e metas da família no Conta comigo.\n\n` +
-                  `1. Acesse https://contacomigo.app/entrar e crie sua conta com seu e-mail.\n` +
-                  `2. Depois, vá em Menu > Membros, copie o código do seu identificador e me mande por aqui.\n` +
-                  `3. Eu vou te adicionar ao grupo da nossa casa para acompanharmos nossos gastos e metas juntos!`,
-              );
-              window.open(`https://wa.me/?text=${text}`, "_blank");
-            }}
-          >
-            💬 Convidar pelo WhatsApp
-          </Button>
-
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={async () => {
-              const text =
-                `Oi! Criei nosso painel de planejamento e metas da família no Conta comigo.\n\n` +
-                `1. Acesse https://contacomigo.app/entrar e crie sua conta com seu e-mail.\n` +
-                `2. Depois, vá em Menu > Membros, copie o código do seu identificador e me mande por aqui.\n` +
-                `3. Eu vou te adicionar ao grupo da nossa casa para acompanharmos nossos gastos e metas juntos!`;
-              try {
-                await navigator.clipboard.writeText(text);
-                setCopied(true);
-              } catch {
-                setCopied(false);
-              }
-            }}
-          >
-            {copied ? "Copiado!" : "Copiar texto do convite"}
-          </Button>
-        </div>
-
-        <ol className="mt-5 ml-4 list-decimal space-y-1.5 border-t border-[color:var(--card-border)] pt-4 text-sm">
-          <li>A outra pessoa cria a própria conta no Conta comigo com o e-mail dela.</li>
-          <li>
-            Ela abre <strong>Mais &rarr; Membros</strong> e copia o código que aparece em &ldquo;Seu
-            identificador&rdquo;.
-          </li>
-          <li>
-            Você clica em <strong>Adicionar por código</strong> acima e cola o código dela.
-          </li>
-        </ol>
-        <p className="mt-3 text-xs" style={{ color: "var(--muted-fg)" }}>
-          A partir daí vocês veem os mesmos números com total transparência. Cada cartão, conta,
-          dívida e gasto pode ser atribuído a uma pessoa específica ou à casa toda.
-        </p>
-      </Card>
+      <AuditFeedCard events={auditEvents} />
 
       <Card>
         <CardTitle>O que cada papel pode fazer</CardTitle>
@@ -258,10 +186,9 @@ export default function MembersPage() {
         </dl>
       </Card>
 
-      <AddMemberDialog open={adding} onClose={() => setAdding(false)} />
+      <CreateMemberAccountDialog open={creatingAccount} onClose={() => setCreatingAccount(false)} />
       <AddDependentDialog open={addingDependent} onClose={() => setAddingDependent(false)} />
       <InviteByEmailDialog open={invitingByEmail} onClose={() => setInvitingByEmail(false)} />
-      <InviteFamilyModal open={invitingFamily} onClose={() => setInvitingFamily(false)} />
     </div>
   );
 }
@@ -285,6 +212,7 @@ function MemberRow({
 }) {
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // The owner's role is fixed, and nobody may change their own: both are
   // enforced by the rules, and offering the control anyway would only produce
@@ -301,6 +229,11 @@ function MemberRow({
         <p className="truncate text-xs" style={{ color: "var(--muted-fg)" }}>
           {email ?? "sem e-mail cadastrado"}
         </p>
+        {error ? (
+          <p className="text-xs" style={{ color: "var(--tone-critical)" }}>
+            {error}
+          </p>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2">
@@ -316,13 +249,15 @@ function MemberRow({
                 disabled={busy}
                 onChange={async (event) => {
                   setBusy(true);
-                  await changeMemberRole({
+                  setError(null);
+                  const result = await changeMemberRole({
                     db: getDb(),
                     householdId,
                     uid: memberId,
                     role: event.target.value as Exclude<HouseholdRole, "OWNER">,
                   });
                   setBusy(false);
+                  if (!result.ok) setError(result.error.message);
                 }}
                 className="min-h-11 rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-2 text-sm"
               >
@@ -340,8 +275,14 @@ function MemberRow({
                   disabled={busy}
                   onClick={async () => {
                     setBusy(true);
-                    await removeMember({ db: getDb(), householdId, uid: memberId });
+                    setError(null);
+                    const result = await removeMember({ db: getDb(), householdId, uid: memberId });
                     setBusy(false);
+                    if (!result.ok) {
+                      setError(result.error.message);
+                      return;
+                    }
+                    setConfirming(false);
                   }}
                 >
                   Confirmar
@@ -358,6 +299,59 @@ function MemberRow({
           </>
         ) : (
           <Badge tone={role === "OWNER" ? "brand" : "neutral"}>{ROLE_LABELS[role]}</Badge>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function PendingInviteRow({
+  email,
+  role,
+  expiresAt,
+  householdId,
+}: {
+  email: string;
+  role: HouseholdRole;
+  expiresAt: Date;
+  householdId: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const expired = expiresAt.getTime() <= Date.now();
+
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 py-3">
+      <div className="min-w-0">
+        <p className="truncate font-medium">{email}</p>
+        <p className="truncate text-xs" style={{ color: "var(--muted-fg)" }}>
+          {ROLE_LABELS[role]} ·{" "}
+          {expired ? "convite vencido" : `expira em ${expiresAt.toLocaleDateString("pt-BR")}`}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {confirming ? (
+          <>
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                await cancelInvite({ db: getDb(), householdId, email });
+                setBusy(false);
+              }}
+            >
+              Confirmar
+            </Button>
+            <Button variant="ghost" onClick={() => setConfirming(false)}>
+              Voltar
+            </Button>
+          </>
+        ) : (
+          <Button variant="ghost" onClick={() => setConfirming(true)}>
+            Cancelar convite
+          </Button>
         )}
       </div>
     </li>
@@ -573,120 +567,3 @@ function AddDependentDialog({ open, onClose }: { open: boolean; onClose: () => v
   );
 }
 
-function AddMemberDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { household, user, effectivePlan } = useSession();
-  const { active } = useMembers();
-  const [uid, setUid] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<Exclude<HouseholdRole, "OWNER">>("MEMBER");
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  async function onSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    setError(null);
-    if (!household || !user) return;
-
-    // Dependentes não ocupam assento: o limite do plano é sobre pessoas com
-    // acesso, e cobrar por um filho de doze anos que nem entra no aplicativo
-    // tornaria o plano gratuito inútil para uma família.
-    const seats = active.filter((member) => member.role !== "DEPENDENT").length;
-    const room = canAddOne("members", effectivePlan, seats);
-    if (!room.allowed) {
-      setError(room.message);
-      return;
-    }
-
-    setSaving(true);
-    const result = await addMemberByUid({
-      db: getDb(),
-      householdId: household.id,
-      actorUid: user.uid,
-      uid,
-      displayName,
-      email: email || undefined,
-      role,
-    }).catch(() => null);
-    setSaving(false);
-
-    if (!result) {
-      setError("Não foi possível adicionar agora. Tente novamente.");
-      return;
-    }
-    if (!result.ok) {
-      setError(result.error.message);
-      return;
-    }
-
-    setUid("");
-    setDisplayName("");
-    setEmail("");
-    onClose();
-  }
-
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="Adicionar pessoa ao grupo"
-      description="Ela precisa ter criado a própria conta antes."
-    >
-      <form onSubmit={onSubmit} className="space-y-4" noValidate>
-        {error ? <FormError>{error}</FormError> : null}
-
-        <Callout tone="info" title="Onde encontrar o identificador">
-          A pessoa entra na conta dela, abre <strong>Mais &rarr; Membros</strong> e copia o código
-          em &ldquo;Seu identificador&rdquo;.
-        </Callout>
-
-        <TextField
-          label="Nome"
-          required
-          value={displayName}
-          onChange={(event) => setDisplayName(event.target.value)}
-          placeholder="Maria"
-        />
-
-        <TextField
-          label="Identificador da conta dela"
-          required
-          value={uid}
-          onChange={(event) => setUid(event.target.value)}
-          placeholder="Cole aqui o código"
-          hint="Sem ele, não há como ligar o acesso à conta certa."
-        />
-
-        <TextField
-          label="E-mail"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="Opcional, só para você reconhecer"
-        />
-
-        <SelectField
-          label="Papel"
-          value={role}
-          onChange={(event) => setRole(event.target.value as Exclude<HouseholdRole, "OWNER">)}
-          options={[
-            { value: "MEMBER", label: "Membro — registra e edita informações financeiras" },
-            { value: "OPERATOR", label: "Operador — lança comprovantes/gastos (sem excluir registros ou alterar orçamentos)" },
-            { value: "ADMIN", label: "Administrador — gerencia membros e configurações do grupo" },
-            { value: "VIEWER", label: "Visualizador — consulta relatórios sem alterar dados" },
-            { value: "DEPENDENT", label: "Dependente — visão restrita aos próprios lançamentos e mesada" },
-          ]}
-        />
-
-        <div className="flex gap-2 pt-2">
-          <Button type="submit" className="flex-1" disabled={saving}>
-            {saving ? "Adicionando…" : "Adicionar"}
-          </Button>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  );
-}

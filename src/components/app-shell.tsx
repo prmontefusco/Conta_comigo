@@ -6,8 +6,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button, Spinner } from "@/components/ui/primitives";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { useFinance } from "@/modules/household/ui/finance-provider";
 import { AlertBell } from "@/modules/alerts/ui/alert-bell";
-import { DEPENDENT_BLOCKED_PATHS, MOBILE_BAR, navSectionsFor } from "@/modules/shared/ui/app-nav";
+import { DEPENDENT_BLOCKED_PATHS, mobileBarFor, navSectionsFor } from "@/modules/shared/ui/app-nav";
 
 /**
  * The authenticated shell.
@@ -23,6 +24,7 @@ import { DEPENDENT_BLOCKED_PATHS, MOBILE_BAR, navSectionsFor } from "@/modules/s
  */
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const finance = useFinance();
   const {
     status,
     role,
@@ -69,7 +71,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }, [isDependent, pathname, router]);
 
-  const desktopSections = navSectionsFor(role);
+  const hasBankAccount = finance.accounts.some((account) => !account.archived);
+  const desktopSections = navSectionsFor(role, { hasBankAccount });
+  const mobileBar = mobileBarFor({ hasBankAccount, role });
 
   useEffect(() => {
     if (status === "unauthenticated" && !loggingOut) {
@@ -184,10 +188,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="mx-auto flex max-w-6xl gap-6 px-4 py-4 md:py-6">
         <nav aria-label="Navegação principal" className="hidden w-56 shrink-0 md:block">
-          <div className="sticky top-20 max-h-[calc(100vh-6rem)] space-y-4 overflow-y-auto pr-1">
+          <div className="sticky top-20 max-h-[calc(100vh-6rem)] space-y-3 overflow-y-auto pr-1">
             {desktopSections.map((section) => (
-              <div key={section.title} className="space-y-1">
-                <p className="text-2xs px-3 font-bold tracking-wider text-[color:var(--muted-fg)] uppercase">
+              <section
+                key={section.title}
+                className="rounded-lg border border-[color:var(--card-border)] bg-white/48 p-2 shadow-2xs"
+              >
+                <p className="px-2 pb-1.5 text-[0.68rem] font-bold tracking-wider text-[color:var(--muted-fg)] uppercase">
                   {section.title}
                 </p>
                 <ul className="space-y-0.5">
@@ -206,7 +213,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </section>
             ))}
           </div>
         </nav>
@@ -222,7 +229,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <ul className="mx-auto flex max-w-lg">
-          {MOBILE_BAR.map((item) => (
+          {mobileBar.map((item) => (
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
@@ -253,9 +260,9 @@ function isActive(pathname: string, href: string): boolean {
 
 function navLinkClass(active: boolean): string {
   return [
-    "flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition",
+    "flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition",
     active
-      ? "bg-[color:var(--color-brand-100)] font-semibold text-[color:var(--color-brand-700)] shadow-2xs border border-[color:var(--color-brand-600)]/20"
-      : "hover:bg-[color:var(--color-ink-100)] text-[color:var(--page-fg)]",
+      ? "border border-[color:var(--color-brand-600)]/25 bg-[color:var(--color-brand-100)] font-semibold text-[color:var(--color-brand-700)] shadow-2xs"
+      : "border border-transparent text-[color:var(--page-fg)] hover:border-[color:var(--card-border)] hover:bg-white/70 hover:text-[color:var(--color-brand-700)]",
   ].join(" ");
 }

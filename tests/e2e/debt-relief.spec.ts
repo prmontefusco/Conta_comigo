@@ -57,6 +57,63 @@ test.describe("modo emergência", () => {
     await expect(page.getByText("O atraso custa por dia")).toBeVisible();
     await expect(page.getByText(/Multa e juros já somam/)).toBeVisible();
   });
+
+  test("não mostra parcela vencida de financiamento ou empréstimo como zero", async ({ page }) => {
+    await page.getByRole("button", { name: "Sair" }).click();
+    await signIn(page, USERS.indebted.email);
+    await page.goto("/app/emergencia");
+
+    const financiamento = page.locator("li").filter({
+      hasText: "Financiamento do carro — 1 parcela em atraso",
+    });
+    const emprestimo = page.locator("li").filter({
+      hasText: "Empréstimo pessoal — 1 parcela em atraso",
+    });
+    await expect(financiamento).not.toContainText("R$ 0,00");
+    await expect(emprestimo).not.toContainText("R$ 0,00");
+  });
+
+  test("não exibe estratégia de investimento enquanto há contas que não cabem", async ({
+    page,
+  }) => {
+    await expect(page.getByText("O que fazer com o que não coube")).toBeVisible();
+    await expect(page.getByText("Distribuição da Reserva em 3 Camadas")).toHaveCount(0);
+  });
+
+  test("não conclui enquadramento jurídico antes de revisar os dados essenciais", async ({
+    page,
+  }) => {
+    await page.goto("/app/superendividamento");
+
+    await expect(page.getByText("Complete os dados antes da avaliação")).toBeVisible();
+    await expect(page.getByText("Dados incompletos")).toBeVisible();
+    await expect(page.getByText(/Enquadramento Pleno/)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Dossiê Técnico" })).toBeDisabled();
+    await expect(page.getByText(/A proposta será calculada somente depois/)).toBeVisible();
+    await expect(
+      page.getByRole("table", { name: "Proposta de repactuação em 60 meses" }),
+    ).toHaveCount(0);
+  });
+
+  test("explica quando existe dinheiro, mas nenhuma conta cabe inteira", async ({ page }) => {
+    await expect(page.getByText(/Nenhuma conta cabe inteira nos/)).toBeVisible();
+  });
+});
+
+test.describe("negociação orientada por tarefa", () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, USERS.massMarket.email);
+    await page.goto("/app/negociar");
+  });
+
+  test("mostra uma ferramenta por vez", async ({ page }) => {
+    await expect(page.getByText("O que dizer ao credor")).toBeVisible();
+    await expect(page.getByText("Avaliar a proposta recebida")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Avaliar proposta" }).click();
+    await expect(page.getByText("Avaliar a proposta recebida")).toBeVisible();
+    await expect(page.getByText("O que dizer ao credor")).toHaveCount(0);
+  });
 });
 
 test.describe("antes de comprar", () => {
@@ -179,6 +236,8 @@ test.describe("plano de ação", () => {
 
     await expect(page.getByRole("heading", { name: "Plano de ação" })).toBeVisible();
     await expect(page.getByText("Próximos passos")).toBeVisible();
+    await expect(page.getByText("Calendário financeiro")).toHaveCount(0);
+    await page.getByRole("button", { name: "Ver detalhes do plano" }).click();
     await expect(page.getByText("Calendário financeiro")).toBeVisible();
     await expect(page.getByText("Simulador de renda variável")).toBeVisible();
     await expect(page.getByText("Priorização de dívidas")).toBeVisible();

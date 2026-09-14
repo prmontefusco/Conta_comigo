@@ -85,6 +85,23 @@ describe("buildTriage", () => {
     expect(result.items.find((item) => item.tier === "ASSET_AT_RISK")?.consequence).toContain(
       "busca e apreensão",
     );
+    expect(
+      result.items.find((item) => item.tier === "ASSET_AT_RISK")?.amount.amount,
+    ).toBeGreaterThan(0);
+  });
+
+  it("calcula o valor vencido pelo cronograma quando a parcela não foi persistida", () => {
+    const semParcelaFixa = { ...financiamento, installmentAmount: undefined } as unknown as Debt;
+    const result = buildTriage({
+      asOf: hoje,
+      availableCash: money(0),
+      obligations: [],
+      debts: [semParcelaFixa],
+      cardStatements: [],
+    });
+
+    expect(result.items[0]?.amount.amount).toBeGreaterThan(0);
+    expect(result.unpayable).toEqual(result.items[0]?.amount);
   });
 
   it("marca o que cabe no dinheiro de hoje, seguindo a ordem", () => {

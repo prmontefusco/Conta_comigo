@@ -495,14 +495,15 @@ export default function MyDataPage() {
           </CardTitle>
 
           <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
-            Você pode escolher em que o Conta Comigo deve focar para ajudar sua família neste momento:
+            Você pode escolher em que o Conta Comigo deve focar para ajudar sua família neste
+            momento:
           </p>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <label
               className={`flex cursor-pointer flex-col justify-between rounded-xl border p-4 transition ${
                 financialGoal === "ORGANIZATION"
-                  ? "border-[color:var(--color-brand-600)] bg-[color:var(--color-brand-50)]/40 dark:bg-[color:var(--color-brand-950)]/20 shadow-xs"
+                  ? "border-[color:var(--color-brand-600)] bg-[color:var(--color-brand-50)]/40 shadow-xs dark:bg-[color:var(--color-brand-950)]/20"
                   : "border-[color:var(--card-border)] bg-[color:var(--card-bg)] hover:bg-[color:var(--color-ink-50)]"
               }`}
             >
@@ -519,11 +520,12 @@ export default function MyDataPage() {
                 <p className="mt-2 text-sm font-bold text-[color:var(--page-fg)]">
                   Organização & Gestão Familiar
                 </p>
-                <p className="mt-1 text-2xs" style={{ color: "var(--muted-fg)" }}>
-                  Acompanhar contas do mês, cartões e projetar se vai sobrar dinheiro nos próximos meses.
+                <p className="text-2xs mt-1" style={{ color: "var(--muted-fg)" }}>
+                  Acompanhar contas do mês, cartões e projetar se vai sobrar dinheiro nos próximos
+                  meses.
                 </p>
               </div>
-              <span className="mt-3 text-2xs font-semibold text-[color:var(--color-brand-700)]">
+              <span className="text-2xs mt-3 font-semibold text-[color:var(--color-brand-700)]">
                 {financialGoal === "ORGANIZATION" ? "✓ Selecionado" : "Selecionar"}
               </span>
             </label>
@@ -531,7 +533,7 @@ export default function MyDataPage() {
             <label
               className={`flex cursor-pointer flex-col justify-between rounded-xl border p-4 transition ${
                 financialGoal === "SUPERENDIVIDAMENTO"
-                  ? "border-[color:var(--color-critical-600)] bg-[color:var(--color-critical-50)]/40 dark:bg-[color:var(--color-critical-950)]/20 shadow-xs"
+                  ? "border-[color:var(--color-critical-600)] bg-[color:var(--color-critical-50)]/40 shadow-xs dark:bg-[color:var(--color-critical-950)]/20"
                   : "border-[color:var(--card-border)] bg-[color:var(--card-bg)] hover:bg-[color:var(--color-ink-50)]"
               }`}
             >
@@ -548,11 +550,12 @@ export default function MyDataPage() {
                 <p className="mt-2 text-sm font-bold text-[color:var(--page-fg)]">
                   Recuperação & Superendividamento
                 </p>
-                <p className="mt-1 text-2xs" style={{ color: "var(--muted-fg)" }}>
-                  Repactuar dívidas onerosas pela Lei 14.181/2021, proteger o mínimo existencial e gerar dossiê.
+                <p className="text-2xs mt-1" style={{ color: "var(--muted-fg)" }}>
+                  Repactuar dívidas onerosas pela Lei 14.181/2021, proteger o mínimo existencial e
+                  gerar dossiê.
                 </p>
               </div>
-              <span className="mt-3 text-2xs font-semibold text-[color:var(--color-critical-700)]">
+              <span className="text-2xs mt-3 font-semibold text-[color:var(--color-critical-700)]">
                 {financialGoal === "SUPERENDIVIDAMENTO" ? "✓ Selecionado" : "Selecionar"}
               </span>
             </label>
@@ -560,7 +563,7 @@ export default function MyDataPage() {
             <label
               className={`flex cursor-pointer flex-col justify-between rounded-xl border p-4 transition ${
                 financialGoal === "INVESTMENT"
-                  ? "border-[color:var(--color-positive-600)] bg-[color:var(--color-positive-50)]/40 dark:bg-[color:var(--color-positive-950)]/20 shadow-xs"
+                  ? "border-[color:var(--color-positive-600)] bg-[color:var(--color-positive-50)]/40 shadow-xs dark:bg-[color:var(--color-positive-950)]/20"
                   : "border-[color:var(--card-border)] bg-[color:var(--card-bg)] hover:bg-[color:var(--color-ink-50)]"
               }`}
             >
@@ -577,11 +580,11 @@ export default function MyDataPage() {
                 <p className="mt-2 text-sm font-bold text-[color:var(--page-fg)]">
                   Reserva & Independência
                 </p>
-                <p className="mt-1 text-2xs" style={{ color: "var(--muted-fg)" }}>
+                <p className="text-2xs mt-1" style={{ color: "var(--muted-fg)" }}>
                   Construir colchão de segurança de 6 meses e maximizar sobra mensal para o futuro.
                 </p>
               </div>
-              <span className="mt-3 text-2xs font-semibold text-[color:var(--color-positive-700)]">
+              <span className="text-2xs mt-3 font-semibold text-[color:var(--color-positive-700)]">
                 {financialGoal === "INVESTMENT" ? "✓ Selecionado" : "Selecionar"}
               </span>
             </label>

@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
  */
 
 const PAGES = [
-  ["/", "Saber onde você está"],
+  ["/", "Controle suas contas de hoje"],
   ["/como-funciona", "Como funciona"],
   ["/organizar-financas", "Como organizar as finanças"],
   ["/planejamento-financeiro", "Planejamento financeiro"],

@@ -120,7 +120,7 @@ export default function Page() {
         </p>
         <p className="mt-2">
           Quer saber como agir sozinho ou onde encontrar a Defensoria Pública? Veja nosso guia:{" "}
-          <Link href="/precisa-de-advogado-para-superendividamento" className="text-teal-700 underline font-medium">
+          <Link href="/precisa-de-advogado-para-superendividamento" className="text-blue-700 underline font-medium">
             Precisa de advogado para Superendividamento?
           </Link>
         </p>
@@ -202,3 +202,4 @@ export default function Page() {
     </>
   );
 }
+

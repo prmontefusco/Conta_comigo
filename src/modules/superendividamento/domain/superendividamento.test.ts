@@ -98,6 +98,20 @@ describe("superendividamento domain (Lei 14.181/2021)", () => {
     expect(resultado.margemDisponivelParaPagamento.amount).toBe(95000); // 4000 - 3050
   });
 
+  it("não conclui enquadramento jurídico com dados vazios", () => {
+    const resultado = avaliarSuperendividamento({
+      rendaLiquidaMensal: zero("BRL"),
+      dependentesCount: 1,
+      despesasEssenciais: [],
+      gastosCortados: [],
+      dividas: [],
+      bens: [],
+    });
+
+    expect(resultado.status).toBe("DADOS_INSUFICIENTES");
+    expect(resultado.enquadraNaLei14181).toBe(false);
+  });
+
   it("gera rateio proporcional do plano de 60 meses respeitando a capacidade real", () => {
     const dividas: CredorDividaItem[] = [
       {

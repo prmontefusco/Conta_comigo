@@ -168,7 +168,7 @@ export function SalarySimulatorCard() {
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-teal-50 text-lg text-teal-700 shadow-2xs">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-lg text-blue-700 shadow-2xs">
               💼
             </span>
             <div>
@@ -282,7 +282,7 @@ export function SalarySimulatorCard() {
             }}
             className={`flex flex-col items-center justify-center rounded-xl border p-3 text-center transition-all ${
               mode === "VARIATION"
-                ? "border-teal-600 bg-teal-50/80 font-semibold text-teal-900 shadow-xs"
+                ? "border-blue-600 bg-blue-50/80 font-semibold text-blue-900 shadow-xs"
                 : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
@@ -298,7 +298,7 @@ export function SalarySimulatorCard() {
             }}
             className={`flex flex-col items-center justify-center rounded-xl border p-3 text-center transition-all ${
               mode === "THIRTEENTH"
-                ? "border-teal-600 bg-teal-50/80 font-semibold text-teal-900 shadow-xs"
+                ? "border-blue-600 bg-blue-50/80 font-semibold text-blue-900 shadow-xs"
                 : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
@@ -314,7 +314,7 @@ export function SalarySimulatorCard() {
             }}
             className={`flex flex-col items-center justify-center rounded-xl border p-3 text-center transition-all ${
               mode === "VACATION"
-                ? "border-teal-600 bg-teal-50/80 font-semibold text-teal-900 shadow-xs"
+                ? "border-blue-600 bg-blue-50/80 font-semibold text-blue-900 shadow-xs"
                 : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
@@ -330,7 +330,7 @@ export function SalarySimulatorCard() {
             }}
             className={`flex flex-col items-center justify-center rounded-xl border p-3 text-center transition-all ${
               mode === "EXTRA"
-                ? "border-teal-600 bg-teal-50/80 font-semibold text-teal-900 shadow-xs"
+                ? "border-blue-600 bg-blue-50/80 font-semibold text-blue-900 shadow-xs"
                 : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
@@ -463,15 +463,15 @@ export function SalarySimulatorCard() {
 
       {/* Resultados e Comparativo */}
       {simulatedResult && impactSummary && (
-        <div className="animate-in fade-in space-y-5 rounded-2xl border border-teal-200/80 bg-teal-50/40 p-4 shadow-sm duration-200 sm:p-5">
-          <div className="flex items-center justify-between border-b border-teal-100 pb-3">
+        <div className="animate-in fade-in space-y-5 rounded-2xl border border-blue-200/80 bg-blue-50/40 p-4 shadow-sm duration-200 sm:p-5">
+          <div className="flex items-center justify-between border-b border-blue-100 pb-3">
             <div className="flex items-center gap-2">
               <span className="text-base">📊</span>
-              <h3 className="text-sm font-semibold text-teal-950">
+              <h3 className="text-sm font-semibold text-blue-950">
                 Resultado da Simulação no Horizonte
               </h3>
             </div>
-            <span className="rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-semibold text-teal-800">
+            <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
               Projeção 12 Meses
             </span>
           </div>
@@ -577,7 +577,7 @@ export function SalarySimulatorCard() {
 
             <Link
               href="/app/recorrentes"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-2xs transition-colors hover:bg-teal-700"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-2xs transition-colors hover:bg-blue-700"
             >
               <span>💾</span> Cadastrar este salário como regra fixa
             </Link>
@@ -587,3 +587,4 @@ export function SalarySimulatorCard() {
     </Card>
   );
 }
+

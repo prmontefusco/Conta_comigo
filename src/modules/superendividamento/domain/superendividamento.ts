@@ -1,6 +1,7 @@
 import {
   type Money,
   add,
+  allocateByWeights,
   clampToZero,
   greaterOrEqual,
   money,
@@ -121,6 +122,7 @@ export interface PlanoRepactuacao60Meses {
 }
 
 export type StatusSuperendividamento =
+  | "DADOS_INSUFICIENTES"
   | "SUPERENDIVIDADO_CRITICO" // Comprometimento invade o mínimo existencial
   | "SUPERENDIVIDADO_MODERADO" // Comprometimento > 40% da renda líquida
   | "ALERTA_ENDIVIDAMENTO" // Comprometimento entre 30% e 40%
@@ -209,9 +211,7 @@ export function avaliarSuperendividamento(
       : 0;
 
   // Capacidade real de pagamento mensal = Renda Líquida - Despesas Essenciais
-  const margemDisponivel = clampToZero(
-    subtract(input.rendaLiquidaMensal, totalDespesasEssenciais),
-  );
+  const margemDisponivel = clampToZero(subtract(input.rendaLiquidaMensal, totalDespesasEssenciais));
 
   // Status de enquadramento
   let status: StatusSuperendividamento;
@@ -222,7 +222,16 @@ export function avaliarSuperendividamento(
   // ou se sobra menos do que o Mínimo Existencial Legal, há superendividamento evidente.
   const custoTotalMensalAtual = add(totalDespesasEssenciais, totalParcelasAtuais);
 
-  if (greaterOrEqual(custoTotalMensalAtual, input.rendaLiquidaMensal)) {
+  if (
+    input.rendaLiquidaMensal.amount <= 0 ||
+    input.despesasEssenciais.length === 0 ||
+    input.dividas.length === 0
+  ) {
+    status = "DADOS_INSUFICIENTES";
+    enquadraNaLei14181 = false;
+    justificativa =
+      "Preencha e revise a renda líquida, as despesas essenciais e ao menos uma dívida antes de avaliar indícios de superendividamento.";
+  } else if (greaterOrEqual(custoTotalMensalAtual, input.rendaLiquidaMensal)) {
     status = "SUPERENDIVIDADO_CRITICO";
     enquadraNaLei14181 = true;
     justificativa =
@@ -290,11 +299,17 @@ export function gerarPlanoRepactuacao60Meses(
     };
   }
 
-  // Rateio proporcional ao saldo devedor de cada credor
-  const propostas: PropostaRepactuacaoCredor[] = dividas.map((divida) => {
+  // Rateio proporcional ao saldo devedor de cada credor. Usa allocateByWeights
+  // em vez de arredondar cada parcela isoladamente: a soma das parcelas
+  // propostas precisa bater exatamente com a margem disponível, porque este
+  // número vira petição judicial.
+  const parcelasPropostas = allocateByWeights(
+    margemDisponivel,
+    dividas.map((divida) => divida.saldoDevedorEstimado.amount),
+  );
+  const propostas: PropostaRepactuacaoCredor[] = dividas.map((divida, index) => {
     const proporcao = divida.saldoDevedorEstimado.amount / totalPassivo.amount;
-    const parcelaCalculadaAmount = Math.round(margemDisponivel.amount * proporcao);
-    const parcelaProposta = money(parcelaCalculadaAmount, moeda);
+    const parcelaProposta = parcelasPropostas[index] ?? money(0, moeda);
     const totalEm60Meses = multiply(parcelaProposta, PRAZO_MESES);
 
     return {

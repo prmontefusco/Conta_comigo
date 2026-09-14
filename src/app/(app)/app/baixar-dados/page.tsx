@@ -443,7 +443,7 @@ export default function BaixarDadosPage() {
 
         <div className="mt-4 border-t border-neutral-200 pt-3 flex items-center justify-between text-2xs text-neutral-500">
           <span>Esta página pode ser salva em PDF ou impressa pelo botão do topo.</span>
-          <Link href="/app/meus-dados" className="text-teal-700 underline print:hidden">
+          <Link href="/app/meus-dados" className="text-blue-700 underline print:hidden">
             Gerenciar meus dados cadastrais &rarr;
           </Link>
         </div>
@@ -451,3 +451,4 @@ export default function BaixarDadosPage() {
     </div>
   );
 }
+

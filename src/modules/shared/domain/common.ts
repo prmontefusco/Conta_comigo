@@ -23,6 +23,7 @@ export type ReserveId = string;
 export type GoalId = string;
 export type BudgetId = string;
 export type VehicleId = string;
+export type PropertyId = string;
 
 /**
  * Who a record belongs to inside a household.

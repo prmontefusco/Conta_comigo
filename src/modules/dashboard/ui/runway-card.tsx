@@ -15,6 +15,10 @@ const TONE_POR_NIVEL: Record<NivelRunway, "critical" | "attention" | "positive" 
   INDEPENDENTE: "brand",
 };
 
+function formatDays(days: number): string {
+  return `${days} ${days === 1 ? "dia" : "dias"}`;
+}
+
 export function RunwayCard() {
   const finance = useFinance();
   const currency = finance.totalCash.currency;
@@ -58,7 +62,7 @@ export function RunwayCard() {
         <div className="flex justify-between text-xs font-semibold">
           <span style={{ color: "var(--muted-fg)" }}>
             {hasData
-              ? `Cobertura atual: ${runway.diasAutonomia} dias (${runway.mesesAutonomia} meses)`
+              ? `Cobertura atual: ${formatDays(runway.diasAutonomia)} (${runway.mesesAutonomia} meses)`
               : "Cobertura atual: Não calculada"}
           </span>
           <span className="text-[color:var(--color-brand-600)]">
@@ -86,7 +90,7 @@ export function RunwayCard() {
             Dias de Autonomia
           </dt>
           <dd className="mt-0.5 text-xl font-semibold text-[color:var(--page-fg)]">
-            {hasData ? `${runway.diasAutonomia} dias` : "--"}
+            {hasData ? formatDays(runway.diasAutonomia) : "--"}
           </dd>
         </div>
         <Stat

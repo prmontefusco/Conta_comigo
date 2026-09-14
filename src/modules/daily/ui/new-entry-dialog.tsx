@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { deleteField } from "firebase/firestore";
 import {
   addDays,
   addMonths,
@@ -107,6 +108,7 @@ export function NewEntryDialog({
   const [installments, setInstallments] = useState("1");
   const [categoryId, setCategoryId] = useState("");
   const [memberId, setMemberId] = useState("");
+  const [assetRef, setAssetRef] = useState("");
   const [visibility, setVisibility] = useState("HOUSEHOLD");
   const [repeat, setRepeat] = useState<Repeat>("NONE");
   const [error, setError] = useState<string | null>(null);
@@ -135,6 +137,7 @@ export function NewEntryDialog({
       setInstallments("1");
       setCategoryId("");
       setMemberId("");
+      setAssetRef("");
       setVisibility("HOUSEHOLD");
       setRepeat("NONE");
       return;
@@ -149,6 +152,13 @@ export function NewEntryDialog({
     setInstallments(String(entry.installmentCount ?? 1));
     setCategoryId(entry.categoryId ?? "");
     setMemberId(entry.responsibleMemberId ?? "");
+    setAssetRef(
+      entry.vehicleId
+        ? `vehicle:${entry.vehicleId}`
+        : entry.propertyId
+          ? `property:${entry.propertyId}`
+          : "",
+    );
     setVisibility(entry.visibility);
     setRepeat("NONE");
   }, [open, entry, asOf, defaultPaidWith]);
@@ -313,6 +323,7 @@ export function NewEntryDialog({
           confidence: "ESTIMATED",
           visibility: visibility as never,
           ...(memberId ? { responsibleMemberId: memberId } : {}),
+          ...assetFields(assetRef),
           status: "SCHEDULED",
           settledAmount: { amount: 0, currency: amount.currency },
           settlementTransactionIds: [],
@@ -331,6 +342,7 @@ export function NewEntryDialog({
           installmentCount: parts,
           visibility: visibility as never,
           ...(memberId ? { responsibleMemberId: memberId } : {}),
+          ...assetFields(assetRef),
         } as never);
       } else {
         await collections.transactions.create({
@@ -344,6 +356,7 @@ export function NewEntryDialog({
           accountId,
           ...(categoryId ? { categoryId } : {}),
           ...(memberId ? { responsibleMemberId: memberId } : {}),
+          ...assetFields(assetRef),
         } as never);
       }
 
@@ -371,6 +384,7 @@ export function NewEntryDialog({
           confidence: "CONFIRMED",
           visibility: visibility as never,
           ...(memberId ? { responsibleMemberId: memberId } : {}),
+          ...assetFields(assetRef),
           active: true,
         } as never);
       }
@@ -404,7 +418,13 @@ export function NewEntryDialog({
         categoryId,
         installmentCount: parts,
         visibility: visibility as never,
-        responsibleMemberId: memberId || null,
+        responsibleMemberId: memberId || deleteField(),
+        vehicleId: assetRef.startsWith("vehicle:")
+          ? assetRef.slice("vehicle:".length)
+          : deleteField(),
+        propertyId: assetRef.startsWith("property:")
+          ? assetRef.slice("property:".length)
+          : deleteField(),
       } as never);
       return;
     }
@@ -416,11 +436,19 @@ export function NewEntryDialog({
       description: description.trim(),
       visibility: visibility as never,
       ...(accountId ? { accountId } : {}),
-      // Uma receita pode legitimamente ficar sem categoria, e `null` é o que
-      // apaga o campo — `undefined` deixaria a categoria antiga no documento.
-      // Numa despesa este valor nunca é vazio: a validação acima exige uma.
-      categoryId: categoryId || null,
-      responsibleMemberId: memberId || null,
+      // Uma receita pode legitimamente ficar sem categoria, e `deleteField()`
+      // é o que de fato apaga o campo — `undefined` deixaria a categoria
+      // antiga no documento, e um `null` literal quebraria a leitura, porque
+      // o schema só aceita o campo ausente. Numa despesa este valor nunca é
+      // vazio: a validação acima exige uma.
+      categoryId: categoryId || deleteField(),
+      responsibleMemberId: memberId || deleteField(),
+      vehicleId: assetRef.startsWith("vehicle:")
+        ? assetRef.slice("vehicle:".length)
+        : deleteField(),
+      propertyId: assetRef.startsWith("property:")
+        ? assetRef.slice("property:".length)
+        : deleteField(),
     } as never);
   }
 
@@ -603,6 +631,8 @@ export function NewEntryDialog({
             emptyLabel="Do grupo (ninguém em especial)"
           />
 
+          <AssetField value={assetRef} onChange={setAssetRef} />
+
           <SelectField
             label={isIncome ? "Esta receita é" : "Este gasto é"}
             value={visibility}
@@ -711,6 +741,40 @@ function tryDate(value: string): CalendarDate | null {
   } catch {
     return null;
   }
+}
+
+function AssetField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const { vehicles, properties } = useFinance();
+  const activeVehicles = vehicles.filter((vehicle) => !vehicle.archived);
+  const activeProperties = properties.filter((property) => !property.archived);
+
+  if (activeVehicles.length === 0 && activeProperties.length === 0) return null;
+
+  return (
+    <SelectField
+      label="Associar a veículo ou imóvel"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      hint="Opcional. Use quando o gasto for do carro, da casa, de reforma ou manutenção. Isso ajuda nos relatórios por veículo/imóvel."
+      options={[
+        { value: "", label: "Não associar" },
+        ...activeVehicles.map((vehicle) => ({
+          value: `vehicle:${vehicle.id}`,
+          label: `Veículo: ${vehicle.name}`,
+        })),
+        ...activeProperties.map((property) => ({
+          value: `property:${property.id}`,
+          label: `Imóvel: ${property.name}`,
+        })),
+      ]}
+    />
+  );
+}
+
+function assetFields(assetRef: string) {
+  if (assetRef.startsWith("vehicle:")) return { vehicleId: assetRef.slice("vehicle:".length) };
+  if (assetRef.startsWith("property:")) return { propertyId: assetRef.slice("property:".length) };
+  return {};
 }
 
 /**

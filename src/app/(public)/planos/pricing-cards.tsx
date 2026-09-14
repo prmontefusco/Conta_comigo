@@ -84,7 +84,7 @@ export function PricingCards() {
             onClick={() => setBillingCycle("YEARLY")}
             className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
               billingCycle === "YEARLY"
-                ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-2xs"
+                ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-2xs"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
@@ -133,7 +133,7 @@ export function PricingCards() {
                 "Todos os guias de educação financeira",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2.5">
-                  <span className="text-teal-600">✓</span>
+                  <span className="text-blue-600">✓</span>
                   <span>{item}</span>
                 </li>
               ))}
@@ -162,14 +162,14 @@ export function PricingCards() {
         </div>
 
         {/* Plano Premium */}
-        <div className="relative flex flex-col justify-between rounded-3xl border-2 border-teal-500 bg-gradient-to-b from-teal-50/50 via-white to-white p-6 shadow-md sm:p-8">
-          <div className="absolute -top-3.5 right-6 rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 px-3.5 py-1 text-xs font-bold text-white shadow-sm">
+        <div className="relative flex flex-col justify-between rounded-3xl border-2 border-blue-500 bg-gradient-to-b from-blue-50/50 via-white to-white p-6 shadow-md sm:p-8">
+          <div className="absolute -top-3.5 right-6 rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 px-3.5 py-1 text-xs font-bold text-white shadow-sm">
             ⭐ {TRIAL_DAYS} DIAS GRÁTIS
           </div>
 
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-wider text-teal-700 uppercase">
+              <span className="text-xs font-semibold tracking-wider text-blue-700 uppercase">
                 Plano Completo Familiar
               </span>
             </div>
@@ -190,7 +190,7 @@ export function PricingCards() {
                       </span>
                       <span className="text-xs text-slate-500">/ mês</span>
                     </div>
-                    <p className="mt-1 text-xs font-medium text-teal-800">
+                    <p className="mt-1 text-xs font-medium text-blue-800">
                       Cobrado uma vez por ano: R$ {formatCents(selected.amountCents)}, após os{" "}
                       {TRIAL_DAYS} dias grátis.
                     </p>
@@ -203,7 +203,7 @@ export function PricingCards() {
                       </span>
                       <span className="text-xs text-slate-500">/ mês</span>
                     </div>
-                    <p className="mt-1 text-xs font-medium text-teal-800">
+                    <p className="mt-1 text-xs font-medium text-blue-800">
                       Sem fidelidade e sem renovação automática.
                     </p>
                   </div>
@@ -229,7 +229,7 @@ export function PricingCards() {
                 "Simulador de aumento, 13º salário e férias",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2.5">
-                  <span className="mt-px flex size-4.5 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs text-teal-700">
+                  <span className="mt-px flex size-4.5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs text-blue-700">
                     ✓
                   </span>
                   <span>{item}</span>
@@ -238,10 +238,10 @@ export function PricingCards() {
             </ul>
           </div>
 
-          <div className="mt-8 border-t border-teal-100 pt-4">
+          <div className="mt-8 border-t border-blue-100 pt-4">
             <Link
               href="/criar-conta"
-              className="flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 font-semibold text-white shadow-sm transition-all hover:from-teal-700 hover:to-cyan-700 hover:shadow-md"
+              className="flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-cyan-700 hover:shadow-md"
             >
               Começar os {TRIAL_DAYS} dias grátis
             </Link>
@@ -254,3 +254,4 @@ export function PricingCards() {
     </div>
   );
 }
+

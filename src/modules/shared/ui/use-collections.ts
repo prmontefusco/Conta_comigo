@@ -13,7 +13,9 @@ import {
   debtSchema,
   decisionSchema,
   goalSchema,
+  irpfRecordSchema,
   obligationSchema,
+  propertySchema,
   recurringRuleSchema,
   reserveSchema,
   transactionSchema,
@@ -26,7 +28,9 @@ import {
   type DebtDoc,
   type DecisionDoc,
   type GoalDoc,
+  type IrpfRecordDoc,
   type ObligationDoc,
+  type PropertyDoc,
   type RecurringRuleDoc,
   type ReserveDoc,
   type TransactionDoc,
@@ -57,6 +61,8 @@ export interface HouseholdCollections {
   readonly goals: HouseholdCollection<GoalDoc>;
   readonly decisions: HouseholdCollection<DecisionDoc>;
   readonly vehicles: HouseholdCollection<VehicleDoc>;
+  readonly properties: HouseholdCollection<PropertyDoc>;
+  readonly irpfRecords: HouseholdCollection<IrpfRecordDoc>;
 }
 
 export function useCollections(): HouseholdCollections {
@@ -85,6 +91,8 @@ export function useCollections(): HouseholdCollections {
       goals: householdCollection(context, "goals", goalSchema),
       decisions: householdCollection(context, "decisions", decisionSchema),
       vehicles: householdCollection(context, "vehicles", vehicleSchema),
+      properties: householdCollection(context, "properties", propertySchema),
+      irpfRecords: householdCollection(context, "irpfRecords", irpfRecordSchema),
     };
   }, [household, user]);
 }

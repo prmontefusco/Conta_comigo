@@ -572,6 +572,126 @@ describe("data shape", () => {
       }),
     );
   });
+
+  it("accepts vehicle and property registers for writers", async () => {
+    await seed();
+    const db = as(testEnv, MEMBER_A).firestore();
+
+    await assertSucceeds(
+      db.collection(`households/${HOUSEHOLD_A}/vehicles`).add({
+        householdId: HOUSEHOLD_A,
+        name: "Carro da família",
+        archived: false,
+        ...auditFor(MEMBER_A),
+      }),
+    );
+    await assertSucceeds(
+      db.collection(`households/${HOUSEHOLD_A}/properties`).add({
+        householdId: HOUSEHOLD_A,
+        name: "Casa principal",
+        kind: "HOME",
+        archived: false,
+        ...auditFor(MEMBER_A),
+      }),
+    );
+  });
+
+  it("keeps vehicle and property registers read-only for viewers", async () => {
+    await seed();
+    const db = as(testEnv, VIEWER_A).firestore();
+
+    await assertSucceeds(db.collection(`households/${HOUSEHOLD_A}/vehicles`).get());
+    await assertSucceeds(db.collection(`households/${HOUSEHOLD_A}/properties`).get());
+    await assertFails(
+      db.collection(`households/${HOUSEHOLD_A}/vehicles`).add({
+        householdId: HOUSEHOLD_A,
+        name: "Carro",
+        archived: false,
+        ...auditFor(VIEWER_A),
+      }),
+    );
+    await assertFails(
+      db.collection(`households/${HOUSEHOLD_A}/properties`).add({
+        householdId: HOUSEHOLD_A,
+        name: "Casa",
+        kind: "HOME",
+        archived: false,
+        ...auditFor(VIEWER_A),
+      }),
+    );
+  });
+
+  it("accepts IRPF records with optional money for writers", async () => {
+    await seed();
+    const db = as(testEnv, MEMBER_A).firestore();
+
+    await assertSucceeds(
+      db.collection(`households/${HOUSEHOLD_A}/irpfRecords`).add({
+        householdId: HOUSEHOLD_A,
+        taxYear: 2026,
+        kind: "HEALTH",
+        title: "Consulta médica",
+        amount: brl(30000),
+        paidOn: "2026-03-10",
+        archived: false,
+        ...auditFor(MEMBER_A),
+      }),
+    );
+    await assertSucceeds(
+      db.collection(`households/${HOUSEHOLD_A}/irpfRecords`).add({
+        householdId: HOUSEHOLD_A,
+        taxYear: 2026,
+        kind: "INCOME",
+        title: "Informe de rendimentos",
+        archived: false,
+        ...auditFor(MEMBER_A),
+      }),
+    );
+  });
+
+  it("validates IRPF year and money shape", async () => {
+    await seed();
+    const db = as(testEnv, MEMBER_A).firestore();
+
+    await assertFails(
+      db.collection(`households/${HOUSEHOLD_A}/irpfRecords`).add({
+        householdId: HOUSEHOLD_A,
+        taxYear: 1999,
+        kind: "HEALTH",
+        title: "Consulta médica",
+        archived: false,
+        ...auditFor(MEMBER_A),
+      }),
+    );
+    await assertFails(
+      db.collection(`households/${HOUSEHOLD_A}/irpfRecords`).add({
+        householdId: HOUSEHOLD_A,
+        taxYear: 2026,
+        kind: "HEALTH",
+        title: "Consulta médica",
+        amount: { amount: 300.5, currency: "BRL" },
+        archived: false,
+        ...auditFor(MEMBER_A),
+      }),
+    );
+  });
+
+  it("keeps IRPF records read-only for viewers", async () => {
+    await seed();
+    const db = as(testEnv, VIEWER_A).firestore();
+
+    await assertSucceeds(db.collection(`households/${HOUSEHOLD_A}/irpfRecords`).get());
+    await assertFails(
+      db.collection(`households/${HOUSEHOLD_A}/irpfRecords`).add({
+        householdId: HOUSEHOLD_A,
+        taxYear: 2026,
+        kind: "HEALTH",
+        title: "Consulta médica",
+        archived: false,
+        ...auditFor(VIEWER_A),
+      }),
+    );
+  });
 });
 
 describe("assinaturas", () => {

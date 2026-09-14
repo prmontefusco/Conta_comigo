@@ -99,6 +99,7 @@ export async function settleObligation(
       categoryId: obligation.categoryId ?? (isInflow ? undefined : "outros-gastos"),
       settlesObligationId: obligation.id,
       vehicleId: obligation.vehicleId,
+      propertyId: obligation.propertyId,
       createdAt: now,
       updatedAt: now,
       createdBy: input.uid,

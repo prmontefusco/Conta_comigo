@@ -20,6 +20,7 @@ import type {
   FlowDirection,
   HouseholdId,
   MemberId,
+  PropertyId,
   RecurringRuleId,
   VehicleId,
   Visibility,
@@ -78,6 +79,7 @@ export interface RecurringRule extends AuditFields {
   readonly visibility: Visibility;
   readonly responsibleMemberId?: MemberId;
   readonly vehicleId?: VehicleId;
+  readonly propertyId?: PropertyId;
 
   readonly active: boolean;
   readonly notes?: string;
