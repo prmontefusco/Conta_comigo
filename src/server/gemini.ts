@@ -57,8 +57,17 @@ export async function readFileWithGemini(input: GeminiFileReadInput): Promise<st
               ],
             },
           ],
-          // Leitura, não criação: temperatura zero.
-          generationConfig: { temperature: 0, maxOutputTokens: input.maxOutputTokens },
+          generationConfig: {
+            // Leitura, não criação: temperatura zero.
+            temperature: 0,
+            maxOutputTokens: input.maxOutputTokens,
+            // Sem isto, modelos com "raciocínio" (a partir do Gemini 3) gastam uma
+            // fatia grande e variável do próprio maxOutputTokens pensando antes de
+            // escrever a resposta — em teste, quase metade do orçamento em um
+            // arquivo pequeno. Numa leitura estruturada como esta, isso só cria
+            // risco de truncar o JSON no meio sem ganhar precisão nenhuma.
+            thinkingConfig: { thinkingBudget: 0 },
+          },
         }),
         signal: AbortSignal.timeout(input.timeoutMs),
       },

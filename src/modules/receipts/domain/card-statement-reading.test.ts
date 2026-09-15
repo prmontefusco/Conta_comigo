@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildCardStatementPrompt, parseCardStatementReading } from "./card-statement-reading";
+import { monthKey } from "@/core/date/calendar-date";
+import {
+  buildCardStatementPrompt,
+  importStatementMonth,
+  parseCardStatementReading,
+  remainingInstallments,
+} from "./card-statement-reading";
 
 describe("parseCardStatementReading", () => {
   it("reads current statement totals and installment purchases", () => {
@@ -112,5 +118,39 @@ describe("parseCardStatementReading", () => {
 
   it("puts the purchase limit in the prompt", () => {
     expect(buildCardStatementPrompt(80)).toContain("Retorne no máximo 80 compras");
+  });
+});
+
+describe("remainingInstallments e importStatementMonth", () => {
+  it("conta só as parcelas que ainda faltam, a partir da parcela lida", () => {
+    // Assai: parcela 2 de 3, lida na fatura de setembro (primeira em agosto).
+    const assai = {
+      installmentNumber: 2,
+      installmentCount: 3,
+      firstStatementMonth: monthKey("2026-08"),
+    };
+    expect(remainingInstallments(assai)).toBe(2);
+    expect(importStatementMonth(assai)).toBe(monthKey("2026-09"));
+  });
+
+  it("não inventa parcelas passadas para uma compra na última parcela", () => {
+    // 12 de 12: só a última entra, não as 11 já pagas fora do app.
+    const ultimaParcela = {
+      installmentNumber: 12,
+      installmentCount: 12,
+      firstStatementMonth: monthKey("2025-10"),
+    };
+    expect(remainingInstallments(ultimaParcela)).toBe(1);
+    expect(importStatementMonth(ultimaParcela)).toBe(monthKey("2026-09"));
+  });
+
+  it("mantém o total de parcelas para uma compra nova, começando agora", () => {
+    const novaCompra = {
+      installmentNumber: 1,
+      installmentCount: 12,
+      firstStatementMonth: monthKey("2026-09"),
+    };
+    expect(remainingInstallments(novaCompra)).toBe(12);
+    expect(importStatementMonth(novaCompra)).toBe(monthKey("2026-09"));
   });
 });

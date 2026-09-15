@@ -21,6 +21,10 @@ import {
 import { InstallmentPlansCard } from "@/modules/cards/ui/installment-plans-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
+import {
+  importStatementMonth,
+  remainingInstallments,
+} from "@/modules/receipts/domain/card-statement-reading";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 
 interface ImportedCardPurchase {
@@ -76,6 +80,10 @@ export function CardStatementImportButton({
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Preenchido depois de salvar, com os ids criados — é o que permite desfazer
+  // uma importação errada (cartão trocado, arquivo errado) sem caçar cada
+  // lançamento um por um.
+  const [savedIds, setSavedIds] = useState<string[] | null>(null);
 
   const card = finance.cards.find((item) => item.id === cardId);
   const expenseCategories = finance.categories.filter((category) => category.kind === "EXPENSE");
@@ -123,6 +131,7 @@ export function CardStatementImportButton({
     setError(null);
     setAnalyzing(false);
     setSaving(false);
+    setSavedIds(null);
   }
 
   async function handleFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
@@ -199,10 +208,18 @@ export function CardStatementImportButton({
 
     setSaving(true);
     try {
+      const createdIds: string[] = [];
       for (const purchase of toCreate) {
-        const purchaseDate = estimatedPurchaseDate(card, purchase.firstStatementMonth);
-        const totalAmount = money(purchase.installmentAmount * purchase.installmentCount);
-        await collections.cardPurchases.create({
+        // A fatura lida mostra a parcela ATUAL (ex.: 12 de 12), não a compra
+        // inteira desde o início. Recriar as 12 parcelas a partir da primeira
+        // inventaria 11 faturas passadas que a pessoa já pagou fora do app,
+        // como se estivessem em aberto hoje. Por isso só as parcelas que ainda
+        // faltam entram, a partir do mês desta fatura.
+        const remaining = remainingInstallments(purchase);
+        const importMonth = importStatementMonth(purchase);
+        const purchaseDate = estimatedPurchaseDate(card, importMonth);
+        const totalAmount = money(purchase.installmentAmount * remaining);
+        const created = await collections.cardPurchases.create({
           householdId: household.id,
           creditCardId: card.id,
           description: purchase.description,
@@ -211,16 +228,34 @@ export function CardStatementImportButton({
           purchaseDate,
           competenceDate: purchaseDate,
           categoryId: categoryByKey[purchase.importKey],
-          installmentCount: purchase.installmentCount,
+          installmentCount: remaining,
           visibility: "HOUSEHOLD",
           notes: `Importado de fatura do cartão. Chave: ${purchase.importKey}`,
         } as never);
+        createdIds.push(created.id);
       }
 
+      setSavedIds(createdIds);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Falha ao salvar as compras.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /** Some tudo o que a última importação criou — o "arrependimento" de cartão errado ou arquivo errado. */
+  async function handleUndo() {
+    if (!savedIds) return;
+    setError(null);
+    setSaving(true);
+    try {
+      for (const id of savedIds) {
+        await collections.cardPurchases.remove(id);
+      }
       setOpen(false);
       reset();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Falha ao salvar as compras.");
+      setError(err instanceof Error ? err.message : "Não foi possível desfazer agora.");
     } finally {
       setSaving(false);
     }
@@ -299,7 +334,36 @@ export function CardStatementImportButton({
 
           {analyzing ? <Spinner label="Lendo fatura e parcelas" /> : null}
 
-          {reading && !analyzing ? (
+          {savedIds ? (
+            <Callout tone="positive" title="Importação concluída">
+              <p>
+                {savedIds.length} {savedIds.length === 1 ? "compra lançada" : "compras lançadas"}{" "}
+                nesta fatura.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    reset();
+                  }}
+                  disabled={saving}
+                >
+                  Concluir
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void handleUndo()}
+                  disabled={saving}
+                >
+                  {saving ? "Desfazendo…" : "Desfazer importação"}
+                </Button>
+              </div>
+            </Callout>
+          ) : null}
+
+          {reading && !analyzing && !savedIds ? (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[color:var(--color-surface-sunken)] p-3">
                 <div>
@@ -370,7 +434,11 @@ export function CardStatementImportButton({
                           <p className="truncate text-sm font-medium">{purchase.description}</p>
                           <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
                             {purchase.installmentCount > 1
-                              ? `${purchase.installmentCount} parcelas desde ${formatMonthKey(purchase.firstStatementMonth)}`
+                              ? `Parcela ${purchase.installmentNumber}/${purchase.installmentCount} — ` +
+                                (remainingInstallments(purchase) === 1
+                                  ? "última, "
+                                  : `restam ${remainingInstallments(purchase)}, `) +
+                                `a partir de ${formatMonthKey(importStatementMonth(purchase))}`
                               : "Compra à vista"}
                           </p>
                           {purchase.match === "EXACT" ? (
@@ -382,7 +450,9 @@ export function CardStatementImportButton({
                           ) : null}
                         </div>
                         <MoneyText
-                          value={money(purchase.installmentAmount * purchase.installmentCount)}
+                          value={money(
+                            purchase.installmentAmount * remainingInstallments(purchase),
+                          )}
                           size="sm"
                           tone="outflow"
                         />

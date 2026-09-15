@@ -145,6 +145,29 @@ export function parseCardStatementReading(
   };
 }
 
+/**
+ * Quantas parcelas ainda faltam, a partir da que a fatura lida mostra.
+ *
+ * A fatura sempre lê a parcela ATUAL (ex.: "12/12"), nunca a compra inteira
+ * desde o início. Importar as 12 parcelas a partir da primeira inventaria 11
+ * faturas passadas que a pessoa já pagou fora do app, como se ainda
+ * estivessem em aberto hoje.
+ */
+export function remainingInstallments(purchase: {
+  readonly installmentCount: number;
+  readonly installmentNumber: number;
+}): number {
+  return purchase.installmentCount - purchase.installmentNumber + 1;
+}
+
+/** O mês desta fatura — o que `firstStatementMonth` seria se a parcela lida fosse a primeira. */
+export function importStatementMonth(purchase: {
+  readonly firstStatementMonth: MonthKey;
+  readonly installmentNumber: number;
+}): MonthKey {
+  return addMonthsToKey(purchase.firstStatementMonth, purchase.installmentNumber - 1);
+}
+
 export const cardStatementRequestSchema = z.object({
   fileBase64: z.string().min(64).max(15_000_000),
   mimeType: z.enum(["application/pdf", "image/jpeg", "image/png", "image/webp"]),
