@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { monthKey } from "@/core/date/calendar-date";
 import {
   buildCardStatementPrompt,
+  groupImportedPurchases,
   importStatementMonth,
   parseCardStatementReading,
   remainingInstallments,
@@ -118,6 +119,73 @@ describe("parseCardStatementReading", () => {
 
   it("puts the purchase limit in the prompt", () => {
     expect(buildCardStatementPrompt(80)).toContain("Retorne no máximo 80 compras");
+  });
+});
+
+describe("groupImportedPurchases", () => {
+  it("descarta a prévia de 'próximas faturas' quando a compra já apareceu na fatura atual", () => {
+    // Fatura real da Passaí: cada uma destas compras aparece duas vezes na
+    // leitura — uma vez nos lançamentos desta fatura, outra no resumo de
+    // "compras parceladas - próximas faturas", com o número de parcela
+    // seguinte. As duas descrevem a mesma compra parcelada.
+    const purchases = [
+      {
+        description: "Assai 97 Cg Ae",
+        installmentAmount: 25452,
+        installmentNumber: 2,
+        installmentCount: 3,
+      },
+      {
+        description: "Assai 97 Cg Ae",
+        installmentAmount: 25452,
+        installmentNumber: 3,
+        installmentCount: 3,
+      },
+      {
+        description: "PARCELA DE REF",
+        installmentAmount: 3828,
+        installmentNumber: 4,
+        installmentCount: 6,
+      },
+      {
+        description: "PARCELA DE REF",
+        installmentAmount: 3828,
+        installmentNumber: 5,
+        installmentCount: 6,
+      },
+      {
+        description: "Mensalidade - Plano do Anuidade Diferenciada",
+        installmentAmount: 1665,
+        installmentNumber: 1,
+        installmentCount: 1,
+      },
+    ];
+
+    const grouped = groupImportedPurchases(purchases);
+
+    expect(grouped).toHaveLength(3);
+    expect(grouped.find((p) => p.description === "Assai 97 Cg Ae")).toMatchObject({
+      installmentNumber: 2,
+      installmentCount: 3,
+    });
+    expect(grouped.find((p) => p.description === "PARCELA DE REF")).toMatchObject({
+      installmentNumber: 4,
+      installmentCount: 6,
+    });
+  });
+
+  it("mantém compras diferentes com o mesmo valor de parcela", () => {
+    const purchases = [
+      {
+        description: "Mercado",
+        installmentAmount: 5000,
+        installmentNumber: 1,
+        installmentCount: 1,
+      },
+      { description: "Posto", installmentAmount: 5000, installmentNumber: 1, installmentCount: 1 },
+    ];
+
+    expect(groupImportedPurchases(purchases)).toHaveLength(2);
   });
 });
 

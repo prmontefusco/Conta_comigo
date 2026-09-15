@@ -22,6 +22,7 @@ import { InstallmentPlansCard } from "@/modules/cards/ui/installment-plans-card"
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 import {
+  groupImportedPurchases,
   importStatementMonth,
   remainingInstallments,
 } from "@/modules/receipts/domain/card-statement-reading";
@@ -94,7 +95,7 @@ export function CardStatementImportButton({
 
   const proposals = useMemo(() => {
     if (!reading || !card) return [];
-    return groupPurchases(reading.purchases).map((purchase) => ({
+    return groupImportedPurchases(reading.purchases).map((purchase) => ({
       ...purchase,
       match: duplicateMatchFor(purchase, card, finance.cardPurchases),
     }));
@@ -106,7 +107,7 @@ export function CardStatementImportButton({
   // que já resolve "isso eu já lancei" desse jeito.
   useEffect(() => {
     if (!reading || !card) return;
-    const grouped = groupPurchases(reading.purchases);
+    const grouped = groupImportedPurchases(reading.purchases);
     setExcluded(
       new Set(
         grouped
@@ -548,23 +549,6 @@ function writeCachedStatement(hash: string, reading: CardStatementReadingRespons
     // Cache é economia de custo, não parte do lançamento. Se o navegador negar,
     // o fluxo segue normalmente.
   }
-}
-
-function groupPurchases(purchases: readonly ImportedCardPurchase[]): ImportedCardPurchase[] {
-  const grouped = new Map<string, ImportedCardPurchase>();
-  for (const purchase of purchases) {
-    const key = [
-      normalise(purchase.description),
-      purchase.installmentAmount,
-      purchase.installmentCount,
-      purchase.firstStatementMonth,
-    ].join("|");
-    const current = grouped.get(key);
-    if (!current || purchase.installmentNumber < current.installmentNumber) {
-      grouped.set(key, purchase);
-    }
-  }
-  return [...grouped.values()];
 }
 
 type DuplicateMatch = "EXACT" | "POSSIBLE" | null;

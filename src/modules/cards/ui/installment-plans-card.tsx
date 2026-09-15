@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { formatMonthKey } from "@/core/date/calendar-date";
 import {
   Badge,
+  Button,
+  Callout,
   Card,
   CardTitle,
   EmptyState,
@@ -13,6 +15,8 @@ import {
 import { openInstallmentPlans } from "@/modules/cards/domain/credit-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useMembers } from "@/modules/household/ui/use-members";
+import { useSession } from "@/modules/household/ui/session-provider";
+import { useCollections } from "@/modules/shared/ui/use-collections";
 
 /**
  * Purchases still being paid off, and when each one ends.
@@ -25,6 +29,10 @@ import { useMembers } from "@/modules/household/ui/use-members";
 export function InstallmentPlansCard({ cardId }: { cardId?: string }) {
   const finance = useFinance();
   const { nameOf } = useMembers();
+  const { canWrite } = useSession();
+  const collections = useCollections();
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const plans = useMemo(() => {
     const all = openInstallmentPlans(finance.cards, finance.cardPurchases, finance.asOf);
@@ -32,6 +40,16 @@ export function InstallmentPlansCard({ cardId }: { cardId?: string }) {
   }, [finance.cards, finance.cardPurchases, finance.asOf, cardId]);
 
   const cardName = (id: string) => finance.cards.find((card) => card.id === id)?.name ?? "Cartão";
+
+  async function handleDelete(purchaseId: string) {
+    setDeletingId(purchaseId);
+    try {
+      await collections.cardPurchases.remove(purchaseId);
+      setConfirmingId(null);
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   if (plans.length === 0) {
     return (
@@ -90,6 +108,47 @@ export function InstallmentPlansCard({ cardId }: { cardId?: string }) {
                 somando <MoneyText value={plan.remainingAmount} size="sm" tone="outflow" />.
               </p>
             </div>
+
+            {canWrite ? (
+              confirmingId === plan.purchaseId ? (
+                <div className="mt-2">
+                  <Callout tone="critical" title="Excluir esta compra?">
+                    <p className="text-sm">
+                      Remove todas as parcelas dela — passadas e futuras — de uma vez. Não dá para
+                      desfazer. Use isto para tirar uma compra que entrou errada numa importação de
+                      fatura.
+                    </p>
+                    <div className="mt-3 flex gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => void handleDelete(plan.purchaseId)}
+                        disabled={deletingId === plan.purchaseId}
+                      >
+                        {deletingId === plan.purchaseId ? "Excluindo…" : "Excluir"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setConfirmingId(null)}
+                        disabled={deletingId === plan.purchaseId}
+                      >
+                        Manter
+                      </Button>
+                    </div>
+                  </Callout>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="mt-2 text-xs"
+                  onClick={() => setConfirmingId(plan.purchaseId)}
+                >
+                  Excluir compra
+                </Button>
+              )
+            ) : null}
           </li>
         ))}
       </ul>

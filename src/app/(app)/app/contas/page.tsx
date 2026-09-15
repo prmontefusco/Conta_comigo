@@ -23,10 +23,12 @@ import {
 } from "@/modules/obligations/domain/obligation";
 import { NewObligationDialog } from "@/modules/obligations/ui/new-obligation-dialog";
 import { ConfirmOccurrenceDialog } from "@/modules/recurring/ui/confirm-occurrence-dialog";
+import { EditRecurringRuleDialog } from "@/modules/recurring/ui/edit-recurring-rule-dialog";
 import {
   pendingOccurrences,
   type PendingOccurrence,
 } from "@/modules/recurring/domain/pending-occurrences";
+import type { RecurringRule } from "@/modules/recurring/domain/recurring-rule";
 import { SettleObligationDialog } from "@/modules/obligations/ui/settle-obligation-dialog";
 import { DocumentImportButton } from "@/modules/receipts/ui/document-import-button";
 import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
@@ -56,6 +58,7 @@ export default function ObligationsPage() {
   const [settling, setSettling] = useState<Obligation | null>(null);
   const [editing, setEditing] = useState<Obligation | null>(null);
   const [confirming, setConfirming] = useState<PendingOccurrence | null>(null);
+  const [editingRule, setEditingRule] = useState<RecurringRule | null>(null);
 
   const items = useMemo(
     () => filterObligations(finance.obligations, direction, filter, finance.asOf),
@@ -261,6 +264,16 @@ export default function ObligationsPage() {
                       {direction === "INFLOW" ? "Recebi" : "Paguei"}
                     </Button>
                   ) : null}
+                  {canWrite ? (
+                    <Button
+                      variant="ghost"
+                      className="mt-1 block w-full text-xs"
+                      onClick={() => setEditingRule(item.rule)}
+                      aria-label={`Editar ${item.rule.description}`}
+                    >
+                      Editar
+                    </Button>
+                  ) : null}
                 </div>
               </li>
             ))}
@@ -269,6 +282,7 @@ export default function ObligationsPage() {
       ) : null}
 
       <ConfirmOccurrenceDialog pending={confirming} onClose={() => setConfirming(null)} />
+      <EditRecurringRuleDialog rule={editingRule} onClose={() => setEditingRule(null)} />
 
       <NewObligationDialog
         open={creating || editing !== null}

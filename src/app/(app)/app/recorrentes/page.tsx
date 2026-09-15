@@ -18,11 +18,13 @@ import {
 import { formatMoney } from "@/core/money/format";
 import type { Money } from "@/core/money/money";
 import { NewObligationDialog } from "@/modules/obligations/ui/new-obligation-dialog";
+import { EditRecurringRuleDialog } from "@/modules/recurring/ui/edit-recurring-rule-dialog";
 import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 import { estimateVariableExpense } from "@/modules/recurring/domain/variable-expense-estimator";
+import type { RecurringRule } from "@/modules/recurring/domain/recurring-rule";
 
 /**
  * Recurring income and bills.
@@ -35,6 +37,7 @@ export default function RecurringPage() {
   const { canWrite } = useSession();
   const collections = useCollections();
   const [creating, setCreating] = useState(false);
+  const [editingRule, setEditingRule] = useState<RecurringRule | null>(null);
 
   if (finance.loading) return <Spinner label="Carregando suas recorrências" />;
 
@@ -96,6 +99,7 @@ export default function RecurringPage() {
             canWrite={canWrite}
             onToggle={toggle}
             onUpdateAmount={updateAmount}
+            onEdit={setEditingRule}
           />
           <RuleGroup
             title="Saídas"
@@ -106,11 +110,13 @@ export default function RecurringPage() {
             canWrite={canWrite}
             onToggle={toggle}
             onUpdateAmount={updateAmount}
+            onEdit={setEditingRule}
           />
         </>
       )}
 
       <NewObligationDialog open={creating} onClose={() => setCreating(false)} />
+      <EditRecurringRuleDialog rule={editingRule} onClose={() => setEditingRule(null)} />
     </div>
   );
 }
@@ -124,6 +130,7 @@ function RuleGroup({
   canWrite,
   onToggle,
   onUpdateAmount,
+  onEdit,
 }: {
   title: string;
   rules: ReturnType<typeof useFinance>["recurringRules"];
@@ -133,6 +140,7 @@ function RuleGroup({
   canWrite: boolean;
   onToggle: (ruleId: string, active: boolean) => Promise<void>;
   onUpdateAmount: (ruleId: string, amount: Money) => Promise<void>;
+  onEdit: (rule: ReturnType<typeof useFinance>["recurringRules"][number]) => void;
 }) {
   if (rules.length === 0) return null;
 
@@ -208,6 +216,16 @@ function RuleGroup({
                     onClick={() => void onToggle(rule.id, !rule.active)}
                   >
                     {rule.active ? "Pausar" : "Retomar"}
+                  </Button>
+                ) : null}
+                {canWrite ? (
+                  <Button
+                    variant="ghost"
+                    className="mt-1 block w-full text-xs"
+                    onClick={() => onEdit(rule)}
+                    aria-label={`Editar ${rule.description}`}
+                  >
+                    Editar
                   </Button>
                 ) : null}
               </div>
