@@ -13,6 +13,7 @@ const ACTION_LABELS: Record<AlertKind, string> = {
   COLLATERAL_AT_RISK: "Ver dívida",
   ESSENTIAL_SERVICE_AT_RISK: "Abrir modo emergência",
   BUDGET_OVERSPENT: "Ajustar orçamento",
+  OVERDRAFT_GRACE: "Ver contas bancárias",
 };
 
 export function alertActionLabel(alert: Alert): string {

@@ -7,6 +7,8 @@ import {
 } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
 import { sum, type Money } from "@/core/money/money";
+import type { Account } from "@/modules/accounts/domain/account";
+import { overdraftGraceStatus } from "@/modules/accounts/domain/overdraft-grace";
 import {
   computeLimitStatus,
   type CardStatement,
@@ -18,6 +20,7 @@ import { lateInstallmentCount, type Debt } from "@/modules/debts/domain/debt";
 import { classifyDebt, essentialServiceConsequence } from "@/modules/debts/domain/debt-risk";
 import type { ForecastResult } from "@/modules/forecast/domain/forecast-types";
 import { progressOf, type Reserve } from "@/modules/reserves/domain/reserve";
+import type { Transaction } from "@/modules/transactions/domain/transaction";
 
 /**
  * Alerts.
@@ -43,6 +46,8 @@ export type AlertKind =
   | "RESERVE_BELOW_TARGET"
   | "INSTALLMENTS_ENDING"
   | "LOW_UNCOMMITTED_CASH"
+  /** Usando o cheque especial, perto de sair (ou já fora) do período sem juros. */
+  | "OVERDRAFT_GRACE"
   /** A debt whose collateral - car, home, equipment - can be taken. */
   | "COLLATERAL_AT_RISK"
   /** An overdue bill whose non-payment removes something the household lives on. */
@@ -66,6 +71,8 @@ export interface AlertInput {
   readonly asOf: CalendarDate;
   readonly overview: DashboardOverview;
   readonly forecast: ForecastResult;
+  readonly accounts: readonly Account[];
+  readonly transactions: readonly Transaction[];
   readonly cards: readonly CreditCard[];
   readonly cardStatements: readonly CardStatement[];
   readonly reserves: readonly Reserve[];
@@ -285,6 +292,42 @@ export function buildAlerts(input: AlertInput): Alert[] {
         : `${Math.round(limit.utilisation * 100)}% do limite do ${card.name} está comprometido.`,
       href: `/cartoes/${card.id}`,
     });
+  }
+
+  /* --- Cheque especial: período sem juros ---------------------------- */
+
+  for (const account of input.accounts) {
+    if (account.archived) continue;
+    const grace = overdraftGraceStatus(account, input.transactions, input.asOf);
+    if (!grace) continue;
+
+    if (!grace.withinGracePeriod) {
+      alerts.push({
+        id: `overdraft-grace-${account.id}`,
+        kind: "OVERDRAFT_GRACE",
+        severity: "ATTENTION",
+        message:
+          `A conta "${account.name}" está usando o limite há ${grace.daysUsed} dias — passou dos ` +
+          `${grace.graceDays} dias sem juros, os juros já devem estar sendo cobrados.`,
+        href: "/contas-bancarias",
+      });
+      continue;
+    }
+
+    // Só vale a pena avisar perto do fim: nos primeiros dias, dizer "ainda dá
+    // tempo" não muda nenhuma decisão.
+    if (grace.daysRemaining <= 2) {
+      alerts.push({
+        id: `overdraft-grace-${account.id}`,
+        kind: "OVERDRAFT_GRACE",
+        severity: "ATTENTION",
+        message:
+          grace.daysRemaining === 0
+            ? `Hoje é o último dia sem juros no limite da conta "${account.name}". Depois de hoje, o que estiver usado passa a render juros.`
+            : `Restam ${grace.daysRemaining} dias sem juros no limite da conta "${account.name}". Repor o saldo antes disso evita começar a pagar juros.`,
+        href: "/contas-bancarias",
+      });
+    }
   }
 
   /* --- Reserves ----------------------------------------------------- */

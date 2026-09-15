@@ -93,7 +93,7 @@ export function CreateMemberAccountDialog({
       `Acesse https://contacomigo.app/entrar com:\n` +
       `E-mail: ${result.email}\n` +
       `Senha: ${result.password}\n\n` +
-      `Troque a senha assim que entrar, em Configurações.`
+      `No primeiro acesso, será pedido para trocar essa senha por uma de sua escolha.`
     : "";
 
   return (

@@ -59,6 +59,8 @@ function inputWith(overrides: Partial<AlertInput>): AlertInput {
     asOf: ASOF,
     overview: overviewWith([]),
     forecast: emptyForecast,
+    accounts: [],
+    transactions: [],
     cards: [],
     cardStatements: [],
     reserves: [],

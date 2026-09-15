@@ -7,6 +7,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Button, Spinner } from "@/components/ui/primitives";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useFinance } from "@/modules/household/ui/finance-provider";
+import { ForcePasswordChangeScreen } from "@/modules/household/ui/force-password-change-screen";
 import { AlertBell } from "@/modules/alerts/ui/alert-bell";
 import { DEPENDENT_BLOCKED_PATHS, mobileBarFor, navSectionsFor } from "@/modules/shared/ui/app-nav";
 
@@ -30,6 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     role,
     household,
     households,
+    membership,
     selectHousehold,
     logout,
     profile,
@@ -43,6 +45,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [emailSent, setEmailSent] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [passwordJustChanged, setPasswordJustChanged] = useState(false);
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -87,6 +90,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (status === "unauthenticated") {
     return <Spinner label="Redirecionando" />;
+  }
+
+  if (household && membership?.mustChangePassword && !passwordJustChanged) {
+    return (
+      <ForcePasswordChangeScreen
+        householdId={household.id}
+        onDone={() => setPasswordJustChanged(true)}
+      />
+    );
   }
 
   if (!household) {

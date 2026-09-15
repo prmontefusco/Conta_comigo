@@ -113,6 +113,8 @@ export const membershipSchema = auditSchema.extend({
   role: householdRoleSchema,
   status: z.enum(["ACTIVE", "INVITED", "REMOVED"]),
   joinedAt: instantSchema.optional(),
+  /** Conta criada por um administrador com senha gerada; precisa trocar antes de usar o app. */
+  mustChangePassword: z.boolean().optional().default(false),
 });
 
 /* ------------------------------------------------------------------ */
@@ -140,6 +142,7 @@ export const accountSchema = base.extend({
   visibility: visibilitySchema,
   ownerMemberId: idSchema.optional(),
   overdraftLimit: moneySchema.optional(),
+  overdraftGraceDays: z.number().int().min(1).max(31).optional(),
   includeInTotals: z.boolean().default(true),
   archived: z.boolean().default(false),
   color: z.string().max(24).optional(),

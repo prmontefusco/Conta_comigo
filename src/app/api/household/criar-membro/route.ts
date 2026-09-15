@@ -150,6 +150,9 @@ export async function POST(request: Request) {
       createdAt: now,
       updatedAt: now,
       createdBy: auth.caller.uid,
+      // A senha foi gerada aqui, não escolhida pela pessoa: ela precisa trocar
+      // no primeiro acesso (ver /api/household/trocar-senha-inicial).
+      mustChangePassword: true,
     });
   } catch (error) {
     // A conta já existe no Auth mas não entrou no grupo - desfaz, ou vira um

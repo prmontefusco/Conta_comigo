@@ -108,7 +108,7 @@ export async function POST(request: Request) {
  * cadência que não combina com reimplantar código para trocar uma string.
  */
 function geminiModel(): string {
-  return process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+  return process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash";
 }
 
 /** `null` significa "não deu, use o motor local" — nunca uma exceção que derrube a resposta. */

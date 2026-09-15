@@ -364,6 +364,8 @@ export function deriveFinanceData(
     asOf,
     overview,
     forecast: projection,
+    accounts: state.accounts,
+    transactions: state.transactions,
     cards: state.creditCards,
     cardStatements,
     reserves: state.reserves,

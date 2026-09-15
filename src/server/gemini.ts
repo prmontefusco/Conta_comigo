@@ -32,7 +32,7 @@ export interface GeminiFileReadInput {
 }
 
 export function geminiModel(): string {
-  return process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+  return process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash";
 }
 
 export async function readFileWithGemini(input: GeminiFileReadInput): Promise<string | null> {

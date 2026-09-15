@@ -23,6 +23,7 @@ import {
   type Account,
   type AccountType,
 } from "@/modules/accounts/domain/account";
+import { overdraftGraceStatus } from "@/modules/accounts/domain/overdraft-grace";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import type { Transaction } from "@/modules/transactions/domain/transaction";
 import { MemberField } from "@/modules/household/ui/member-field";
@@ -147,6 +148,21 @@ export default function AccountsPage() {
                     </span>
                   </p>
                 ) : null}
+
+                {(() => {
+                  const grace = overdraftGraceStatus(account, finance.transactions, finance.asOf);
+                  if (!grace) return null;
+                  return (
+                    <p
+                      className="mt-1 text-xs font-medium"
+                      style={{ color: grace.withinGracePeriod ? "var(--muted-fg)" : "var(--color-critical-700)" }}
+                    >
+                      {grace.withinGracePeriod
+                        ? `Usando o limite há ${grace.daysUsed} ${grace.daysUsed === 1 ? "dia" : "dias"} — ainda sem juros. Restam ${grace.daysRemaining} ${grace.daysRemaining === 1 ? "dia" : "dias"} de carência.`
+                        : `Usando o limite há ${grace.daysUsed} dias — passou dos ${grace.graceDays} dias sem juros, os juros já devem estar sendo cobrados.`}
+                    </p>
+                  );
+                })()}
               </li>
             ))}
           </ul>
@@ -411,6 +427,7 @@ function AccountDialog({
   const [balanceText, setBalanceText] = useState("");
   const [balanceDate, setBalanceDate] = useState<string>(asOf);
   const [overdraftText, setOverdraftText] = useState("");
+  const [graceDaysText, setGraceDaysText] = useState("");
   const [visibility, setVisibility] = useState("HOUSEHOLD");
   const [ownerMemberId, setOwnerMemberId] = useState("");
   const [archived, setArchived] = useState(false);
@@ -433,6 +450,7 @@ function AccountDialog({
       setBalanceText("");
       setBalanceDate(asOf);
       setOverdraftText("");
+      setGraceDaysText("");
       setVisibility("HOUSEHOLD");
       setOwnerMemberId("");
       setArchived(false);
@@ -445,6 +463,7 @@ function AccountDialog({
     setBalanceText(moneyField(account.openingBalance.amount));
     setBalanceDate(account.openingBalanceDate);
     setOverdraftText(account.overdraftLimit ? moneyField(account.overdraftLimit.amount) : "");
+    setGraceDaysText(account.overdraftGraceDays ? String(account.overdraftGraceDays) : "");
     setVisibility(account.visibility);
     setOwnerMemberId(account.ownerMemberId ?? "");
     setArchived(account.archived);
@@ -470,6 +489,14 @@ function AccountDialog({
       return;
     }
 
+    // Sem limite não há o que ficar negativo sem juros — a carência não tem
+    // sentido sozinha, então some junto se o limite for removido.
+    const graceDays = overdraftText && graceDaysText ? Number(graceDaysText) : undefined;
+    if (graceDays !== undefined && (!Number.isInteger(graceDays) || graceDays < 1 || graceDays > 31)) {
+      setError("Informe um número de dias entre 1 e 31.");
+      return;
+    }
+
     setSaving(true);
     try {
       const fields = {
@@ -479,6 +506,7 @@ function AccountDialog({
         openingBalance,
         openingBalanceDate: balanceDate as never,
         overdraftLimit: overdraftText ? (fromDecimalString(overdraftText) ?? undefined) : undefined,
+        overdraftGraceDays: graceDays,
         visibility: visibility as never,
         ownerMemberId: ownerMemberId || undefined,
         includeInTotals: true,
@@ -586,6 +614,20 @@ function AccountDialog({
           placeholder="0,00"
           hint="Opcional. É crédito, não saldo: fica sempre separado do seu dinheiro."
         />
+
+        {overdraftText ? (
+          <TextField
+            label="Dias sem juros no cheque especial"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={31}
+            value={graceDaysText}
+            onChange={(event) => setGraceDaysText(event.target.value)}
+            placeholder="Ex.: 10"
+            hint="Alguns bancos (como o Santander) não cobram juros nos primeiros dias em que a conta fica negativa. Deixe em branco se o seu não oferecer isso."
+          />
+        ) : null}
 
         <MemberField
           label="Titular"

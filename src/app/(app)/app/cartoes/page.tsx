@@ -58,7 +58,9 @@ export default function CardsPage() {
         <h1 className="text-xl font-semibold">Cartões</h1>
         {canWrite ? (
           <div className="flex flex-wrap items-center gap-2">
-            {cards.length > 0 ? <CardStatementImportButton /> : null}
+            {cards.length > 0 ? (
+              <CardStatementImportButton onManualEntry={setPurchaseCardId} />
+            ) : null}
             <Button onClick={() => setCreatingCard(true)}>Novo cartão</Button>
           </div>
         ) : null}

@@ -155,5 +155,5 @@ env:
   # Confirme o nome na documentação do provedor antes de ligar: um modelo
   # inexistente cai no motor local e registra o status 404 no log.
   - variable: GEMINI_MODEL
-    value: gemini-2.5-flash
+    value: gemini-3.6-flash
     availability: [RUNTIME]

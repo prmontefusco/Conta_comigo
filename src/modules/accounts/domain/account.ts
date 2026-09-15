@@ -39,6 +39,11 @@ export interface Account extends AuditFields {
   readonly ownerMemberId?: MemberId;
   /** Overdraft limit ("cheque especial"). Available funds, but borrowed ones. */
   readonly overdraftLimit?: Money;
+  /**
+   * Dias por mês em que usar o limite não gera juros (alguns bancos, como o
+   * Santander, oferecem isso). Ver `overdraft-grace.ts` para a contagem.
+   */
+  readonly overdraftGraceDays?: number;
   /** Excluded accounts still record movements but stay out of the headline totals. */
   readonly includeInTotals: boolean;
   readonly archived: boolean;

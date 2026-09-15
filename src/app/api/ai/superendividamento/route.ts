@@ -91,7 +91,7 @@ export async function POST(request: Request) {
 }
 
 function geminiModel(): string {
-  return process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+  return process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash";
 }
 
 async function callGeminiSuperendividamento(

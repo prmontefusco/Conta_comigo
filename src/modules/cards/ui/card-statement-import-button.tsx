@@ -53,7 +53,14 @@ const CARD_STATEMENT_CACHE_PREFIX = "conta-comigo:card-statement-reading:";
 const CARD_STATEMENT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const DEFAULT_IMPORT_PURCHASE_LIMIT = 120;
 
-export function CardStatementImportButton({ className }: { className?: string }) {
+export function CardStatementImportButton({
+  className,
+  onManualEntry,
+}: {
+  className?: string;
+  /** A leitura falhou; oferece lançar a fatura à mão em vez de travar aqui. */
+  onManualEntry?: (cardId: string) => void;
+}) {
   const finance = useFinance();
   const { household, user } = useSession();
   const collections = useCollections();
@@ -271,7 +278,22 @@ export function CardStatementImportButton({ className }: { className?: string })
 
           {error ? (
             <Callout tone="critical" title="Não foi possível importar">
-              {error}
+              <p>{error}</p>
+              {onManualEntry && card ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="mt-3"
+                  onClick={() => {
+                    const targetCardId = card.id;
+                    setOpen(false);
+                    reset();
+                    onManualEntry(targetCardId);
+                  }}
+                >
+                  Lançar fatura manualmente
+                </Button>
+              ) : null}
             </Callout>
           ) : null}
 
@@ -305,7 +327,8 @@ export function CardStatementImportButton({ className }: { className?: string })
                 </Callout>
               ) : null}
 
-              {card && openInstallmentPlans(finance.cards, finance.cardPurchases, finance.asOf).some(
+              {card &&
+              openInstallmentPlans(finance.cards, finance.cardPurchases, finance.asOf).some(
                 (plan) => plan.creditCardId === card.id,
               ) ? (
                 <details className="rounded-lg border border-[color:var(--card-border)] p-3">

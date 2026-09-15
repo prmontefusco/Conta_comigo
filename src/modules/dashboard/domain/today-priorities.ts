@@ -43,9 +43,10 @@ const SUBJECT_ORDER: Record<AlertKind, number> = {
   /* 5. tetos que a própria casa definiu */
   BUDGET_OVERSPENT: 9,
   CARD_LIMIT_HIGH: 10,
-  RESERVE_BELOW_TARGET: 11,
+  OVERDRAFT_GRACE: 11,
+  RESERVE_BELOW_TARGET: 12,
   /* informação boa, mas que não muda o dia de hoje */
-  INSTALLMENTS_ENDING: 12,
+  INSTALLMENTS_ENDING: 13,
 };
 
 /** Um rótulo curto que nomeia o assunto, para quem lê antes da frase inteira. */
@@ -60,6 +61,7 @@ const SUBJECT_LABELS: Record<AlertKind, string> = {
   DUE_SOON: "Vence nos próximos dias",
   BUDGET_OVERSPENT: "Teto do mês ultrapassado",
   CARD_LIMIT_HIGH: "Limite do cartão",
+  OVERDRAFT_GRACE: "Cheque especial",
   RESERVE_BELOW_TARGET: "Reserva abaixo da meta",
   INSTALLMENTS_ENDING: "Parcela terminando",
 };
