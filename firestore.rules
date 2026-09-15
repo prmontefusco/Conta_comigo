@@ -467,6 +467,18 @@ service cloud.firestore {
         allow delete: if canWrite(householdId);
       }
 
+      match /cardInvoices/{invoiceId} {
+        allow read: if isMember(householdId);
+        allow create: if canWrite(householdId)
+          && validNewDocument(householdId)
+          && isIntegerMoney(request.resource.data.totalAmount)
+          && request.resource.data.totalAmount.amount > 0
+          && request.resource.data.forecastLines is list
+          && request.resource.data.forecastLines.size() <= 120;
+        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
+        allow delete: if canWrite(householdId);
+      }
+
       match /debts/{debtId} {
         allow read: if isMember(householdId);
         allow create: if canWrite(householdId)

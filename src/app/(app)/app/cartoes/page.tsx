@@ -25,6 +25,7 @@ import { BillingCalendarCard } from "@/modules/cards/ui/billing-calendar-card";
 import { CardStatementImportButton } from "@/modules/cards/ui/card-statement-import-button";
 import { CommittedMonthsCard } from "@/modules/cards/ui/committed-months-card";
 import { InstallmentPlansCard } from "@/modules/cards/ui/installment-plans-card";
+import { ImportedPurchasesManager } from "@/modules/cards/ui/imported-purchases-manager";
 import { NewCardDialog } from "@/modules/cards/ui/new-card-dialog";
 import { NewPurchaseDialog } from "@/modules/cards/ui/new-purchase-dialog";
 import { PayStatementDialog } from "@/modules/cards/ui/pay-statement-dialog";
@@ -47,6 +48,7 @@ export default function CardsPage() {
   const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
   const [purchaseCardId, setPurchaseCardId] = useState<string | null>(null);
   const [payingStatement, setPayingStatement] = useState<CardStatement | null>(null);
+  const [manageImportsCardId, setManageImportsCardId] = useState<string | null>(null);
 
   if (finance.loading) return <Spinner label="Carregando seus cartões" />;
 
@@ -58,9 +60,7 @@ export default function CardsPage() {
         <h1 className="text-xl font-semibold">Cartões</h1>
         {canWrite ? (
           <div className="flex flex-wrap items-center gap-2">
-            {cards.length > 0 ? (
-              <CardStatementImportButton onManualEntry={setPurchaseCardId} />
-            ) : null}
+            {cards.length > 0 ? <CardStatementImportButton /> : null}
             <Button onClick={() => setCreatingCard(true)}>Novo cartão</Button>
           </div>
         ) : null}
@@ -99,6 +99,7 @@ export default function CardsPage() {
               onAddPurchase={() => setPurchaseCardId(card.id)}
               onEdit={setEditingCard}
               onPayStatement={setPayingStatement}
+              onManageImports={() => setManageImportsCardId(card.id)}
             />
           ))}
 
@@ -118,6 +119,10 @@ export default function CardsPage() {
       />
       <NewPurchaseDialog cardId={purchaseCardId} onClose={() => setPurchaseCardId(null)} />
       <PayStatementDialog statement={payingStatement} onClose={() => setPayingStatement(null)} />
+      <ImportedPurchasesManager
+        cardId={manageImportsCardId}
+        onClose={() => setManageImportsCardId(null)}
+      />
     </div>
   );
 }
@@ -126,11 +131,13 @@ function CardSummary({
   cardId,
   onAddPurchase,
   onPayStatement,
+  onManageImports,
   onEdit,
 }: {
   cardId: string;
   onAddPurchase: () => void;
   onPayStatement: (statement: CardStatement) => void;
+  onManageImports: () => void;
   onEdit: (card: CreditCard) => void;
 }) {
   const finance = useFinance();
@@ -146,6 +153,13 @@ function CardSummary({
         .sort((a, b) => (a.referenceMonth < b.referenceMonth ? 1 : -1)),
     [finance.cardStatements, cardId],
   );
+  const importedForecast = finance.importedInvoiceForecast
+    .filter((item) => item.creditCardId === cardId && item.month >= finance.asOf.slice(0, 7))
+    .sort((a, b) => (a.month < b.month ? -1 : 1))
+    .slice(0, 6);
+  const importedInvoices = finance.cardInvoices
+    .filter((item) => item.creditCardId === cardId)
+    .sort((a, b) => (a.referenceMonth < b.referenceMonth ? 1 : -1));
 
   if (!card) return null;
 
@@ -175,6 +189,9 @@ function CardSummary({
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" onClick={onAddPurchase}>
               Nova compra
+            </Button>
+            <Button variant="secondary" onClick={onManageImports}>
+              Corrigir importação
             </Button>
             <Button
               variant="ghost"
@@ -215,7 +232,7 @@ function CardSummary({
           value={limit.committed}
           size="base"
           tone="outflow"
-          hint="Inclui parcelas de faturas futuras."
+          hint="Inclui compras cadastradas, não estimativas da importação."
         />
         <Stat
           label="Limite disponível"
@@ -240,6 +257,73 @@ function CardSummary({
         </p>
       </div>
 
+      {importedForecast.length > 0 ? (
+        <div className="mt-4 rounded-lg border border-[color:var(--card-border)] p-3">
+          <h3 className="text-sm font-semibold">Previsão de parcelas importadas</h3>
+          <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+            Estimativa para planejamento. Não aumenta faturas, dívidas, uso do limite ou saldo de
+            caixa.
+          </p>
+          <ul className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
+            {importedForecast.map((item) => (
+              <li key={item.month} className="flex justify-between gap-2">
+                <span>{formatMonthKey(item.month)}</span>
+                <span>{formatMoney(item.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {importedInvoices.some((item) => item.installmentOffers.length > 0) ? (
+        <details className="mt-4 rounded-lg border border-[color:var(--card-border)] p-3">
+          <summary className="cursor-pointer text-sm font-semibold">
+            Alternativas de parcelamento da fatura
+          </summary>
+          <p className="mt-2 text-xs" style={{ color: "var(--muted-fg)" }}>
+            Oferta lida do documento, não contratada. Confira entrada, CET e total com o emissor
+            antes de decidir.
+          </p>
+          <a
+            className="text-xs underline"
+            href="https://www.bcb.gov.br/meubc/faqs/s/cartao"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Entenda as opções de pagamento no Banco Central
+          </a>
+          {importedInvoices
+            .filter((item) => item.installmentOffers.length > 0)
+            .slice(0, 3)
+            .map((invoice) => (
+              <div key={invoice.id} className="mt-3 text-sm">
+                <p className="font-medium">
+                  {formatMonthKey(invoice.referenceMonth)} · quitar:{" "}
+                  {formatMoney(invoice.totalAmount)}
+                </p>
+                {invoice.installmentOffers.map((offer, index) => {
+                  const total =
+                    offer.upfrontAmount.amount +
+                    offer.installments * offer.installmentAmount.amount;
+                  return (
+                    <p key={index} className="mt-1">
+                      {offer.installments} × {formatMoney(offer.installmentAmount)}
+                      {offer.upfrontAmount.amount > 0
+                        ? ` + entrada ${formatMoney(offer.upfrontAmount)}`
+                        : ""}
+                      {` · total ${formatMoney({ amount: total, currency: "BRL" })}`}
+                      {` · ${total >= invoice.totalAmount.amount ? "custo adicional" : "economia"} ${formatMoney({ amount: Math.abs(total - invoice.totalAmount.amount), currency: "BRL" })}`}
+                      {offer.annualCetPercent != null
+                        ? ` · CET anual ${offer.annualCetPercent}%`
+                        : " · CET não lido"}
+                    </p>
+                  );
+                })}
+              </div>
+            ))}
+        </details>
+      ) : null}
+
       {listed.length > 0 ? (
         <div className="mt-5">
           <h3 className="text-sm font-semibold">Faturas</h3>
@@ -250,8 +334,12 @@ function CardSummary({
                   <p className="text-sm font-medium">{formatMonthKey(statement.referenceMonth)}</p>
                   <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
                     Fecha {formatCalendarDate(statement.closingDate)} · vence{" "}
-                    {formatCalendarDate(statement.dueDate)} · {statement.installments.length}{" "}
-                    {statement.installments.length === 1 ? "lançamento" : "lançamentos"}
+                    {formatCalendarDate(statement.dueDate)} ·{" "}
+                    {importedInvoices.some(
+                      (item) => item.referenceMonth === statement.referenceMonth,
+                    )
+                      ? "total confirmado na importação"
+                      : `${statement.installments.length} ${statement.installments.length === 1 ? "lançamento" : "lançamentos"}`}
                   </p>
                   <div className="mt-1">
                     <StatementBadge statement={statement} today={finance.asOf} />
@@ -274,8 +362,8 @@ function CardSummary({
           </ul>
 
           <p className="mt-3 text-xs" style={{ color: "var(--muted-fg)" }}>
-            Pagar a fatura movimenta dinheiro, mas não gera uma nova despesa: as compras já foram
-            contabilizadas no mês em que aconteceram.
+            Pagar a fatura movimenta dinheiro. Itens importados para previsão não criam novas
+            despesas.
           </p>
         </div>
       ) : null}

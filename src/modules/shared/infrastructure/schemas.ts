@@ -302,6 +302,37 @@ export const cardPurchaseSchema = base.extend({
   notes: notesSchema,
 });
 
+export const cardInvoiceSchema = base.extend({
+  creditCardId: idSchema,
+  referenceMonth: monthKeySchema,
+  dueDate: calendarDateSchema,
+  totalAmount: moneySchema,
+  minimumPayment: moneySchema.optional(),
+  installmentOffers: z
+    .array(
+      z.object({
+        installments: z.number().int().min(2).max(120),
+        installmentAmount: moneySchema,
+        upfrontAmount: moneySchema,
+        annualCetPercent: z.number().min(0).max(10000).optional(),
+      }),
+    )
+    .max(20)
+    .default([]),
+  forecastLines: z
+    .array(
+      z.object({
+        key: z.string().max(160),
+        description: descriptionSchema,
+        amount: moneySchema,
+        firstFutureMonth: monthKeySchema,
+        remainingMonths: z.number().int().min(1).max(120),
+      }),
+    )
+    .max(120)
+    .default([]),
+});
+
 export const debtSchema = base.extend({
   kind: z.enum([
     "PERSONAL_LOAN",
@@ -498,6 +529,7 @@ export type TransactionDoc = z.infer<typeof transactionSchema>;
 export type ObligationDoc = z.infer<typeof obligationSchema>;
 export type CreditCardDoc = z.infer<typeof creditCardSchema>;
 export type CardPurchaseDoc = z.infer<typeof cardPurchaseSchema>;
+export type CardInvoiceDoc = z.infer<typeof cardInvoiceSchema>;
 export type DebtDoc = z.infer<typeof debtSchema>;
 export type RecurringRuleDoc = z.infer<typeof recurringRuleSchema>;
 export type BudgetDoc = z.infer<typeof budgetSchema>;

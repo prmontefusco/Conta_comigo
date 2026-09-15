@@ -30,6 +30,7 @@ import { buildOverview, type DashboardOverview } from "@/modules/dashboard/domai
 import { settledInstallmentNumbers, type Debt } from "@/modules/debts/domain/debt";
 import { sortDecisions, type Decision } from "@/modules/decisions/domain/decision";
 import { forecast } from "@/modules/forecast/domain/forecast";
+import { forecastImportedInvoices } from "@/modules/cards/domain/invoice-forecast";
 import type { ForecastInput, ForecastResult } from "@/modules/forecast/domain/forecast-types";
 import type { Obligation } from "@/modules/obligations/domain/obligation";
 import type { RecurringRule } from "@/modules/recurring/domain/recurring-rule";
@@ -41,6 +42,7 @@ import {
   accountSchema,
   budgetSchema,
   cardPurchaseSchema,
+  cardInvoiceSchema,
   categorySchema,
   creditCardSchema,
   debtSchema,
@@ -56,6 +58,7 @@ import {
   type PropertyDoc,
   type IrpfRecordDoc,
   type VehicleDoc,
+  type CardInvoiceDoc,
 } from "@/modules/shared/infrastructure/schemas";
 import { limitsFor } from "@/modules/billing/domain/plan-limits";
 import type { UserPlan } from "@/modules/billing/domain/subscription";
@@ -107,6 +110,8 @@ export interface FinanceData {
   readonly obligations: readonly Obligation[];
   readonly cards: readonly CreditCard[];
   readonly cardPurchases: readonly CardPurchase[];
+  readonly cardInvoices: readonly CardInvoiceDoc[];
+  readonly importedInvoiceForecast: ReturnType<typeof forecastImportedInvoices>;
   readonly cardStatements: readonly CardStatement[];
   readonly debts: readonly Debt[];
   /**
@@ -154,6 +159,7 @@ type CollectionState = {
   obligations: Obligation[];
   creditCards: CreditCard[];
   cardPurchases: CardPurchase[];
+  cardInvoices?: CardInvoiceDoc[];
   debts: Debt[];
   recurringRules: RecurringRule[];
   reserves: Reserve[];
@@ -172,6 +178,7 @@ const EMPTY_STATE: CollectionState = {
   obligations: [],
   creditCards: [],
   cardPurchases: [],
+  cardInvoices: [],
   debts: [],
   recurringRules: [],
   reserves: [],
@@ -190,6 +197,7 @@ const SUBSCRIPTIONS = [
   ["obligations", obligationSchema],
   ["creditCards", creditCardSchema],
   ["cardPurchases", cardPurchaseSchema],
+  ["cardInvoices", cardInvoiceSchema],
   ["debts", debtSchema],
   ["recurringRules", recurringRuleSchema],
   ["reserves", reserveSchema],
@@ -301,7 +309,20 @@ export function deriveFinanceData(
   const toMonth = monthKeyOf(addMonths(asOf, DATA_HORIZON_MONTHS));
 
   const cardStatements = state.creditCards.flatMap((card) =>
-    projectStatements(card, state.cardPurchases, statementPayments, fromMonth, toMonth, asOf),
+    projectStatements(
+      card,
+      state.cardPurchases,
+      statementPayments,
+      fromMonth,
+      toMonth,
+      asOf,
+      state.cardInvoices ?? [],
+    ),
+  );
+  const importedInvoiceForecast = forecastImportedInvoices(
+    state.cardInvoices ?? [],
+    fromMonth,
+    toMonth,
   );
 
   /* --- Balances ------------------------------------------------------- */
@@ -384,6 +405,8 @@ export function deriveFinanceData(
     obligations: state.obligations,
     cards: state.creditCards,
     cardPurchases: state.cardPurchases,
+    cardInvoices: state.cardInvoices ?? [],
+    importedInvoiceForecast,
     cardStatements,
     debts: state.debts,
     paidDebtInstallments,

@@ -9,6 +9,25 @@ import {
 } from "./card-statement-reading";
 
 describe("parseCardStatementReading", () => {
+  it("reads invoice financing offers separately from purchase installments", () => {
+    const reading = parseCardStatementReading(
+      JSON.stringify({
+        vencimento: "2026-09-18",
+        totalFatura: 422.65,
+        opcoesParcelamento: [{ parcelas: 6, valorParcela: 91.2, entrada: 20, cetAnual: 190 }],
+        compras: [],
+      }),
+    );
+    expect(reading?.purchases).toHaveLength(0);
+    expect(reading?.installmentOffers).toEqual([
+      {
+        installments: 6,
+        installmentAmountCents: 9120,
+        upfrontCents: 2000,
+        annualCetPercent: 190,
+      },
+    ]);
+  });
   it("reads current statement totals and installment purchases", () => {
     const reading = parseCardStatementReading(`{
       "emissor": "Itaú",

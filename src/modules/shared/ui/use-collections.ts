@@ -8,6 +8,7 @@ import {
   accountSchema,
   budgetSchema,
   cardPurchaseSchema,
+  cardInvoiceSchema,
   categorySchema,
   creditCardSchema,
   debtSchema,
@@ -23,6 +24,7 @@ import {
   type AccountDoc,
   type BudgetDoc,
   type CardPurchaseDoc,
+  type CardInvoiceDoc,
   type CategoryDoc,
   type CreditCardDoc,
   type DebtDoc,
@@ -54,6 +56,7 @@ export interface HouseholdCollections {
   readonly obligations: HouseholdCollection<ObligationDoc>;
   readonly creditCards: HouseholdCollection<CreditCardDoc>;
   readonly cardPurchases: HouseholdCollection<CardPurchaseDoc>;
+  readonly cardInvoices: HouseholdCollection<CardInvoiceDoc>;
   readonly debts: HouseholdCollection<DebtDoc>;
   readonly recurringRules: HouseholdCollection<RecurringRuleDoc>;
   readonly budgets: HouseholdCollection<BudgetDoc>;
@@ -84,6 +87,7 @@ export function useCollections(): HouseholdCollections {
       obligations: householdCollection(context, "obligations", obligationSchema),
       creditCards: householdCollection(context, "creditCards", creditCardSchema),
       cardPurchases: householdCollection(context, "cardPurchases", cardPurchaseSchema),
+      cardInvoices: householdCollection(context, "cardInvoices", cardInvoiceSchema),
       debts: householdCollection(context, "debts", debtSchema),
       recurringRules: householdCollection(context, "recurringRules", recurringRuleSchema),
       budgets: householdCollection(context, "budgets", budgetSchema),

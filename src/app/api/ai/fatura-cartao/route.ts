@@ -115,6 +115,12 @@ export async function POST(request: Request) {
           firstStatementMonth: purchase.firstStatementMonth,
           importKey: purchase.importKey,
         })),
+        installmentOffers: reading.installmentOffers.map((offer) => ({
+          installments: offer.installments,
+          installmentAmount: offer.installmentAmountCents,
+          upfrontAmount: offer.upfrontCents,
+          annualCetPercent: offer.annualCetPercent ?? null,
+        })),
         discarded: reading.discarded,
       },
     });

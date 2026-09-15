@@ -20,6 +20,7 @@ import type {
   Visibility,
 } from "@/modules/shared/domain/common";
 import { deterministicId } from "@/core/id/id";
+import type { CardInvoiceDoc } from "@/modules/shared/infrastructure/schemas";
 
 /**
  * Credit cards, purchases, installments and statements.
@@ -105,9 +106,8 @@ export type CardStatementStatus = "OPEN" | "CLOSED" | "PARTIALLY_PAID" | "PAID";
 /**
  * A statement (fatura).
  *
- * Also derived. The only persisted facts are the purchases and the payment
- * transactions; the statement is the deterministic function of the two, so it
- * can never be stale and needs no scheduled job to close it.
+ * Derived from purchases, optional issuer-confirmed imported totals, and
+ * payment transactions. Future forecast lines are deliberately excluded.
  */
 export interface CardStatement {
   readonly id: CardStatementId;
@@ -231,6 +231,7 @@ export function projectStatements(
   fromMonth: MonthKey,
   toMonth: MonthKey,
   today: CalendarDate,
+  importedInvoices: readonly CardInvoiceDoc[] = [],
 ): CardStatement[] {
   const installments = purchases
     .filter((purchase) => purchase.creditCardId === card.id)
@@ -254,12 +255,18 @@ export function projectStatements(
   let month = fromMonth;
   while (month <= toMonth) {
     const monthInstallments = byMonth.get(month) ?? [];
+    const confirmed = importedInvoices
+      .filter((invoice) => invoice.creditCardId === card.id && invoice.referenceMonth === month)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
     const id = statementId(card.id, month);
     const statementPayments = paymentsByStatement.get(id) ?? [];
 
     // A month with no activity and no payment is not a statement worth showing.
-    if (monthInstallments.length > 0 || statementPayments.length > 0) {
-      const total = sum(monthInstallments.map((installment) => installment.amount));
+    if (confirmed || monthInstallments.length > 0 || statementPayments.length > 0) {
+      // The issuer's confirmed total replaces a derived sum for this month.
+      // Forecast lines never enter this calculation.
+      const total =
+        confirmed?.totalAmount ?? sum(monthInstallments.map((installment) => installment.amount));
       const paidAmount = sum(statementPayments.map((payment) => payment.amount));
       const remaining = clampToZero(subtract(total, paidAmount));
       const closingDate = closingDateFor(card, month);
@@ -269,7 +276,7 @@ export function projectStatements(
         creditCardId: card.id,
         referenceMonth: month,
         closingDate,
-        dueDate: dueDateFor(card, month),
+        dueDate: confirmed?.dueDate ?? dueDateFor(card, month),
         installments: monthInstallments,
         total,
         paidAmount,

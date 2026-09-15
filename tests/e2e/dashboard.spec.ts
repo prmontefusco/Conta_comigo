@@ -177,6 +177,13 @@ test.describe("cartões", () => {
   test("explica que pagar a fatura não gera nova despesa", async ({ page }) => {
     await expect(page.getByText(/não gera uma nova despesa/i).first()).toBeVisible();
   });
+
+  test("abre a correção de importação sem oferecer compras manuais", async ({ page }) => {
+    await page.getByRole("button", { name: "Corrigir importação" }).first().click();
+    const dialog = page.getByRole("dialog", { name: "Corrigir compras importadas" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("Nenhuma compra importada encontrada neste cartão.")).toBeVisible();
+  });
 });
 
 test.describe("projeção e simulação", () => {
