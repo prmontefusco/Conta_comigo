@@ -52,7 +52,7 @@ export const FREE_LIMITS: PlanLimits = {
 export const PREMIUM_LIMITS: PlanLimits = {
   members: 8,
   creditCards: 12,
-  forecastMonths: 13,
+  forecastMonths: 24,
   documentReading: true,
   aiAdvisor: true,
 };

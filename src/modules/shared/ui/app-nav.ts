@@ -55,12 +55,6 @@ export const APP_NAV_SECTIONS: readonly NavSection[] = [
       { href: "/app/dia-a-dia", label: "Saídas", icon: "🧾" },
       { href: "/app/contas", label: "Contas a Pagar", icon: "📄" },
       {
-        href: "/app/recorrentes",
-        label: "Contas que se repetem",
-        icon: "🔁",
-        restrictedForDependent: true,
-      },
-      {
         href: "/app/importar",
         label: "Importar extrato",
         icon: "📥",

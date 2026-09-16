@@ -10,7 +10,7 @@ import { SalarySimulatorCard } from "@/modules/forecast/ui/salary-simulator-card
 import { ScenarioSimulator } from "@/modules/forecast/ui/scenario-simulator";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 
-const WINDOWS: readonly ForecastWindowDays[] = [7, 15, 30, 90, 180, 365];
+const WINDOWS: readonly ForecastWindowDays[] = [7, 15, 30, 90, 180, 365, 730];
 
 const WINDOW_LABELS: Record<number, string> = {
   7: "7 dias",
@@ -19,6 +19,7 @@ const WINDOW_LABELS: Record<number, string> = {
   90: "3 meses",
   180: "6 meses",
   365: "12 meses",
+  730: "24 meses",
 };
 
 /**
@@ -117,7 +118,7 @@ export default function ForecastPage() {
         ) : null}
       </Card>
 
-      <MonthsTable months={finance.forecast.months} limit={13} title="Mês a mês" />
+      <MonthsTable months={finance.forecast.months} limit={25} title="Mês a mês" />
 
       <SalarySimulatorCard />
 
@@ -135,6 +136,10 @@ export default function ForecastPage() {
           <li>
             Empréstimos e financiamentos entram como compromisso mensal, não como despesa de
             consumo.
+          </li>
+          <li>
+            Contas variáveis usam automaticamente a média dos últimos três meses completos; sem
+            histórico, permanece o valor informado no cadastro.
           </li>
           <li>
             São projeções a partir do que está cadastrado, não previsões garantidas. Quanto mais

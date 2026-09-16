@@ -179,7 +179,7 @@ export function SalarySimulatorCard() {
           </div>
 
           <Link
-            href="/app/recorrentes"
+            href="/app/contas"
             className="text-xs font-medium text-[color:var(--color-brand-600)] hover:underline"
           >
             Gerenciar receitas fixas →
@@ -410,7 +410,8 @@ export function SalarySimulatorCard() {
         {mode === "VACATION" && (
           <div className="space-y-4">
             <p className="text-xs text-slate-600">
-              Simula o recebimento de <strong>1 salário líquido + 1/3 de férias</strong> na data escolhida:
+              Simula o recebimento de <strong>1 salário líquido + 1/3 de férias</strong> na data
+              escolhida:
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <MoneyField
@@ -576,7 +577,7 @@ export function SalarySimulatorCard() {
             </p>
 
             <Link
-              href="/app/recorrentes"
+              href="/app/contas"
               className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-2xs transition-colors hover:bg-blue-700"
             >
               <span>💾</span> Cadastrar este salário como regra fixa
@@ -587,4 +588,3 @@ export function SalarySimulatorCard() {
     </Card>
   );
 }
-

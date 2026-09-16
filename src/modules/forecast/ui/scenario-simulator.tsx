@@ -46,7 +46,7 @@ export function ScenarioSimulator() {
   const [result, setResult] = useState<ReturnType<typeof simulate> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const horizonEnd = useMemo(() => addMonths(finance.asOf, 18), [finance.asOf]);
+  const horizonEnd = useMemo(() => addMonths(finance.asOf, 24), [finance.asOf]);
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();

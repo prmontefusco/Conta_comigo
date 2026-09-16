@@ -24,6 +24,7 @@ import {
 import { NewObligationDialog } from "@/modules/obligations/ui/new-obligation-dialog";
 import { ConfirmOccurrenceDialog } from "@/modules/recurring/ui/confirm-occurrence-dialog";
 import { EditRecurringRuleDialog } from "@/modules/recurring/ui/edit-recurring-rule-dialog";
+import { RecurringPatternsCard } from "@/modules/recurring/ui/recurring-patterns-card";
 import {
   pendingOccurrences,
   type PendingOccurrence,
@@ -91,7 +92,7 @@ export default function ObligationsPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Contas</h1>
+        <h1 className="text-xl font-semibold">Contas a pagar e receber</h1>
         {canWrite ? (
           <div className="flex flex-wrap items-center gap-2">
             <DocumentImportButton />
@@ -280,6 +281,12 @@ export default function ObligationsPage() {
           </ul>
         </Card>
       ) : null}
+
+      <RecurringPatternsCard
+        direction={direction}
+        onCreate={() => setCreating(true)}
+        onEdit={setEditingRule}
+      />
 
       <ConfirmOccurrenceDialog pending={confirming} onClose={() => setConfirming(null)} />
       <EditRecurringRuleDialog rule={editingRule} onClose={() => setEditingRule(null)} />

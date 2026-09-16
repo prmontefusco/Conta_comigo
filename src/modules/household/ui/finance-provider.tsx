@@ -35,6 +35,7 @@ import { paidCardInvoicePlanInstallments } from "@/modules/cards/domain/card-inv
 import type { ForecastInput, ForecastResult } from "@/modules/forecast/domain/forecast-types";
 import type { Obligation } from "@/modules/obligations/domain/obligation";
 import type { RecurringRule } from "@/modules/recurring/domain/recurring-rule";
+import { recurringRulesWithHistoricalAverages } from "@/modules/recurring/domain/variable-expense-estimator";
 import { protectedTotal, type Goal, type Reserve } from "@/modules/reserves/domain/reserve";
 import { computeBalances, totalCash } from "@/modules/accounts/domain/account";
 import type { Transaction } from "@/modules/transactions/domain/transaction";
@@ -87,7 +88,7 @@ import { useSession } from "./session-provider";
  * aplicativo sabe. Cortar os dados na origem faria o total de dívida do
  * gratuito ficar menor que o real, que é mentira de outro tipo.
  */
-const DATA_HORIZON_MONTHS = 13;
+const DATA_HORIZON_MONTHS = 24;
 
 /**
  * Até onde a projeção vai, por plano.
@@ -367,13 +368,21 @@ export function deriveFinanceData(
       : debt,
   );
 
+  const forecastRecurringRules = recurringRulesWithHistoricalAverages({
+    rules: state.recurringRules,
+    transactions: state.transactions,
+    obligations: state.obligations,
+    asOf,
+    lookbackMonths: 3,
+  });
+
   const forecastInput: ForecastInput = {
     asOf,
     horizon: dateRange(asOf, addMonths(asOf, forecastHorizonMonths(plan))),
     openingBalance: cash,
     protectedReserve: reserved,
     obligations: state.obligations,
-    recurringRules: state.recurringRules,
+    recurringRules: forecastRecurringRules,
     cardStatements,
     debts: effectiveDebts,
     paidDebtInstallments,

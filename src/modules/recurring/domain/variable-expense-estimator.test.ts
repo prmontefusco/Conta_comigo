@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { anExpense, anObligation, brl, on } from "@/modules/shared/testing/builders";
-import { estimateVariableExpense } from "./variable-expense-estimator";
+import {
+  aRecurringRule,
+  anExpense,
+  anObligation,
+  brl,
+  on,
+} from "@/modules/shared/testing/builders";
+import {
+  estimateVariableExpense,
+  recurringRulesWithHistoricalAverages,
+} from "./variable-expense-estimator";
 
 describe("estimateVariableExpense", () => {
   const asOf = on("2026-09-15"); // September 2026. Prior complete months: 2026-08, 2026-07, 2026-06.
@@ -188,5 +197,47 @@ describe("estimateVariableExpense", () => {
     expect(estimate.sampleCount).toBe(0);
     expect(estimate.average).toEqual(brl(0));
     expect(estimate.median).toEqual(brl(0));
+  });
+
+  it("uses the three-month average for a variable expense forecast", () => {
+    const rule = aRecurringRule({
+      id: "rule-energy",
+      categoryId: "cat-energy",
+      description: "Energia elétrica",
+      amount: brl(90),
+      expenseNature: "VARIABLE",
+    });
+    const transactions = [100, 120, 110].map((amount, index) =>
+      anExpense({
+        id: `energy-${index}`,
+        categoryId: "cat-energy",
+        description: "Energia elétrica",
+        amount: brl(amount),
+        competenceDate: on(["2026-01-10", "2026-02-10", "2026-03-10"][index]!),
+      }),
+    );
+
+    const [forecastRule] = recurringRulesWithHistoricalAverages({
+      rules: [rule],
+      transactions,
+      obligations: [],
+      asOf: on("2026-04-15"),
+    });
+
+    expect(forecastRule?.amount).toEqual(brl(110));
+    expect(forecastRule?.confidence).toBe("ESTIMATED");
+    expect(rule.amount).toEqual(brl(90));
+  });
+
+  it("does not replace fixed expenses with their historical average", () => {
+    const fixedRule = aRecurringRule({ amount: brl(150), expenseNature: "FIXED" });
+    const [forecastRule] = recurringRulesWithHistoricalAverages({
+      rules: [fixedRule],
+      transactions: [anExpense({ amount: brl(999), competenceDate: on("2026-03-10") })],
+      obligations: [],
+      asOf: on("2026-04-15"),
+    });
+
+    expect(forecastRule?.amount).toEqual(brl(150));
   });
 });

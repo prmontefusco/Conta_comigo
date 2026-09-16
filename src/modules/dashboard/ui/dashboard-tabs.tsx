@@ -191,7 +191,7 @@ export function DashboardTabs() {
                   Entradas e Recebimentos do Mês
                 </h3>
               </div>
-              <Link href="/app/recorrentes">
+              <Link href="/app/contas">
                 <Button variant="secondary" className="px-3 py-1.5 text-xs">
                   + Adicionar Salário Líquido / Renda
                 </Button>
@@ -227,10 +227,7 @@ export function DashboardTabs() {
             {recurringInflows.length === 0 ? (
               <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
                 Nenhuma receita fixa cadastrada. Adicione os salários líquidos e rendas da casa em{" "}
-                <Link
-                  href="/app/recorrentes"
-                  className="text-[color:var(--color-brand-600)] underline"
-                >
+                <Link href="/app/contas" className="text-[color:var(--color-brand-600)] underline">
                   Recorrentes
                 </Link>
                 .

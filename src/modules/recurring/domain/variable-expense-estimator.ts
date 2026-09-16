@@ -8,6 +8,7 @@ import { type Money, add, compare, money, zero } from "@/core/money/money";
 import type { CategoryId, RecurringRuleId } from "@/modules/shared/domain/common";
 import type { Obligation } from "@/modules/obligations/domain/obligation";
 import type { Transaction } from "@/modules/transactions/domain/transaction";
+import type { RecurringRule } from "./recurring-rule";
 
 /**
  * Estimator for variable recurring expenses (such as electricity, water, and gas).
@@ -213,4 +214,35 @@ export function estimateVariableExpense(
     monthsObserved,
     hasSufficientData: true,
   };
+}
+
+/**
+ * Applies recent actual averages to variable expense rules only for forecasting.
+ * The saved rule is not mutated: its amount remains the fallback whenever there
+ * is no usable history, while fixed expenses and income keep their stated value.
+ */
+export function recurringRulesWithHistoricalAverages(input: {
+  readonly rules: readonly RecurringRule[];
+  readonly transactions: readonly Transaction[];
+  readonly obligations: readonly Obligation[];
+  readonly asOf: CalendarDate;
+  readonly lookbackMonths?: number;
+}): RecurringRule[] {
+  return input.rules.map((rule) => {
+    if (rule.direction !== "OUTFLOW" || rule.expenseNature !== "VARIABLE") return rule;
+
+    const estimate = estimateVariableExpense({
+      transactions: input.transactions,
+      obligations: input.obligations,
+      asOf: input.asOf,
+      categoryId: rule.categoryId,
+      recurringRuleId: rule.id,
+      searchTerms: [rule.description],
+      lookbackMonths: input.lookbackMonths,
+      safetyMarginPercent: 0,
+    });
+
+    if (!estimate.hasSufficientData) return rule;
+    return { ...rule, amount: estimate.average, confidence: "ESTIMATED" };
+  });
 }

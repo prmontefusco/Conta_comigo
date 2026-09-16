@@ -454,7 +454,7 @@ function buildSummary(
 /* Convenience windows                                                 */
 /* ------------------------------------------------------------------ */
 
-export const FORECAST_WINDOWS = [7, 15, 30, 60, 90, 180, 365] as const;
+export const FORECAST_WINDOWS = [7, 15, 30, 60, 90, 180, 365, 730] as const;
 export type ForecastWindowDays = (typeof FORECAST_WINDOWS)[number];
 
 export interface ForecastWindow {

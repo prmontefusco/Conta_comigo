@@ -25,7 +25,7 @@ export default function OnboardingPage() {
   const steps = [
     {
       id: "income",
-      href: "/app/recorrentes",
+      href: "/app/contas",
       title: "Cadastre sua renda (salário líquido)",
       essential: true,
       description:
@@ -69,7 +69,7 @@ export default function OnboardingPage() {
       done: finance.debts.length > 0,
     },
     {
-      href: "/app/recorrentes",
+      href: "/app/contas",
       title: "Cadastre contas que se repetem",
       essential: false,
       description:

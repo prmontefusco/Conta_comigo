@@ -65,7 +65,9 @@ export default function DashboardPage() {
               className="flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3.5 shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:shadow-xs"
             >
               <div>
-                <span aria-hidden="true" className="text-xl">🏦</span>
+                <span aria-hidden="true" className="text-xl">
+                  🏦
+                </span>
                 <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
                   1. Onde está seu dinheiro
                 </h3>
@@ -79,11 +81,13 @@ export default function DashboardPage() {
             </a>
 
             <a
-              href="/app/recorrentes"
+              href="/app/contas"
               className="flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3.5 shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:shadow-xs"
             >
               <div>
-                <span aria-hidden="true" className="text-xl">💰</span>
+                <span aria-hidden="true" className="text-xl">
+                  💰
+                </span>
                 <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
                   2. Sua Renda Mensal
                 </h3>
@@ -101,7 +105,9 @@ export default function DashboardPage() {
               className="flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3.5 shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:shadow-xs"
             >
               <div>
-                <span aria-hidden="true" className="text-xl">📄</span>
+                <span aria-hidden="true" className="text-xl">
+                  📄
+                </span>
                 <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
                   3. Contas do Mês
                 </h3>
@@ -119,7 +125,9 @@ export default function DashboardPage() {
               className="flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3.5 shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:shadow-xs"
             >
               <div>
-                <span aria-hidden="true" className="text-xl">🏛️</span>
+                <span aria-hidden="true" className="text-xl">
+                  🏛️
+                </span>
                 <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
                   4. Dívidas & Empréstimos
                 </h3>
