@@ -1,6 +1,7 @@
 "use client";
 
-import { Callout, Spinner } from "@/components/ui/primitives";
+import Link from "next/link";
+import { Button, Callout, Spinner } from "@/components/ui/primitives";
 import { DashboardTabs } from "@/modules/dashboard/ui/dashboard-tabs";
 import { PlanStatusNotice } from "@/modules/billing/ui/plan-status-notice";
 import { TodayPrioritiesCard } from "@/modules/dashboard/ui/today-priorities-card";
@@ -55,91 +56,13 @@ export default function DashboardPage() {
             </span>
           </div>
           <p className="mt-1 text-xs text-[color:var(--muted-fg)]">
-            Para que o diagnóstico de saúde financeira, a projeção de 12 meses e a linha do tempo
-            comecem a fazer sentido, cadastre os dados básicos da sua casa:
+            Para que o diagnóstico de saúde financeira, a projeção de até 24 meses e a linha do
+            tempo comecem a fazer sentido, cadastre os dados básicos da sua casa:
           </p>
 
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <a
-              href="/app/contas-bancarias"
-              className="flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3.5 shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:shadow-xs"
-            >
-              <div>
-                <span aria-hidden="true" className="text-xl">
-                  🏦
-                </span>
-                <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
-                  1. Onde está seu dinheiro
-                </h3>
-                <p className="text-2xs mt-1" style={{ color: "var(--muted-fg)" }}>
-                  Cadastre contas bancárias ou saldo em carteira.
-                </p>
-              </div>
-              <span className="mt-3 text-xs font-bold text-[color:var(--color-brand-600)]">
-                Cadastrar contas &rarr;
-              </span>
-            </a>
-
-            <a
-              href="/app/contas"
-              className="flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3.5 shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:shadow-xs"
-            >
-              <div>
-                <span aria-hidden="true" className="text-xl">
-                  💰
-                </span>
-                <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
-                  2. Sua Renda Mensal
-                </h3>
-                <p className="text-2xs mt-1" style={{ color: "var(--muted-fg)" }}>
-                  Salário líquido (o que cai na conta), pró-labore ou renda extra.
-                </p>
-              </div>
-              <span className="mt-3 text-xs font-bold text-[color:var(--color-brand-600)]">
-                Adicionar renda &rarr;
-              </span>
-            </a>
-
-            <a
-              href="/app/contas"
-              className="flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3.5 shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:shadow-xs"
-            >
-              <div>
-                <span aria-hidden="true" className="text-xl">
-                  📄
-                </span>
-                <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
-                  3. Contas do Mês
-                </h3>
-                <p className="text-2xs mt-1" style={{ color: "var(--muted-fg)" }}>
-                  Aluguel, luz, água, condomínio e boletos essenciais.
-                </p>
-              </div>
-              <span className="mt-3 text-xs font-bold text-[color:var(--color-brand-600)]">
-                Cadastrar contas &rarr;
-              </span>
-            </a>
-
-            <a
-              href="/app/dividas"
-              className="flex flex-col justify-between rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3.5 shadow-2xs transition hover:border-[color:var(--color-brand-600)] hover:shadow-xs"
-            >
-              <div>
-                <span aria-hidden="true" className="text-xl">
-                  🏛️
-                </span>
-                <h3 className="mt-2 text-sm font-semibold text-[color:var(--page-fg)]">
-                  4. Dívidas & Empréstimos
-                </h3>
-                <p className="text-2xs mt-1" style={{ color: "var(--muted-fg)" }}>
-                  Se possuir parcelas de empréstimos, consignados ou cartões.
-                </p>
-              </div>
-              <span className="mt-3 text-xs font-bold text-[color:var(--color-brand-600)]">
-                Mapear passivos &rarr;
-              </span>
-            </a>
-          </div>
+          <Link href="/app/comecar" className="mt-4 inline-block">
+            <Button>Continuar configuração guiada</Button>
+          </Link>
         </div>
       ) : null}
 

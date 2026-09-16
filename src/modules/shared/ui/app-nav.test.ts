@@ -35,7 +35,6 @@ const APP_ROUTES_DIR = join(process.cwd(), "src", "app", "(app)", "app");
  * onde se esconde o esquecimento.
  */
 const NOT_IN_MENU: Record<string, string> = {
-  comecar: "criação do primeiro grupo — só aparece para quem ainda não tem um",
   convite: "abre a partir de um link de convite, não da navegação",
   mais: "é a própria página de menu do celular",
   recorrentes: "rota antiga mantida apenas para redirecionar favoritos para Contas",

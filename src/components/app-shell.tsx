@@ -10,6 +10,7 @@ import { useFinance } from "@/modules/household/ui/finance-provider";
 import { ForcePasswordChangeScreen } from "@/modules/household/ui/force-password-change-screen";
 import { AlertBell } from "@/modules/alerts/ui/alert-bell";
 import { DEPENDENT_BLOCKED_PATHS, mobileBarFor, navSectionsFor } from "@/modules/shared/ui/app-nav";
+import { initialSetupProgress } from "@/modules/household/domain/setup-progress";
 
 /**
  * The authenticated shell.
@@ -77,6 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const hasBankAccount = finance.accounts.some((account) => !account.archived);
   const desktopSections = navSectionsFor(role, { hasBankAccount });
   const mobileBar = mobileBarFor({ hasBankAccount, role });
+  const setup = initialSetupProgress(profile ?? null, finance);
 
   useEffect(() => {
     if (status === "unauthenticated" && !loggingOut) {
@@ -231,6 +233,22 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         <main id="conteudo" className="min-w-0 flex-1 pb-24 md:pb-6">
+          {!isDependent && !setup.done && pathname !== "/app/comecar" ? (
+            <Link
+              href="/app/comecar"
+              className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-[color:var(--color-brand-600)]/30 bg-[color:var(--color-brand-50)] p-3 text-sm shadow-xs dark:bg-[color:var(--color-brand-950)]/25"
+            >
+              <span>
+                <strong>Continuar primeiros passos</strong>
+                <span className="ml-2 text-xs text-[color:var(--muted-fg)]">
+                  {setup.completed} de {setup.total} concluídos
+                </span>
+              </span>
+              <span className="shrink-0 font-semibold text-[color:var(--color-brand-700)]">
+                Voltar →
+              </span>
+            </Link>
+          ) : null}
           {children}
         </main>
       </div>

@@ -44,6 +44,7 @@ export const APP_NAV_SECTIONS: readonly NavSection[] = [
     title: "Hoje",
     items: [
       { href: "/app", label: "Início", icon: "🏠" },
+      { href: "/app/comecar", label: "Primeiros passos", icon: "🧭" },
       { href: "/app/avisos", label: "Avisos", icon: "🔔" },
       { href: "/app/lancar", label: "Adicionar rápido", icon: "➕" },
     ],

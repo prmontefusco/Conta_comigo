@@ -1,212 +1,175 @@
 "use client";
 
 import Link from "next/link";
-import { Button, Card, CardTitle, ProgressBar } from "@/components/ui/primitives";
+import { useState } from "react";
+import { Button, Card, CardTitle, ProgressBar, Spinner } from "@/components/ui/primitives";
+import { markOnboardingStep } from "@/modules/household/application/onboarding";
+import { initialSetupProgress } from "@/modules/household/domain/setup-progress";
 import { useFinance } from "@/modules/household/ui/finance-provider";
+import { useSession } from "@/modules/household/ui/session-provider";
+import type { OnboardingStep } from "@/modules/household/domain/household";
 
-/**
- * Progressive onboarding.
- *
- * Nobody is asked to configure everything before seeing anything. Each step
- * says what it unlocks, so the value of doing it is visible before the work
- * (docs/PRODUCT.md section 13).
- */
 export default function OnboardingPage() {
   const finance = useFinance();
+  const { profile, user, refreshProfile } = useSession();
+  const [skipping, setSkipping] = useState<string | null>(null);
+  const progress = initialSetupProgress(profile, finance);
 
-  /**
-   * O caminho para quem já chega endividado precisa começar pelo que muda a
-   * decisão de hoje: renda, contas vencidas, cartões e dívidas. Ver o plano no
-   * final fecha o ciclo e devolve uma próxima ação concreta.
-   *
-   * As etapas não bloqueiam uso: são uma trilha. Quem não tiver cartão ou
-   * empréstimo revisa o passo e segue.
-   */
+  if (finance.loading) return <Spinner label="Preparando seus primeiros passos" />;
+
   const steps = [
     {
-      id: "income",
-      href: "/app/contas",
-      title: "Cadastre sua renda (salário líquido)",
-      essential: true,
-      description:
-        "Salário líquido que efetivamente cai na sua conta, benefício, bico ou pró-labore. Nunca utilize o valor bruto do holerite.",
-      unlocks: "Mostra quanto costuma entrar e até onde um acordo pode ir sem estourar o mês.",
-      done: finance.recurringRules.some((rule) => rule.direction === "INFLOW"),
+      id: "personalData" as const,
+      href: "/app/meus-dados",
+      title: "Complete seus dados pessoais",
+      description: "Nome, contato, profissão, endereço e objetivo financeiro.",
+      unlocks: "Personaliza os relatórios e as orientações para a realidade da família.",
+      done: progress.steps.personalData,
     },
     {
+      id: "bankAccounts" as const,
       href: "/app/contas-bancarias",
-      title: "Informe onde está o dinheiro",
-      essential: true,
-      description: "Conta corrente, carteira ou poupança. Não precisa estar perfeito para começar.",
-      unlocks: "Separa saldo total, reserva e dinheiro livre para os próximos pagamentos.",
-      done: finance.accounts.length > 0,
+      title: "Cadastre suas contas bancárias",
+      description: "Informe onde está o dinheiro e o saldo atual de cada conta.",
+      unlocks: "Cria o ponto de partida correto para saldos e projeções.",
+      done: progress.steps.bankAccounts,
     },
     {
+      id: "cards" as const,
+      href: "/app/cadastro-cartoes",
+      title: "Cadastre seus cartões",
+      description: "Limite, fechamento e vencimento. Se não usa cartão, marque que não se aplica.",
+      unlocks: "Permite organizar faturas, compras parceladas e limite comprometido.",
+      done: progress.steps.cards,
+      skipStep: "ADD_CARDS" as OnboardingStep,
+      skipLabel: "Não uso cartão",
+    },
+    {
+      id: "monthlyBills" as const,
       href: "/app/contas",
-      title: "Cadastre contas vencidas e próximas",
-      essential: true,
-      description:
-        "Comece pelas atrasadas, aluguel, energia, água, internet, escola e boletos deste mês.",
-      unlocks: "O app consegue mostrar o que pede atenção primeiro e o que pode esperar.",
-      done: finance.obligations.some((obligation) => obligation.direction === "OUTFLOW"),
+      title: "Cadastre as contas mensais",
+      description: "Água, energia, telefone, aluguel, internet e outros compromissos recorrentes.",
+      unlocks: "Forma a base da previsão dos próximos meses.",
+      done: progress.steps.monthlyBills,
     },
     {
-      href: "/app/cartoes",
-      title: "Cadastre cartões e faturas",
-      essential: true,
-      description:
-        "Informe limite, vencimento e faturas em aberto. Se você não usa cartão, pode revisar e seguir.",
-      unlocks: "Evita que parcelas futuras fiquem invisíveis na projeção.",
-      done: finance.cards.length > 0 || finance.cardStatements.length > 0,
-    },
-    {
-      href: "/app/dividas",
-      title: "Cadastre empréstimos, carnês e financiamentos",
-      essential: false,
-      description:
-        "Inclua banco, loja, veículo, imóvel ou acordo já feito. O valor aproximado já ajuda.",
-      unlocks: "Mostra risco, juros e parcela máxima para negociar com mais segurança.",
-      done: finance.debts.length > 0,
-    },
-    {
-      href: "/app/contas",
-      title: "Cadastre contas que se repetem",
-      essential: false,
-      description:
-        "Aluguel, mercado estimado, internet, escola, transporte e outras despesas fixas.",
-      unlocks: "Deixa os próximos meses menos dependentes de memória.",
-      done: finance.recurringRules.some((rule) => rule.direction === "OUTFLOW"),
-    },
-    {
-      href: "/app/plano",
-      title: "Veja seu plano de ação",
-      essential: true,
-      description:
-        "Quando tiver o básico, abra o plano para ver prioridades, metas e roteiros de negociação.",
-      unlocks: "Transforma os dados cadastrados em próximos passos.",
-      done: finance.alerts.length > 0 || finance.forecast.months.length > 0,
+      id: "debts" as const,
+      href: "/app/cadastro-emprestimos",
+      title: "Cadastre dívidas e financiamentos",
+      description: "Empréstimos, consignados, veículos, imóveis e outros contratos.",
+      unlocks: "Mostra parcelas futuras, juros e impacto no orçamento.",
+      done: progress.steps.debts,
+      skipStep: "ADD_DEBTS" as OnboardingStep,
+      skipLabel: "Não tenho dívidas",
     },
   ];
+  const nextIndex = steps.findIndex((step) => !step.done);
 
-  const essentials = steps.filter((step) => step.essential);
-  const extras = steps.filter((step) => !step.essential);
-
-  const essentialsDone = essentials.filter((step) => step.done).length;
-  const readyToUse = essentialsDone === essentials.length;
-  const completed = steps.filter((step) => step.done).length;
-  const allDone = completed === steps.length;
+  async function skip(id: string, step: OnboardingStep) {
+    if (!user) return;
+    setSkipping(id);
+    try {
+      await markOnboardingStep(user.uid, step);
+      await refreshProfile();
+    } finally {
+      setSkipping(null);
+    }
+  }
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Vamos organizar o começo</h1>
+      <div>
+        <h1 className="text-xl font-semibold">Primeiros passos</h1>
+        <p className="mt-1 text-sm text-[color:var(--muted-fg)]">
+          Faça no seu ritmo. Ao sair para um cadastro, o atalho “Primeiros passos” continua no menu
+          e um aviso permite voltar para esta sequência.
+        </p>
+      </div>
 
       <Card>
-        <CardTitle hint="Dá para fazer aos poucos e voltar quando quiser.">
-          {essentialsDone} de {essentials.length} passos essenciais
+        <CardTitle hint="A conclusão é reconhecida pelos dados realmente cadastrados.">
+          {progress.completed} de {progress.total} etapas concluídas
         </CardTitle>
         <ProgressBar
-          ratio={essentialsDone / essentials.length}
-          label="Progresso do essencial"
-          tone={readyToUse ? "positive" : "brand"}
+          ratio={progress.completed / progress.total}
+          label="Progresso da configuração inicial"
+          tone={progress.done ? "positive" : "brand"}
         />
-        <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
-          {readyToUse
-            ? allDone
-              ? "Você já tem dados suficientes para acompanhar alertas, projeção e plano de ação."
-              : "O aplicativo já consegue ajudar com o que foi informado. Os próximos passos deixam a projeção mais precisa."
-            : "Comece pelo essencial. Não precisa cadastrar a vida inteira hoje; cada passo já melhora a leitura da situação."}
-        </p>
-      </Card>
-
-      <Card className="border-l-4 border-l-[color:var(--color-brand-600)]">
-        <CardTitle>Se a situação está apertada, siga esta ordem</CardTitle>
-        <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
-          Primeiro entra a renda. Depois vêm as contas vencidas, os cartões e as dívidas. Com isso,
-          o app consegue mostrar alertas, prioridades e um plano mais honesto para o mês.
+        <p className="mt-3 text-sm text-[color:var(--muted-fg)]">
+          {progress.done
+            ? "Configuração inicial concluída. Você pode revisar qualquer etapa quando precisar."
+            : `Próxima etapa recomendada: ${steps[nextIndex]?.title ?? "revisar seus dados"}.`}
         </p>
       </Card>
 
       <ol className="space-y-3">
-        {essentials.map((step, index) => (
-          <li key={step.title}>
-            <Card as="div">
-              <div className="flex items-start gap-3">
-                <span
-                  aria-hidden="true"
-                  className={[
-                    "flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-                    step.done
-                      ? "bg-[color:var(--color-positive-100)] text-[color:var(--color-positive-700)]"
-                      : "bg-[color:var(--color-ink-100)]",
-                  ].join(" ")}
-                >
-                  {step.done ? "✓" : index + 1}
-                </span>
-
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">
-                    {step.title}
-                    {step.done ? <span className="sr-only"> (concluída)</span> : null}
-                  </p>
-                  <p className="mt-0.5 text-sm" style={{ color: "var(--muted-fg)" }}>
-                    {step.description}
-                  </p>
-                  <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
-                    {step.unlocks}
-                  </p>
+        {steps.map((step, index) => {
+          const current = index === nextIndex;
+          return (
+            <li key={step.id}>
+              <Card
+                as="div"
+                className={current ? "border-l-4 border-l-[color:var(--color-brand-600)]" : ""}
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                  <span
+                    aria-hidden="true"
+                    className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
+                      step.done
+                        ? "bg-[color:var(--color-positive-100)] text-[color:var(--color-positive-700)]"
+                        : current
+                          ? "bg-[color:var(--color-brand-600)] text-white"
+                          : "bg-[color:var(--color-ink-100)]"
+                    }`}
+                  >
+                    {step.done ? "✓" : index + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">
+                      {step.title}{" "}
+                      {current ? (
+                        <span className="text-xs text-[color:var(--color-brand-700)]">
+                          · próximo
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="mt-0.5 text-sm text-[color:var(--muted-fg)]">
+                      {step.description}
+                    </p>
+                    <p className="mt-1 text-xs text-[color:var(--muted-fg)]">{step.unlocks}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+                    {step.skipStep && !step.done ? (
+                      <Button
+                        variant="ghost"
+                        disabled={skipping !== null}
+                        onClick={() => void skip(step.id, step.skipStep!)}
+                      >
+                        {skipping === step.id ? "Salvando…" : step.skipLabel}
+                      </Button>
+                    ) : null}
+                    <Link href={step.href}>
+                      <Button variant={current ? "primary" : "secondary"}>
+                        {step.done ? "Revisar" : current ? "Fazer agora" : "Fazer"}
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-
-                <Link href={step.href} className="shrink-0">
-                  <Button variant={step.done ? "secondary" : "primary"}>
-                    {step.done ? "Revisar" : "Fazer"}
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          </li>
-        ))}
+              </Card>
+            </li>
+          );
+        })}
       </ol>
 
-      <details className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-4">
-        <summary className="cursor-pointer text-sm font-medium">
-          Depois, quando der: mais {extras.length} {extras.length === 1 ? "etapa" : "etapas"} que
-          ajudam a refinar o plano
-          {extras.filter((step) => step.done).length > 0
-            ? ` (${extras.filter((step) => step.done).length} já ${
-                extras.filter((step) => step.done).length === 1 ? "feita" : "feitas"
-              })`
-            : ""}
-        </summary>
-
-        <ul className="mt-3 space-y-2.5">
-          {extras.map((step) => (
-            <li
-              key={step.title}
-              className="flex flex-wrap items-start gap-3 border-t border-[color:var(--card-border)] pt-2.5"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">
-                  {step.done ? "✓ " : null}
-                  {step.title}
-                </p>
-                <p className="text-2xs mt-0.5" style={{ color: "var(--muted-fg)" }}>
-                  {step.description} {step.unlocks}
-                </p>
-              </div>
-              <Link href={step.href} className="shrink-0">
-                <Button variant="secondary">{step.done ? "Revisar" : "Fazer"}</Button>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </details>
-
-      <div className="flex justify-center pt-2">
+      <div className="flex flex-wrap justify-center gap-2 pt-2">
         <Link href="/app">
-          <Button variant={readyToUse ? "primary" : "secondary"}>
-            {readyToUse ? "Ver meus números" : "Ir para o resumo"}
-          </Button>
+          <Button variant="secondary">Ir para o resumo</Button>
         </Link>
+        {progress.done ? (
+          <Link href="/app/plano">
+            <Button>Ver meu plano financeiro</Button>
+          </Link>
+        ) : null}
       </div>
     </div>
   );
