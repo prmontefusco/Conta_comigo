@@ -53,6 +53,27 @@ const BY_KIND: Record<DebtKind, DebtRisk> = {
     label: "Bem em garantia",
     consequence: "O bem financiado é a garantia e pode ser retomado pelo credor.",
   },
+  STUDENT_FINANCING: {
+    level: "MODERATE",
+    guarantee: "NONE",
+    label: "Crédito educacional",
+    consequence:
+      "A parcela compromete a renda futura; confira carência, reajustes e CET do contrato.",
+  },
+  RURAL_FINANCING: {
+    level: "MODERATE",
+    guarantee: "NONE",
+    label: "Crédito rural",
+    consequence:
+      "Contratos rurais podem acompanhar o ciclo da produção. Confira garantias e vencimentos sazonais no contrato.",
+  },
+  BUSINESS_FINANCING: {
+    level: "MODERATE",
+    guarantee: "NONE",
+    label: "Crédito empresarial",
+    consequence:
+      "A parcela reduz o caixa disponível. Se houver bem ou recebíveis em garantia, priorize conforme o risco de perda.",
+  },
   PAYROLL_LOAN: {
     level: "HIGH",
     guarantee: "PAYROLL",

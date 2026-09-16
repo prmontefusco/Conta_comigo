@@ -40,6 +40,9 @@ export const loanContractModelSchema = z.object({
       "VEHICLE_FINANCING",
       "REAL_ESTATE_FINANCING",
       "EQUIPMENT_FINANCING",
+      "STUDENT_FINANCING",
+      "RURAL_FINANCING",
+      "BUSINESS_FINANCING",
       "CARD_RENEGOTIATION",
       "OTHER",
     ])
@@ -196,7 +199,7 @@ Responda APENAS com um objeto JSON, sem texto antes ou depois, sem markdown, nes
 
 {
   "instituicao": string | null,
-  "tipo": "PERSONAL_LOAN" | "PAYROLL_LOAN" | "VEHICLE_FINANCING" | "REAL_ESTATE_FINANCING" | "EQUIPMENT_FINANCING" | "CARD_RENEGOTIATION" | "OTHER" | null,
+  "tipo": "PERSONAL_LOAN" | "PAYROLL_LOAN" | "VEHICLE_FINANCING" | "REAL_ESTATE_FINANCING" | "EQUIPMENT_FINANCING" | "STUDENT_FINANCING" | "RURAL_FINANCING" | "BUSINESS_FINANCING" | "CARD_RENEGOTIATION" | "OTHER" | null,
   "descricao": string | null,
   "valorContratado": number | null,
   "valorLiberado": number | null,
@@ -219,7 +222,7 @@ REGRAS:
 - "valorContratado" é o valor total do crédito concedido. "valorLiberado" é o que efetivamente foi depositado na conta do cliente ("valor líquido liberado"), que costuma ser menor por causa de IOF e tarifas. Se o contrato trouxer só um dos dois, preencha só esse e deixe o outro null.
 - NÃO converta taxas. Copie cada taxa no campo correspondente, exatamente como está escrita no contrato: taxa de juros ao mês em "taxaJurosMensal", ao ano em "taxaJurosAnual". Se o contrato trouxer as duas, preencha as duas.
 - Juros e CET são coisas diferentes. O Custo Efetivo Total vai em "cetMensal" e "cetAnual", nunca nos campos de juros.
-- "tipo": use PAYROLL_LOAN para consignado (desconto em folha ou em benefício do INSS), VEHICLE_FINANCING para financiamento de veículo, REAL_ESTATE_FINANCING para imóvel, CARD_RENEGOTIATION para acordo de renegociação de dívida ou de fatura de cartão, PERSONAL_LOAN para empréstimo pessoal comum.
+- "tipo": use PAYROLL_LOAN para consignado; VEHICLE_FINANCING para veículo; REAL_ESTATE_FINANCING para habitação ou imóvel; EQUIPMENT_FINANCING para máquinas/equipamentos; STUDENT_FINANCING para crédito educacional; RURAL_FINANCING para crédito rural; BUSINESS_FINANCING para capital ou financiamento empresarial; CARD_RENEGOTIATION para acordo de cartão; PERSONAL_LOAN para empréstimo pessoal comum.
 - "primeiroVencimento" é a data da primeira parcela, não a data da assinatura.
 - "tarifasMensais" e "seguroMensal" só quando o contrato os cobra por parcela (seguro prestamista, tarifa de administração). Valor único e à vista não entra aqui.
 - Não invente. Qualquer campo que você não conseguir ler com segurança deve ser null.
@@ -289,8 +292,11 @@ const KIND_DESCRIPTIONS: Record<LoanContractKind, string> = {
   PERSONAL_LOAN: "Empréstimo pessoal",
   PAYROLL_LOAN: "Empréstimo consignado",
   VEHICLE_FINANCING: "Financiamento de veículo",
-  REAL_ESTATE_FINANCING: "Financiamento imobiliário",
+  REAL_ESTATE_FINANCING: "Financiamento habitacional / imobiliário",
   EQUIPMENT_FINANCING: "Financiamento de equipamento",
+  STUDENT_FINANCING: "Financiamento estudantil",
+  RURAL_FINANCING: "Crédito rural",
+  BUSINESS_FINANCING: "Financiamento empresarial",
   CARD_RENEGOTIATION: "Renegociação de dívida",
   OTHER: "Contrato de crédito",
 };

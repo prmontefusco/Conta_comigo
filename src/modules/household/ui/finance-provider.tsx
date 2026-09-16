@@ -31,6 +31,7 @@ import { settledInstallmentNumbers, type Debt } from "@/modules/debts/domain/deb
 import { sortDecisions, type Decision } from "@/modules/decisions/domain/decision";
 import { forecast } from "@/modules/forecast/domain/forecast";
 import { forecastImportedInvoices } from "@/modules/cards/domain/invoice-forecast";
+import { paidCardInvoicePlanInstallments } from "@/modules/cards/domain/card-invoice-plan";
 import type { ForecastInput, ForecastResult } from "@/modules/forecast/domain/forecast-types";
 import type { Obligation } from "@/modules/obligations/domain/obligation";
 import type { RecurringRule } from "@/modules/recurring/domain/recurring-rule";
@@ -307,6 +308,9 @@ export function deriveFinanceData(
 
   const fromMonth = monthKeyOf(addMonths(asOf, -18));
   const toMonth = monthKeyOf(addMonths(asOf, DATA_HORIZON_MONTHS));
+  const financedStatementIds = new Set(
+    state.debts.flatMap((debt) => (debt.sourceCardStatementId ? [debt.sourceCardStatementId] : [])),
+  );
 
   const cardStatements = state.creditCards.flatMap((card) =>
     projectStatements(
@@ -317,6 +321,7 @@ export function deriveFinanceData(
       toMonth,
       asOf,
       state.cardInvoices ?? [],
+      financedStatementIds,
     ),
   );
   const importedInvoiceForecast = forecastImportedInvoices(
@@ -333,19 +338,33 @@ export function deriveFinanceData(
 
   /* --- Projection ----------------------------------------------------- */
 
-  // Installments are paid in order, so N recorded payments settle installments
-  // 1..N, counting on from whatever the household said was already paid before
-  // it registered the debt. This holds for every ordinary repayment schedule;
-  // the day the app supports paying an installment out of order, the payment
-  // transaction gains an explicit installment number and this collapses to
-  // reading that field.
+  // Card-invoice plans carry explicit installment numbers, so correcting a
+  // payment cannot silently mark another installment paid by count alone.
+  // Ordinary debt schedules retain their historical count-based convention.
   const paidDebtInstallments = new Map(
     state.debts.map((debt) => {
-      const paymentCount = state.transactions.filter(
-        (transaction) => transaction.kind === "DEBT_PAYMENT" && transaction.debtId === debt.id,
-      ).length;
-      return [debt.id, settledInstallmentNumbers(debt, paymentCount)];
+      const payments = state.transactions.filter(
+        (transaction): transaction is Extract<Transaction, { kind: "DEBT_PAYMENT" }> =>
+          transaction.kind === "DEBT_PAYMENT" && transaction.debtId === debt.id,
+      );
+      return [
+        debt.id,
+        debt.sourceCardInvoiceId
+          ? paidCardInvoicePlanInstallments(payments, debt.id)
+          : settledInstallmentNumbers(debt, payments.length),
+      ];
     }),
+  );
+  const effectiveDebts: Debt[] = state.debts.map((debt) =>
+    debt.sourceCardInvoiceId
+      ? {
+          ...debt,
+          status:
+            (paidDebtInstallments.get(debt.id)?.length ?? 0) >= debt.installmentCount
+              ? "SETTLED"
+              : "ACTIVE",
+        }
+      : debt,
   );
 
   const forecastInput: ForecastInput = {
@@ -356,7 +375,7 @@ export function deriveFinanceData(
     obligations: state.obligations,
     recurringRules: state.recurringRules,
     cardStatements,
-    debts: state.debts,
+    debts: effectiveDebts,
     paidDebtInstallments,
   };
 
@@ -370,7 +389,7 @@ export function deriveFinanceData(
     reserves: state.reserves,
     cards: state.creditCards,
     cardStatements,
-    debts: state.debts,
+    debts: effectiveDebts,
     forecast: projection,
   });
 
@@ -390,7 +409,7 @@ export function deriveFinanceData(
     cards: state.creditCards,
     cardStatements,
     reserves: state.reserves,
-    debts: state.debts,
+    debts: effectiveDebts,
     paidDebtInstallments,
     budgetStatus,
   });
@@ -408,7 +427,7 @@ export function deriveFinanceData(
     cardInvoices: state.cardInvoices ?? [],
     importedInvoiceForecast,
     cardStatements,
-    debts: state.debts,
+    debts: effectiveDebts,
     paidDebtInstallments,
     recurringRules: state.recurringRules,
     reserves: state.reserves,

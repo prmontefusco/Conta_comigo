@@ -47,6 +47,7 @@ import { getDb } from "@/lib/firebase/client";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useMembers } from "@/modules/household/ui/use-members";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { SourceColorMark } from "@/modules/shared/ui/source-color";
 
 /**
  * The day-to-day screen.
@@ -110,7 +111,10 @@ export default function DailyPage() {
     () => plannedEntriesInMonth({ obligations: finance.obligations, month, asOf: finance.asOf }),
     [finance.obligations, month, finance.asOf],
   );
-  const plannedOutflows = useMemo(() => planned.filter((entry) => entry.direction === "OUT"), [planned]);
+  const plannedOutflows = useMemo(
+    () => planned.filter((entry) => entry.direction === "OUT"),
+    [planned],
+  );
   const plannedSum = useMemo(() => plannedTotals(plannedOutflows), [plannedOutflows]);
 
   // Lançamentos datados para frente que foram gravados antes de esta tela
@@ -276,6 +280,7 @@ export default function DailyPage() {
                       entry={entry}
                       categoryLabel={categoryName(categories, entry.categoryId)}
                       sourceLabel={sourceLabelFor(entry, finance)}
+                      sourceColor={sourceColorFor(entry, finance)}
                       assetLabel={assetLabelFor(entry, finance)}
                       memberLabel={
                         entry.responsibleMemberId ? nameOf(entry.responsibleMemberId) : null
@@ -401,6 +406,7 @@ function EntryRow({
   entry,
   categoryLabel,
   sourceLabel,
+  sourceColor,
   assetLabel,
   memberLabel,
   onEdit,
@@ -408,6 +414,7 @@ function EntryRow({
   entry: DailyEntry;
   categoryLabel: string;
   sourceLabel: string;
+  sourceColor?: string;
   assetLabel: string | null;
   memberLabel: string | null;
   onEdit?: () => void;
@@ -415,7 +422,10 @@ function EntryRow({
   const content = (
     <>
       <div className="min-w-0 flex-1 text-left">
-        <p className="truncate font-medium">{entry.description}</p>
+        <p className="flex items-center gap-2 truncate font-medium">
+          <SourceColorMark color={sourceColor} />
+          {entry.description}
+        </p>
         <p className="truncate text-xs" style={{ color: "var(--muted-fg)" }}>
           {categoryLabel} · {sourceLabel}
         </p>
@@ -471,6 +481,15 @@ function sourceLabelFor(entry: DailyEntry, finance: ReturnType<typeof useFinance
   }
   const account = finance.accounts.find((item) => item.id === entry.accountId);
   return account?.name ?? "Conta";
+}
+
+function sourceColorFor(
+  entry: DailyEntry,
+  finance: ReturnType<typeof useFinance>,
+): string | undefined {
+  return entry.creditCardId
+    ? finance.cards.find((item) => item.id === entry.creditCardId)?.color
+    : finance.accounts.find((item) => item.id === entry.accountId)?.color;
 }
 
 /** Compact amount for the day header, where a full component would be noise. */

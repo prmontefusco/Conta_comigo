@@ -20,18 +20,20 @@ export function PayoffStrategyComparator() {
   const timeline = useRecoveryTimeline(extraPayment.amount > 0 ? extraPayment : undefined);
 
   const activeDebts = finance.debts.filter((d) => d.status !== "SETTLED");
-  if (activeDebts.length === 0) {
+  const openCardStatements = finance.cardStatements.filter((s) => s.remainingAmount.amount > 0);
+  if (activeDebts.length === 0 && openCardStatements.length === 0) {
     return null;
   }
 
-  const activePlan = selectedStrategy === "AVALANCHE" ? timeline.avalanchePlan : timeline.snowballPlan;
+  const activePlan =
+    selectedStrategy === "AVALANCHE" ? timeline.avalanchePlan : timeline.snowballPlan;
 
   return (
     <Card className="border-l-4 border-l-[color:var(--color-brand-600)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--card-border)] pb-4">
         <div>
           <span className="text-xs font-bold tracking-wider text-[color:var(--color-brand-600)] uppercase">
-            Simulador de Quitação Acelerada
+            Simulador global de quitação
           </span>
           <h3 className="text-lg font-bold text-[color:var(--page-fg)]">
             Comparador: Bola de Neve vs. Avalanche
@@ -64,6 +66,12 @@ export function PayoffStrategyComparator() {
         </div>
       </div>
 
+      <p className="mt-3 text-xs" style={{ color: "var(--muted-fg)" }}>
+        Esta simulação reúne {activeDebts.length} contrato(s) e {openCardStatements.length}{" "}
+        fatura(s) de cartão em aberto. O cadastro e a análise de empréstimos ficam separados; taxas
+        não informadas são estimativas, não condições do contrato.
+      </p>
+
       <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
         {selectedStrategy === "AVALANCHE"
           ? "O método Avalanche ataca prioritariamente as dívidas com maiores taxas de juros mensais. É a estratégia que economiza a maior quantidade possível de dinheiro em juros."
@@ -71,7 +79,7 @@ export function PayoffStrategyComparator() {
       </p>
 
       <div className="mt-4 flex flex-wrap items-end gap-4 rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-3">
-        <div className="flex-1 min-w-[200px]">
+        <div className="min-w-[200px] flex-1">
           <MoneyField
             label="Aporte extra mensal que você pode fazer"
             value={extraPaymentText}
@@ -110,11 +118,7 @@ export function PayoffStrategyComparator() {
             {formatCalendarDate(activePlan.targetDate)}
           </dd>
         </div>
-        <Stat
-          label="Total em Juros"
-          value={activePlan.totalInterestPaid}
-          tone="outflow"
-        />
+        <Stat label="Total em Juros" value={activePlan.totalInterestPaid} tone="outflow" />
         <Stat
           label="Economia em Juros"
           value={activePlan.interestSavedVsMinimum}
@@ -124,8 +128,12 @@ export function PayoffStrategyComparator() {
       </dl>
 
       <div className="mt-5">
-        <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--muted-fg)" }}>
-          Ordem de Ataque Recomendada ({selectedStrategy === "AVALANCHE" ? "Maior Taxa" : "Menor Saldo"}):
+        <h4
+          className="text-xs font-bold tracking-wider uppercase"
+          style={{ color: "var(--muted-fg)" }}
+        >
+          Ordem de Ataque Recomendada (
+          {selectedStrategy === "AVALANCHE" ? "Maior Taxa" : "Menor Saldo"}):
         </h4>
         <ol className="mt-2 space-y-2">
           {activePlan.orderOfPayoff.map((step, idx: number) => (

@@ -158,7 +158,7 @@ export function DashboardTabs() {
           }`}
         >
           <span aria-hidden="true">🏛️</span>
-          <span>Dívidas ({formatMoney(totalDebtBalance)})</span>
+          <span>Dívidas e cartões</span>
         </button>
       </div>
 

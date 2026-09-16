@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { deleteField } from "firebase/firestore";
 import { formatCalendarDate } from "@/core/date/calendar-date";
-import { fromDecimalString } from "@/core/money/money";
+import { add, fromDecimalString, type Money, zero } from "@/core/money/money";
 import {
   Badge,
   Button,
@@ -24,12 +24,14 @@ import {
   type AccountType,
 } from "@/modules/accounts/domain/account";
 import { overdraftGraceStatus } from "@/modules/accounts/domain/overdraft-grace";
+import { accountReferencePatch } from "@/modules/accounts/domain/account-reference-edit";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import type { Transaction } from "@/modules/transactions/domain/transaction";
 import { MemberField } from "@/modules/household/ui/member-field";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { HelpTip } from "@/modules/education/ui/help-tip";
 import { useCollections } from "@/modules/shared/ui/use-collections";
+import { SourceColorField, SourceColorMark, sourceColor } from "@/modules/shared/ui/source-color";
 
 /**
  * Bank accounts and balances.
@@ -38,11 +40,7 @@ import { useCollections } from "@/modules/shared/ui/use-collections";
  * movement, so what is shown here can be reconciled line by line against a real
  * bank statement.
  *
- * Toda conta pode ser corrigida. Nome, banco, limite e — principalmente —
- * saldo inicial e a data dele: é dali que sai todo saldo mostrado no
- * aplicativo, e digitar o número errado no cadastro é o erro mais comum e o
- * mais silencioso, porque o saldo continua parecendo certo até alguém
- * comparar com o extrato.
+ * Correções cadastrais não devem mexer no ponto de partida do saldo.
  */
 export default function AccountsPage() {
   const finance = useFinance();
@@ -96,80 +94,25 @@ export default function AccountsPage() {
           />
         </Card>
       ) : (
-        <Card>
-          <CardTitle>Suas contas</CardTitle>
-          <ul className="divide-y divide-[color:var(--card-border)]">
+        <>
+          <h2 className="text-sm font-semibold">Suas contas</h2>
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {active.map((account) => (
-              <li key={account.id} className="py-3">
-                {/* Nome e saldo na mesma linha; o resto embaixo, em largura
-                    inteira. A frase do cheque especial tem quase quarenta
-                    caracteres — dentro da coluna da direita ela empurrava o
-                    nome da conta para uns poucos pixels na tela do celular. */}
-                <div className="flex items-center gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{account.name}</p>
-                    <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
-                      {ACCOUNT_TYPE_LABELS[account.type]}
-                      {account.institution ? ` · ${account.institution}` : ""} · saldo inicial em{" "}
-                      {formatCalendarDate(account.openingBalanceDate)}
-                    </p>
-                    {account.visibility === "PERSONAL" ? (
-                      <span className="mt-1 inline-block">
-                        <Badge>Pessoal</Badge>
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <MoneyText
-                      value={balances.get(account.id) ?? { amount: 0, currency: "BRL" }}
-                      size="lg"
-                    />
-                    {canWrite ? (
-                      <Button
-                        variant="ghost"
-                        className="mt-1 text-xs"
-                        onClick={() => setEditing(account)}
-                        aria-label={`Editar ${account.name}`}
-                      >
-                        Editar
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-
-                {account.overdraftLimit ? (
-                  <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
-                    Cheque especial disponível de{" "}
-                    <span className="tabular">
-                      {new Intl.NumberFormat("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      }).format(account.overdraftLimit.amount / 100)}
-                    </span>
-                  </p>
-                ) : null}
-
-                {(() => {
-                  const grace = overdraftGraceStatus(account, finance.transactions, finance.asOf);
-                  if (!grace) return null;
-                  return (
-                    <p
-                      className="mt-1 text-xs font-medium"
-                      style={{ color: grace.withinGracePeriod ? "var(--muted-fg)" : "var(--color-critical-700)" }}
-                    >
-                      {grace.withinGracePeriod
-                        ? `Usando o limite há ${grace.daysUsed} ${grace.daysUsed === 1 ? "dia" : "dias"} — ainda sem juros. Restam ${grace.daysRemaining} ${grace.daysRemaining === 1 ? "dia" : "dias"} de carência.`
-                        : `Usando o limite há ${grace.daysUsed} dias — passou dos ${grace.graceDays} dias sem juros, os juros já devem estar sendo cobrados.`}
-                    </p>
-                  );
-                })()}
-              </li>
+              <AccountBalanceCard
+                key={account.id}
+                account={account}
+                balance={balances.get(account.id) ?? zero()}
+                transactions={finance.transactions}
+                asOf={finance.asOf}
+                onEdit={canWrite ? () => setEditing(account) : undefined}
+              />
             ))}
           </ul>
-          <p className="mt-4 text-xs" style={{ color: "var(--muted-fg)" }}>
-            O limite do cheque especial não é dinheiro seu: aparece separado do saldo de propósito.
+          <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+            Saldo + limite inclui crédito do cheque especial, não é dinheiro próprio. Confirme a
+            disponibilidade no banco.
           </p>
-        </Card>
+        </>
       )}
 
       {archived.length > 0 ? (
@@ -222,6 +165,98 @@ export default function AccountsPage() {
         }}
       />
     </div>
+  );
+}
+
+function AccountBalanceCard({
+  account,
+  balance,
+  transactions,
+  asOf,
+  onEdit,
+}: {
+  account: Account;
+  balance: Money;
+  transactions: readonly Transaction[];
+  asOf: ReturnType<typeof useFinance>["asOf"];
+  onEdit?: () => void;
+}) {
+  const limit = account.overdraftLimit ?? zero();
+  const grace = overdraftGraceStatus(account, transactions, asOf);
+  return (
+    <Card as="li">
+      {account.color ? (
+        <div
+          aria-hidden="true"
+          className="mb-3 h-1 rounded-full"
+          style={{ backgroundColor: sourceColor(account.color) }}
+        />
+      ) : null}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="flex items-center gap-2 font-semibold">
+            <SourceColorMark color={account.color} />
+            {account.name}
+          </h3>
+          <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+            {ACCOUNT_TYPE_LABELS[account.type]}
+            {account.institution ? ` · ${account.institution}` : ""}
+          </p>
+          {account.visibility === "PERSONAL" ? <Badge>Pessoal</Badge> : null}
+        </div>
+        {onEdit ? (
+          <Button
+            variant="ghost"
+            className="text-xs"
+            onClick={onEdit}
+            aria-label={`Editar ${account.name}`}
+          >
+            Editar
+          </Button>
+        ) : null}
+      </div>
+      <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-[color:var(--card-border)] pt-3">
+        <div className="col-span-2">
+          <dt className="text-xs" style={{ color: "var(--muted-fg)" }}>
+            Saldo atual da conta
+          </dt>
+          <dd>
+            <MoneyText value={balance} size="lg" />
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs" style={{ color: "var(--muted-fg)" }}>
+            Limite de cheque especial
+          </dt>
+          <dd>
+            <MoneyText value={limit} size="sm" />
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs" style={{ color: "var(--muted-fg)" }}>
+            Saldo + limite
+          </dt>
+          <dd>
+            <MoneyText value={add(balance, limit)} size="sm" />
+          </dd>
+        </div>
+      </dl>
+      <p className="text-2xs mt-3" style={{ color: "var(--muted-fg)" }}>
+        Referência inicial em {formatCalendarDate(account.openingBalanceDate)}
+      </p>
+      {grace ? (
+        <p
+          className="mt-2 text-xs font-medium"
+          style={{
+            color: grace.withinGracePeriod ? "var(--muted-fg)" : "var(--color-critical-700)",
+          }}
+        >
+          {grace.withinGracePeriod
+            ? `Usando o limite há ${grace.daysUsed} dias; restam ${grace.daysRemaining} dias de carência.`
+            : `Uso do limite passou dos ${grace.graceDays} dias de carência; confira os juros cobrados.`}
+        </p>
+      ) : null}
+    </Card>
   );
 }
 
@@ -368,7 +403,12 @@ function TransferDialog({
           placeholder="0,00"
         />
 
-        <DateField label="Data" required value={date} onChange={(event) => setDate(event.target.value)} />
+        <DateField
+          label="Data"
+          required
+          value={date}
+          onChange={(event) => setDate(event.target.value)}
+        />
 
         <TextField
           label="Descrição"
@@ -394,13 +434,8 @@ function TransferDialog({
 /**
  * Cadastrar ou corrigir uma conta.
  *
- * O mesmo formulário para os dois casos, porque as perguntas são as mesmas —
- * e porque corrigir precisa ser tão fácil quanto cadastrar. Duas decisões
- * ficam explícitas na tela:
- *
- * - **Mudar o saldo inicial reescreve o saldo de hoje.** O saldo mostrado é
- *   sempre o inicial mais todo movimento registrado; mexer aqui não é ajustar
- *   uma linha, é mover a régua inteira. A tela diz isso.
+ * O saldo de referência só pode ser corrigido em uma ação administrativa
+ * explícita, nunca numa edição comum do nome ou do limite.
  * - **Arquivar não é excluir.** Uma conta encerrada continua sendo dona de
  *   lançamentos antigos, que precisam continuar existindo para o histórico
  *   fechar. Excluir de verdade fica com o administrador, e só quando não há
@@ -431,6 +466,9 @@ function AccountDialog({
   const [visibility, setVisibility] = useState("HOUSEHOLD");
   const [ownerMemberId, setOwnerMemberId] = useState("");
   const [archived, setArchived] = useState(false);
+  const [color, setColor] = useState("#64748b");
+  const [correctingReference, setCorrectingReference] = useState(false);
+  const [confirmedReference, setConfirmedReference] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -442,6 +480,8 @@ function AccountDialog({
 
     setError(null);
     setConfirmingDelete(false);
+    setCorrectingReference(false);
+    setConfirmedReference(false);
 
     if (!account) {
       setName("");
@@ -454,6 +494,7 @@ function AccountDialog({
       setVisibility("HOUSEHOLD");
       setOwnerMemberId("");
       setArchived(false);
+      setColor("#64748b");
       return;
     }
 
@@ -467,6 +508,7 @@ function AccountDialog({
     setVisibility(account.visibility);
     setOwnerMemberId(account.ownerMemberId ?? "");
     setArchived(account.archived);
+    setColor(sourceColor(account.color));
   }, [open, account, asOf]);
 
   /** Quantos lançamentos deixariam de ter conta se esta fosse excluída. */
@@ -483,16 +525,33 @@ function AccountDialog({
       setError("Dê um nome para a conta.");
       return;
     }
-    const openingBalance = fromDecimalString(balanceText || "0");
+    const openingBalance =
+      !account || correctingReference
+        ? fromDecimalString(balanceText || "0")
+        : account.openingBalance;
     if (!openingBalance) {
       setError("Informe um saldo válido. Pode ser zero.");
+      return;
+    }
+    const referenceChanged =
+      account &&
+      correctingReference &&
+      (openingBalance.amount !== account.openingBalance.amount ||
+        balanceDate !== account.openingBalanceDate);
+    if (referenceChanged && !confirmedReference) {
+      setError(
+        "Confirme que deseja corrigir o saldo de referência e recalcular os saldos posteriores.",
+      );
       return;
     }
 
     // Sem limite não há o que ficar negativo sem juros — a carência não tem
     // sentido sozinha, então some junto se o limite for removido.
     const graceDays = overdraftText && graceDaysText ? Number(graceDaysText) : undefined;
-    if (graceDays !== undefined && (!Number.isInteger(graceDays) || graceDays < 1 || graceDays > 31)) {
+    if (
+      graceDays !== undefined &&
+      (!Number.isInteger(graceDays) || graceDays < 1 || graceDays > 31)
+    ) {
       setError("Informe um número de dias entre 1 e 31.");
       return;
     }
@@ -503,14 +562,19 @@ function AccountDialog({
         name: name.trim(),
         type,
         institution: institution.trim() || undefined,
-        openingBalance,
-        openingBalanceDate: balanceDate as never,
+        ...accountReferencePatch(
+          account,
+          correctingReference,
+          openingBalance,
+          balanceDate as never,
+        ),
         overdraftLimit: overdraftText ? (fromDecimalString(overdraftText) ?? undefined) : undefined,
         overdraftGraceDays: graceDays,
         visibility: visibility as never,
         ownerMemberId: ownerMemberId || undefined,
         includeInTotals: true,
         archived,
+        color,
       };
 
       if (account) {
@@ -553,7 +617,7 @@ function AccountDialog({
       title={editing ? "Editar conta" : "Nova conta"}
       description={
         editing
-          ? "Corrija o que estiver errado. Trocar o saldo inicial muda todos os saldos mostrados a partir da data escolhida."
+          ? "Edite os dados da conta. O saldo de referência fica protegido para não alterar o dinheiro mostrado por engano."
           : "O saldo informado passa a valer a partir da data escolhida. Não é preciso cadastrar o histórico."
       }
     >
@@ -585,26 +649,69 @@ function AccountDialog({
           placeholder="Opcional"
         />
 
-        <MoneyField
-          label={editing ? "Saldo inicial" : "Saldo atual"}
-          required
-          value={balanceText}
-          onChange={(event) => setBalanceText(event.target.value)}
-          placeholder="0,00"
-          hint={
-            editing
-              ? "É o ponto de partida da conta. O saldo de hoje é este valor mais tudo o que foi registrado depois."
-              : undefined
-          }
-        />
+        <SourceColorField value={color} onChange={setColor} />
 
-        <DateField
-          label="Saldo na data de"
-          help={<HelpTip term="SALDO_NA_DATA" label="a data do saldo" />}
-          required
-          value={balanceDate}
-          onChange={(event) => setBalanceDate(event.target.value)}
-        />
+        {editing && !correctingReference ? (
+          <div className="rounded-lg border border-[color:var(--card-border)] p-3 text-sm">
+            <p className="font-medium">Saldo de referência protegido</p>
+            <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+              {moneyField(account!.openingBalance.amount)} em{" "}
+              {formatCalendarDate(account!.openingBalanceDate)}. Alterar nome, banco, cor ou limite
+              não muda esse valor nem o saldo atual.
+            </p>
+            {canAdminister ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="mt-2 text-xs"
+                onClick={() => setCorrectingReference(true)}
+              >
+                Corrigir saldo de referência
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            {editing ? (
+              <Callout tone="critical" title="Correção excepcional de saldo">
+                Isso recalcula o saldo desta conta desde a data escolhida. Para registrar dinheiro
+                que entrou ou saiu depois, faça um lançamento; não altere a referência.
+              </Callout>
+            ) : null}
+            <MoneyField
+              label={editing ? "Saldo de referência" : "Saldo atual"}
+              required
+              value={balanceText}
+              onChange={(event) => {
+                setBalanceText(event.target.value);
+                setConfirmedReference(false);
+              }}
+              placeholder="0,00"
+            />
+            <DateField
+              label="Saldo na data de"
+              help={<HelpTip term="SALDO_NA_DATA" label="a data do saldo" />}
+              required
+              value={balanceDate}
+              onChange={(event) => {
+                setBalanceDate(event.target.value);
+                setConfirmedReference(false);
+              }}
+            />
+            {editing ? (
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={confirmedReference}
+                  onChange={(event) => setConfirmedReference(event.target.checked)}
+                  className="mt-1 size-4"
+                />
+                Confirmo que estou corrigindo o valor de referência, não registrando uma
+                movimentação.
+              </label>
+            ) : null}
+          </>
+        )}
 
         <MoneyField
           label="Limite de cheque especial"
@@ -747,6 +854,9 @@ function touchesAccount(transaction: Transaction, accountId: string): boolean {
  */
 function blankToDeleted(fields: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(fields).map(([key, value]) => [key, value === undefined ? deleteField() : value]),
+    Object.entries(fields).map(([key, value]) => [
+      key,
+      value === undefined ? deleteField() : value,
+    ]),
   );
 }

@@ -119,6 +119,7 @@ export interface DebtPaymentTransaction extends TransactionBase {
   readonly kind: "DEBT_PAYMENT";
   readonly accountId: AccountId;
   readonly debtId: DebtId;
+  readonly cardInvoicePlanInstallmentNumber?: number;
   readonly breakdown?: DebtPaymentBreakdown;
   readonly settlesObligationId?: ObligationId;
 }

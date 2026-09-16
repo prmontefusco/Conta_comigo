@@ -8,6 +8,7 @@ import {
 import {
   type Money,
   add,
+  allocate,
   clampToZero,
   isPositive,
   money,
@@ -39,6 +40,9 @@ export type DebtKind =
   | "VEHICLE_FINANCING"
   | "REAL_ESTATE_FINANCING"
   | "EQUIPMENT_FINANCING"
+  | "STUDENT_FINANCING"
+  | "RURAL_FINANCING"
+  | "BUSINESS_FINANCING"
   | "OVERDRAFT"
   | "CARD_RENEGOTIATION"
   | "OTHER";
@@ -103,6 +107,9 @@ export interface Debt extends AuditFields {
   readonly responsibleMemberId?: MemberId;
   readonly vehicleId?: VehicleId;
   readonly notes?: string;
+  /** The original card invoice replaced by this contracted payment plan. */
+  readonly sourceCardStatementId?: string;
+  readonly sourceCardInvoiceId?: string;
 }
 
 export interface ScheduledInstallment {
@@ -136,6 +143,17 @@ export function buildSchedule(debt: Debt): ScheduledInstallment[] {
   const insurance = debt.monthlyInsurance ?? zero(currency);
   const rate = (debt.interestRateMonthly ?? 0) / 100;
   const hasRate = rate > 0;
+  const fixedPlanTotal = debt.installmentAmount
+    ? debt.installmentAmount.amount * debt.installmentCount
+    : 0;
+  const knownFixedCost =
+    debt.amortisationSystem === "SIMPLE" &&
+    !hasRate &&
+    debt.installmentAmount &&
+    fixedPlanTotal >= debt.principalContracted.amount;
+  const simplePrincipalParts = knownFixedCost
+    ? allocate(debt.principalContracted, debt.installmentCount)
+    : [];
 
   const schedule: ScheduledInstallment[] = [];
   let outstanding = debt.principalContracted;
@@ -155,7 +173,10 @@ export function buildSchedule(debt: Debt): ScheduledInstallment[] {
     let principal: Money;
     let interest: Money;
 
-    if (!hasRate) {
+    if (knownFixedCost && debt.installmentAmount) {
+      principal = simplePrincipalParts[number - 1]!;
+      interest = clampToZero(subtract(debt.installmentAmount, principal));
+    } else if (!hasRate) {
       // No rate known: report the payment honestly as amortisation only.
       principal = isLast ? outstanding : fixedInstallment;
       interest = zero(currency);
@@ -392,6 +413,7 @@ export function summariseDebts(
  * and should not disappear into the loan balance unnoticed.
  */
 export function disbursementCost(debt: Debt): Money {
+  if (debt.sourceCardStatementId) return zero(debt.principalContracted.currency);
   const gap = subtract(debt.principalContracted, debt.amountDisbursed);
   return isPositive(gap) ? gap : zero(gap.currency);
 }
@@ -438,8 +460,11 @@ export const DEBT_KIND_LABELS: Record<DebtKind, string> = {
   PERSONAL_LOAN: "Empréstimo pessoal",
   PAYROLL_LOAN: "Empréstimo consignado",
   VEHICLE_FINANCING: "Financiamento de veículo",
-  REAL_ESTATE_FINANCING: "Financiamento imobiliário",
+  REAL_ESTATE_FINANCING: "Financiamento habitacional / imobiliário",
   EQUIPMENT_FINANCING: "Financiamento de equipamento",
+  STUDENT_FINANCING: "Financiamento estudantil",
+  RURAL_FINANCING: "Crédito ou financiamento rural",
+  BUSINESS_FINANCING: "Financiamento empresarial",
   OVERDRAFT: "Cheque especial",
   CARD_RENEGOTIATION: "Renegociação de cartão",
   OTHER: "Outra dívida",

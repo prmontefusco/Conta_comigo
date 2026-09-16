@@ -101,7 +101,7 @@ export interface CardInstallment {
   readonly propertyId?: PropertyId;
 }
 
-export type CardStatementStatus = "OPEN" | "CLOSED" | "PARTIALLY_PAID" | "PAID";
+export type CardStatementStatus = "OPEN" | "CLOSED" | "PARTIALLY_PAID" | "PAID" | "FINANCED";
 
 /**
  * A statement (fatura).
@@ -232,6 +232,7 @@ export function projectStatements(
   toMonth: MonthKey,
   today: CalendarDate,
   importedInvoices: readonly CardInvoiceDoc[] = [],
+  financedStatementIds: ReadonlySet<CardStatementId> = new Set(),
 ): CardStatement[] {
   const installments = purchases
     .filter((purchase) => purchase.creditCardId === card.id)
@@ -268,7 +269,8 @@ export function projectStatements(
       const total =
         confirmed?.totalAmount ?? sum(monthInstallments.map((installment) => installment.amount));
       const paidAmount = sum(statementPayments.map((payment) => payment.amount));
-      const remaining = clampToZero(subtract(total, paidAmount));
+      const financed = financedStatementIds.has(id);
+      const remaining = financed ? zero() : clampToZero(subtract(total, paidAmount));
       const closingDate = closingDateFor(card, month);
 
       statements.push({
@@ -281,7 +283,7 @@ export function projectStatements(
         total,
         paidAmount,
         remainingAmount: remaining,
-        status: statementStatus(total, paidAmount, closingDate, today),
+        status: financed ? "FINANCED" : statementStatus(total, paidAmount, closingDate, today),
         paymentTransactionIds: statementPayments.map((payment) => payment.transactionId),
       });
     }

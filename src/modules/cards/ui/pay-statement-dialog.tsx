@@ -25,7 +25,7 @@ export function PayStatementDialog({
   statement: CardStatement | null;
   onClose: () => void;
 }) {
-  const { accounts, asOf } = useFinance();
+  const { accounts, asOf, cardInvoices } = useFinance();
   const { household, user } = useSession();
 
   const [accountId, setAccountId] = useState("");
@@ -46,6 +46,11 @@ export function PayStatementDialog({
   }, [statement, asOf, defaultAccountId]);
 
   if (!statement) return null;
+  const importedInvoice = cardInvoices.find(
+    (invoice) =>
+      invoice.creditCardId === statement.creditCardId &&
+      invoice.referenceMonth === statement.referenceMonth,
+  );
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -61,6 +66,14 @@ export function PayStatementDialog({
       setError("Informe um valor maior que zero.");
       return;
     }
+    if (amount.amount > statement.remainingAmount.amount) {
+      setError("O valor não pode superar o saldo em aberto da fatura.");
+      return;
+    }
+    if (paidOn > asOf) {
+      setError("Registre o pagamento somente depois que o dinheiro saiu da conta.");
+      return;
+    }
 
     setSaving(true);
     const result = await payCardStatement({
@@ -74,6 +87,8 @@ export function PayStatementDialog({
       amount,
       paidOn: calendarDate(paidOn),
       competenceDate: firstDayOfMonthKey(statement.referenceMonth),
+      importedInvoiceId: importedInvoice?.id,
+      expectedPaymentRevision: importedInvoice?.paymentRevision,
     }).catch((payError: unknown) => {
       console.error(payError);
       return null;
@@ -102,10 +117,8 @@ export function PayStatementDialog({
         {error ? <FormError>{error}</FormError> : null}
 
         <Callout tone="info">
-          Este pagamento sai da conta escolhida, mas não conta como uma nova despesa: as{" "}
-          {statement.installments.length}{" "}
-          {statement.installments.length === 1 ? "compra" : "compras"} desta fatura já foram
-          contabilizadas quando aconteceram.
+          Este pagamento sai da conta escolhida. Itens da importação usados apenas para previsão não
+          criam despesas adicionais.
         </Callout>
 
         <p className="text-sm" style={{ color: "var(--muted-fg)" }}>

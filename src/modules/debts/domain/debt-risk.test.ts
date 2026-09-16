@@ -8,6 +8,15 @@ import {
 } from "./debt-risk";
 
 describe("what happens if it stops being paid", () => {
+  it.each(["STUDENT_FINANCING", "RURAL_FINANCING", "BUSINESS_FINANCING"] as const)(
+    "classifies %s without inventing collateral",
+    (kind) => {
+      const risk = classifyDebt(aDebt({ kind }));
+      expect(risk.level).toBe("MODERATE");
+      expect(risk.guarantee).toBe("NONE");
+    },
+  );
+
   it("treats a financed vehicle as critical: the car can be taken", () => {
     const risk = classifyDebt(aDebt({ kind: "VEHICLE_FINANCING" }));
 

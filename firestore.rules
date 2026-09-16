@@ -475,8 +475,13 @@ service cloud.firestore {
           && request.resource.data.totalAmount.amount > 0
           && request.resource.data.forecastLines is list
           && request.resource.data.forecastLines.size() <= 120;
-        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
-        allow delete: if canWrite(householdId);
+        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize()
+          && (!('financedDebtId' in resource.data)
+            || request.resource.data.financedDebtId == resource.data.financedDebtId)
+          && (!('financedDebtId' in request.resource.data)
+            || ('financedDebtId' in resource.data)
+            || getAfter(/databases/$(database)/documents/households/$(householdId)/debts/$(request.resource.data.financedDebtId)).data.sourceCardInvoiceId == invoiceId);
+        allow delete: if canWrite(householdId) && !('financedDebtId' in resource.data);
       }
 
       match /debts/{debtId} {
@@ -486,9 +491,15 @@ service cloud.firestore {
           && isIntegerMoney(request.resource.data.principalContracted)
           && request.resource.data.installmentCount is int
           && request.resource.data.installmentCount >= 1
-          && request.resource.data.installmentCount <= 600;
-        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize();
-        allow delete: if canAdminister(householdId);
+          && request.resource.data.installmentCount <= 600
+          && (!('sourceCardStatementId' in request.resource.data)
+            || (request.resource.data.kind == 'CARD_RENEGOTIATION'
+              && request.resource.data.sourceCardInvoiceId is string
+              && getAfter(/databases/$(database)/documents/households/$(householdId)/cardInvoices/$(request.resource.data.sourceCardInvoiceId)).data.financedDebtId == debtId));
+        allow update: if canWrite(householdId) && immutableAudit() && reasonableSize()
+          && (!('sourceCardStatementId' in resource.data)
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']));
+        allow delete: if canAdminister(householdId) && !('sourceCardStatementId' in resource.data);
       }
 
       match /recurringRules/{ruleId} {

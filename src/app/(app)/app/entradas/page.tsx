@@ -40,6 +40,7 @@ import type { Obligation } from "@/modules/obligations/domain/obligation";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useMembers } from "@/modules/household/ui/use-members";
 import { useSession } from "@/modules/household/ui/session-provider";
+import { SourceColorMark } from "@/modules/shared/ui/source-color";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 
 /**
@@ -154,7 +155,8 @@ export default function EntradasPage() {
         <div>
           <h1 className="text-xl font-semibold">Entradas</h1>
           <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
-            Registro de entradas de saldo e recebimentos extras (parentes, imposto de renda, ganho judicial, inventário, etc.)
+            Registro de entradas de saldo e recebimentos extras (parentes, imposto de renda, ganho
+            judicial, inventário, etc.)
           </p>
         </div>
         {canWrite ? (
@@ -235,7 +237,13 @@ export default function EntradasPage() {
                 <div className="flex items-baseline justify-between gap-3 border-b border-[color:var(--card-border)] pb-1">
                   <h3 className="text-sm font-semibold">{formatCalendarDate(day.date)}</h3>
                   <p className="text-xs font-medium" style={{ color: "var(--color-positive-700)" }}>
-                    entrou {money(day.received.amount).amount > 0 ? (day.received.amount / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "R$ 0,00"}
+                    entrou{" "}
+                    {money(day.received.amount).amount > 0
+                      ? (day.received.amount / 100).toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })
+                      : "R$ 0,00"}
                   </p>
                 </div>
 
@@ -246,6 +254,9 @@ export default function EntradasPage() {
                       entry={entry}
                       categoryLabel={categoryName(categories, entry.categoryId)}
                       sourceLabel={sourceLabelFor(entry, finance)}
+                      sourceColor={
+                        finance.accounts.find((item) => item.id === entry.accountId)?.color
+                      }
                       memberLabel={
                         entry.responsibleMemberId ? nameOf(entry.responsibleMemberId) : null
                       }
@@ -311,7 +322,9 @@ export default function EntradasPage() {
                 </div>
                 <div className="mt-1">
                   <ProgressBar
-                    ratio={totals.received.amount === 0 ? 0 : line.total.amount / totals.received.amount}
+                    ratio={
+                      totals.received.amount === 0 ? 0 : line.total.amount / totals.received.amount
+                    }
                     label={`Participação de ${categoryName(categories, line.categoryId)} nas entradas do mês`}
                   />
                 </div>
@@ -403,6 +416,7 @@ function IncomeEntryRow({
   entry,
   categoryLabel,
   sourceLabel,
+  sourceColor,
   memberLabel,
   onEdit,
   onDelete,
@@ -410,6 +424,7 @@ function IncomeEntryRow({
   entry: DailyEntry;
   categoryLabel: string;
   sourceLabel: string;
+  sourceColor?: string;
   memberLabel: string | null;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -417,7 +432,10 @@ function IncomeEntryRow({
   return (
     <li className="flex flex-wrap items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1 text-left">
-        <p className="truncate font-medium">{entry.description}</p>
+        <p className="flex items-center gap-2 truncate font-medium">
+          <SourceColorMark color={sourceColor} />
+          {entry.description}
+        </p>
         <p className="truncate text-xs" style={{ color: "var(--muted-fg)" }}>
           {categoryLabel} · {sourceLabel}
         </p>

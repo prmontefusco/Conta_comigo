@@ -38,12 +38,29 @@ import {
   summariseDecisions,
 } from "@/modules/decisions/domain/decision";
 import { useFinance, type FinanceData } from "@/modules/household/ui/finance-provider";
+import type { ForecastEvent } from "@/modules/forecast/domain/forecast-types";
+import { SourceColorMark } from "@/modules/shared/ui/source-color";
 import { buildScript, type ScriptId } from "@/modules/negotiation/domain/scripts";
 import { proposalCapacity } from "@/modules/negotiation/domain/affordable-proposal";
 import { isOpen, remainingAmount } from "@/modules/obligations/domain/obligation";
 import { starterReserveStatus } from "@/modules/reserves/domain/starter-reserve";
 
 type PriorityKind = "ESSENTIAL" | "COLLATERAL" | "EXPENSIVE" | "QUICK_WIN" | "CASH_FLOW";
+
+function colorForForecastEvent(event: ForecastEvent, finance: FinanceData): string | undefined {
+  if (!event.referenceId) return undefined;
+  let statementId: string | undefined;
+  if (event.source === "CARD_STATEMENT") statementId = event.referenceId;
+  if (event.source === "DEBT_INSTALLMENT")
+    statementId = finance.debts.find(
+      (item) => item.id === event.referenceId,
+    )?.sourceCardStatementId;
+  if (event.source === "OBLIGATION" || event.source === "OVERDUE_OBLIGATION")
+    statementId = finance.obligations.find((item) => item.id === event.referenceId)?.source
+      ?.cardStatementId;
+  const cardId = finance.cardStatements.find((item) => item.id === statementId)?.creditCardId;
+  return finance.cards.find((item) => item.id === cardId)?.color;
+}
 
 interface DebtPriority {
   readonly id: string;
@@ -187,7 +204,10 @@ export default function ActionPlanPage() {
                     className="flex items-center justify-between gap-3 border-b border-[color:var(--card-border)] py-2 last:border-0"
                   >
                     <div>
-                      <p className="text-sm font-medium">{event.description}</p>
+                      <p className="flex items-center gap-2 text-sm font-medium">
+                        <SourceColorMark color={colorForForecastEvent(event, finance)} />
+                        {event.description}
+                      </p>
                       <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
                         {formatCalendarDate(event.date)}
                       </p>

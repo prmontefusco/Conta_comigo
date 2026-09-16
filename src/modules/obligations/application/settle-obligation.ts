@@ -1,4 +1,4 @@
-import { collection, doc, writeBatch, type Firestore } from "firebase/firestore";
+import { collection, doc, runTransaction, writeBatch, type Firestore } from "firebase/firestore";
 import { instant, type CalendarDate } from "@/core/date/calendar-date";
 import { isPositive, type Money } from "@/core/money/money";
 import type { Obligation } from "@/modules/obligations/domain/obligation";
@@ -148,6 +148,8 @@ export interface PayStatementInput {
   readonly amount: Money;
   readonly paidOn: CalendarDate;
   readonly competenceDate: CalendarDate;
+  readonly importedInvoiceId?: string;
+  readonly expectedPaymentRevision?: number;
 }
 
 export async function payCardStatement(
@@ -159,27 +161,46 @@ export async function payCardStatement(
 
   const now = instant();
   const ref = doc(collection(input.db, `households/${input.householdId}/transactions`));
-  const batch = writeBatch(input.db);
-
-  batch.set(
-    ref,
-    stripUndefined({
-      householdId: input.householdId,
-      kind: "CARD_STATEMENT_PAYMENT",
-      amount: input.amount,
-      transactionDate: input.paidOn,
-      competenceDate: input.competenceDate,
-      description: `Pagamento da fatura ${input.statementMonth}`,
-      visibility: "HOUSEHOLD",
-      accountId: input.accountId,
-      creditCardId: input.creditCardId,
-      statementId: input.statementId,
-      createdAt: now,
-      updatedAt: now,
-      createdBy: input.uid,
-    }),
-  );
-
-  await batch.commit();
+  const payload = stripUndefined({
+    householdId: input.householdId,
+    kind: "CARD_STATEMENT_PAYMENT",
+    amount: input.amount,
+    transactionDate: input.paidOn,
+    competenceDate: input.competenceDate,
+    description: `Pagamento da fatura ${input.statementMonth}`,
+    visibility: "HOUSEHOLD",
+    accountId: input.accountId,
+    creditCardId: input.creditCardId,
+    statementId: input.statementId,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: input.uid,
+  });
+  if (input.importedInvoiceId) {
+    const invoiceRef = doc(
+      input.db,
+      `households/${input.householdId}/cardInvoices/${input.importedInvoiceId}`,
+    );
+    await runTransaction(input.db, async (transaction) => {
+      const invoice = await transaction.get(invoiceRef);
+      if (!invoice.exists() || invoice.data().financedDebtId)
+        throw new Error("Esta fatura já foi parcelada ou removida.");
+      if (
+        input.expectedPaymentRevision != null &&
+        (invoice.data().paymentRevision ?? 0) !== input.expectedPaymentRevision
+      ) {
+        throw new Error("Outro pagamento foi registrado. Atualize a fatura antes de continuar.");
+      }
+      transaction.set(ref, payload);
+      transaction.update(invoiceRef, {
+        paymentRevision: (invoice.data().paymentRevision ?? 0) + 1,
+        updatedAt: now,
+      });
+    });
+  } else {
+    const batch = writeBatch(input.db);
+    batch.set(ref, payload);
+    await batch.commit();
+  }
   return ok({ transactionId: ref.id });
 }

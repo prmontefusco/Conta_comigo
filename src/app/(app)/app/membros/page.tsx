@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Badge, Button, Callout, Card, CardTitle, Spinner } from "@/components/ui/primitives";
 import { FormError, SelectField, TextField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
@@ -20,14 +20,8 @@ import { ROLE_DESCRIPTIONS, ROLE_LABELS } from "@/modules/household/domain/house
 import { useMembers } from "@/modules/household/ui/use-members";
 import { usePendingInvites } from "@/modules/household/ui/use-pending-invites";
 import { useSession } from "@/modules/household/ui/session-provider";
-import { useFinance } from "@/modules/household/ui/finance-provider";
 import { CreateMemberAccountDialog } from "@/modules/household/ui/create-member-account-dialog";
-import { AuditFeedCard } from "@/modules/household/ui/audit-feed-card";
-import {
-  createFamilyAuditEvent,
-  sortAuditEventsDescending,
-  type FamilyAuditEvent,
-} from "@/modules/household/domain/audit-log";
+import { FamilyMembersCard } from "@/modules/household/ui/family-members-card";
 import type { HouseholdRole } from "@/modules/shared/domain/common";
 
 /**
@@ -44,66 +38,12 @@ export default function MembersPage() {
   const { household, user, canAdminister } = useSession();
   const { active, loading, error: membersError } = useMembers();
   const { invites: pendingInvites, error: invitesError } = usePendingInvites();
-  const finance = useFinance();
   const [creatingAccount, setCreatingAccount] = useState(false);
   const [addingDependent, setAddingDependent] = useState(false);
   const [invitingByEmail, setInvitingByEmail] = useState(false);
 
-  const auditEvents = useMemo(() => {
-    if (!household) return [];
-    const memberMap = new Map(active.map((m) => [m.uid, m.displayName]));
-    const events: FamilyAuditEvent[] = [];
-
-    for (const t of finance.transactions.slice(0, 20)) {
-      const actorName = memberMap.get(t.createdBy) ?? "Membro da casa";
-      events.push(
-        createFamilyAuditEvent({
-          id: `tx_${t.id}`,
-          householdId: t.householdId,
-          actorId: t.createdBy,
-          actorName,
-          actionType: t.kind === "EXPENSE" ? "EXPENSE_CREATED" : "INCOME_CREATED",
-          entityName: t.description,
-          amount: t.amount,
-          timestamp: t.createdAt,
-        }),
-      );
-    }
-
-    for (const o of finance.obligations.filter((o) => o.status === "SETTLED").slice(0, 10)) {
-      const actorName = memberMap.get(o.createdBy) ?? "Membro da casa";
-      events.push(
-        createFamilyAuditEvent({
-          id: `ob_${o.id}`,
-          householdId: o.householdId,
-          actorId: o.createdBy,
-          actorName,
-          actionType: "BILL_PAID",
-          entityName: o.description,
-          amount: o.amount,
-          timestamp: o.updatedAt,
-        }),
-      );
-    }
-
-    for (const m of active) {
-      if (m.joinedAt) {
-        events.push(
-          createFamilyAuditEvent({
-            id: `mb_${m.id}`,
-            householdId: m.householdId,
-            actorId: m.uid,
-            actorName: m.displayName,
-            actionType: "MEMBER_INVITED",
-            entityName: m.displayName,
-            timestamp: m.joinedAt,
-          }),
-        );
-      }
-    }
-
-    return sortAuditEventsDescending(events);
-  }, [household, finance.transactions, finance.obligations, active]);
+  const accessMembers = active.filter((member) => member.role !== "DEPENDENT");
+  const peopleWithoutAccess = active.filter((member) => member.role === "DEPENDENT");
 
   if (loading) return <Spinner label="Carregando membros" />;
 
@@ -113,7 +53,7 @@ export default function MembersPage() {
         <div>
           <h1 className="text-xl font-semibold">Membros da Família</h1>
           <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
-            Compartilhe o planejamento da casa com seu cônjuge ou filhos
+            Gerencie familiares, responsáveis pelos gastos e quem pode entrar no aplicativo
           </p>
         </div>
         {canAdminister ? (
@@ -123,7 +63,7 @@ export default function MembersPage() {
               Convidar por e-mail
             </Button>
             <Button variant="secondary" onClick={() => setAddingDependent(true)}>
-              Adicionar pessoa sem acesso
+              Adicionar responsável sem login
             </Button>
           </div>
         ) : null}
@@ -136,9 +76,9 @@ export default function MembersPage() {
       ) : null}
 
       <Card>
-        <CardTitle hint={household?.name}>Quem tem acesso</CardTitle>
+        <CardTitle hint={household?.name}>Quem tem acesso ao aplicativo</CardTitle>
         <ul className="divide-y divide-[color:var(--card-border)]">
-          {active.map((member) => (
+          {accessMembers.map((member) => (
             <MemberRow
               key={member.id}
               memberId={member.id}
@@ -151,7 +91,31 @@ export default function MembersPage() {
             />
           ))}
         </ul>
+        {peopleWithoutAccess.length > 0 ? (
+          <div className="mt-4 border-t border-[color:var(--card-border)] pt-3">
+            <h3 className="text-sm font-semibold">Responsáveis por gastos, sem login</h3>
+            <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+              Podem ser associados a lançamentos, mas não acessam os dados.
+            </p>
+            <ul className="divide-y divide-[color:var(--card-border)]">
+              {peopleWithoutAccess.map((member) => (
+                <MemberRow
+                  key={member.id}
+                  memberId={member.id}
+                  displayName={member.displayName}
+                  email={member.email}
+                  role={member.role}
+                  isMe={false}
+                  canAdminister={canAdminister}
+                  householdId={household?.id ?? ""}
+                />
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </Card>
+
+      <FamilyMembersCard />
 
       {canAdminister && pendingInvites.length > 0 ? (
         <Card>
@@ -171,8 +135,6 @@ export default function MembersPage() {
           </ul>
         </Card>
       ) : null}
-
-      <AuditFeedCard events={auditEvents} />
 
       <Card>
         <CardTitle>O que cada papel pode fazer</CardTitle>
@@ -566,4 +528,3 @@ function AddDependentDialog({ open, onClose }: { open: boolean; onClose: () => v
     </Modal>
   );
 }
-

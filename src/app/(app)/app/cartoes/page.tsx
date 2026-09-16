@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { formatCalendarDate, formatMonthKey } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
 import {
@@ -19,20 +20,22 @@ import {
   computeLimitStatus,
   splitStatements,
   type CardStatement,
-  type CreditCard,
 } from "@/modules/cards/domain/credit-card";
 import { BillingCalendarCard } from "@/modules/cards/ui/billing-calendar-card";
 import { CardStatementImportButton } from "@/modules/cards/ui/card-statement-import-button";
 import { CommittedMonthsCard } from "@/modules/cards/ui/committed-months-card";
+import { ContractInvoicePlanDialog } from "@/modules/cards/ui/contract-invoice-plan-dialog";
+import { buildSchedule } from "@/modules/debts/domain/debt";
 import { InstallmentPlansCard } from "@/modules/cards/ui/installment-plans-card";
 import { ImportedPurchasesManager } from "@/modules/cards/ui/imported-purchases-manager";
-import { NewCardDialog } from "@/modules/cards/ui/new-card-dialog";
 import { NewPurchaseDialog } from "@/modules/cards/ui/new-purchase-dialog";
 import { PayStatementDialog } from "@/modules/cards/ui/pay-statement-dialog";
+import { PayInvoicePlanInstallmentDialog } from "@/modules/cards/ui/pay-invoice-plan-installment-dialog";
 import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useMembers } from "@/modules/household/ui/use-members";
+import { SourceColorMark, sourceColor } from "@/modules/shared/ui/source-color";
 
 /**
  * Cards and statements.
@@ -44,10 +47,13 @@ import { useMembers } from "@/modules/household/ui/use-members";
 export default function CardsPage() {
   const finance = useFinance();
   const { canWrite } = useSession();
-  const [creatingCard, setCreatingCard] = useState(false);
-  const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
   const [purchaseCardId, setPurchaseCardId] = useState<string | null>(null);
   const [payingStatement, setPayingStatement] = useState<CardStatement | null>(null);
+  const [financingStatement, setFinancingStatement] = useState<CardStatement | null>(null);
+  const [payingPlanInstallment, setPayingPlanInstallment] = useState<{
+    debtId: string;
+    installmentNumber: number;
+  } | null>(null);
   const [manageImportsCardId, setManageImportsCardId] = useState<string | null>(null);
 
   if (finance.loading) return <Spinner label="Carregando seus cartões" />;
@@ -61,7 +67,12 @@ export default function CardsPage() {
         {canWrite ? (
           <div className="flex flex-wrap items-center gap-2">
             {cards.length > 0 ? <CardStatementImportButton /> : null}
-            <Button onClick={() => setCreatingCard(true)}>Novo cartão</Button>
+            <Link
+              href="/app/cadastro-cartoes"
+              className="inline-flex min-h-11 items-center rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-4 text-sm font-medium hover:bg-[color:var(--color-ink-50)]"
+            >
+              Gerenciar cartões
+            </Link>
           </div>
         ) : null}
       </div>
@@ -75,7 +86,7 @@ export default function CardsPage() {
           "O limite do cartão não é renda: um limite de R$ 5.000 é um empréstimo pré-aprovado caro, e não dinheiro que pertence à família.",
           "Compras parceladas entram nos próximos meses. Cada parcela pequena conta quando várias aparecem juntas.",
         ]}
-        helpTopic="Cadastre seus cartões, dias de fechamento e vencimento. O app calcula automaticamente o limite livre e quanto das suas rendas futuras já está comprometido com parcelas."
+        helpTopic="Cadastre os cartões, dias de fechamento e vencimento em Cadastro de cartões. Aqui você acompanha faturas, compras e parcelas futuras."
       />
 
       {cards.length === 0 ? (
@@ -85,7 +96,12 @@ export default function CardsPage() {
             description="Cadastre seus cartões para que as parcelas apareçam nos meses certos da projeção."
             action={
               canWrite ? (
-                <Button onClick={() => setCreatingCard(true)}>Novo cartão</Button>
+                <Link
+                  href="/app/cadastro-cartoes"
+                  className="inline-flex min-h-11 items-center rounded-lg bg-[color:var(--color-brand-600)] px-4 text-sm font-medium text-white hover:bg-[color:var(--color-brand-700)]"
+                >
+                  Cadastrar cartão
+                </Link>
               ) : undefined
             }
           />
@@ -97,8 +113,9 @@ export default function CardsPage() {
               key={card.id}
               cardId={card.id}
               onAddPurchase={() => setPurchaseCardId(card.id)}
-              onEdit={setEditingCard}
               onPayStatement={setPayingStatement}
+              onFinanceStatement={setFinancingStatement}
+              onPayPlanInstallment={setPayingPlanInstallment}
               onManageImports={() => setManageImportsCardId(card.id)}
             />
           ))}
@@ -109,16 +126,17 @@ export default function CardsPage() {
         </>
       )}
 
-      <NewCardDialog
-        open={creatingCard || editingCard !== null}
-        card={editingCard}
-        onClose={() => {
-          setCreatingCard(false);
-          setEditingCard(null);
-        }}
-      />
       <NewPurchaseDialog cardId={purchaseCardId} onClose={() => setPurchaseCardId(null)} />
       <PayStatementDialog statement={payingStatement} onClose={() => setPayingStatement(null)} />
+      <ContractInvoicePlanDialog
+        statement={financingStatement}
+        card={finance.cards.find((item) => item.id === financingStatement?.creditCardId) ?? null}
+        onClose={() => setFinancingStatement(null)}
+      />
+      <PayInvoicePlanInstallmentDialog
+        selection={payingPlanInstallment}
+        onClose={() => setPayingPlanInstallment(null)}
+      />
       <ImportedPurchasesManager
         cardId={manageImportsCardId}
         onClose={() => setManageImportsCardId(null)}
@@ -131,14 +149,16 @@ function CardSummary({
   cardId,
   onAddPurchase,
   onPayStatement,
+  onFinanceStatement,
+  onPayPlanInstallment,
   onManageImports,
-  onEdit,
 }: {
   cardId: string;
   onAddPurchase: () => void;
   onPayStatement: (statement: CardStatement) => void;
+  onFinanceStatement: (statement: CardStatement) => void;
+  onPayPlanInstallment: (selection: { debtId: string; installmentNumber: number }) => void;
   onManageImports: () => void;
-  onEdit: (card: CreditCard) => void;
 }) {
   const finance = useFinance();
   const { canWrite } = useSession();
@@ -160,6 +180,12 @@ function CardSummary({
   const importedInvoices = finance.cardInvoices
     .filter((item) => item.creditCardId === cardId)
     .sort((a, b) => (a.referenceMonth < b.referenceMonth ? 1 : -1));
+  const invoicePlans = finance.debts.filter((debt) =>
+    finance.cardStatements.some(
+      (statement) =>
+        statement.creditCardId === cardId && statement.id === debt.sourceCardStatementId,
+    ),
+  );
 
   if (!card) return null;
 
@@ -171,12 +197,22 @@ function CardSummary({
 
   return (
     <Card>
+      {card.color ? (
+        <div
+          aria-hidden="true"
+          className="mb-3 h-1 rounded-full"
+          style={{ backgroundColor: sourceColor(card.color) }}
+        />
+      ) : null}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <CardTitle
             hint={`${card.lastFourDigits ? `final ${card.lastFourDigits} · ` : ""}Fecha dia ${card.closingDay} · vence dia ${card.dueDay}`}
           >
-            {card.name}
+            <span className="inline-flex items-center gap-2">
+              <SourceColorMark color={card.color} />
+              {card.name}
+            </span>
           </CardTitle>
           {card.holderMemberId || card.visibility === "PERSONAL" ? (
             <div className="-mt-2 mb-3 flex flex-wrap gap-1.5">
@@ -192,14 +228,6 @@ function CardSummary({
             </Button>
             <Button variant="secondary" onClick={onManageImports}>
               Corrigir importação
-            </Button>
-            <Button
-              variant="ghost"
-              className="text-xs"
-              onClick={() => onEdit(card)}
-              aria-label={`Editar ${card.name}`}
-            >
-              Editar
             </Button>
           </div>
         ) : null}
@@ -239,6 +267,11 @@ function CardSummary({
           value={limit.available}
           size="base"
           tone={limit.isOverLimit ? "critical" : "positive"}
+          hint={
+            invoicePlans.length > 0
+              ? "Estimativa: confirme com o emissor como o parcelamento afeta o limite."
+              : undefined
+          }
         />
       </dl>
 
@@ -256,6 +289,53 @@ function CardSummary({
             : `${Math.round(limit.utilisation * 100)}% de ${formatMoney(card.creditLimit)} comprometido.`}
         </p>
       </div>
+
+      {invoicePlans.length > 0 ? (
+        <div className="mt-4 rounded-lg border border-[color:var(--card-border)] p-3">
+          <h3 className="text-sm font-semibold">Parcelamentos de fatura contratados</h3>
+          <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+            A entrada já saiu da conta; abaixo ficam apenas parcelas ainda não registradas como
+            pagas.
+          </p>
+          {invoicePlans.map((debt) => {
+            const paid = new Set(finance.paidDebtInstallments.get(debt.id) ?? []);
+            const pending = buildSchedule(debt).filter((item) => !paid.has(item.number));
+            return (
+              <div key={debt.id} className="mt-2 text-sm">
+                <p className="font-medium">{debt.description}</p>
+                <ul className="mt-1 space-y-1">
+                  {pending.slice(0, 6).map((item) => (
+                    <li key={item.number} className="flex justify-between gap-2">
+                      <span>
+                        Parcela {item.number}/{item.of} · {formatCalendarDate(item.dueDate)}
+                        {item.dueDate < finance.asOf ? " · em atraso" : ""}
+                      </span>
+                      <span>{formatMoney(item.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+                {pending.length === 0 ? (
+                  <p className="text-xs">Todas as parcelas foram registradas como pagas.</p>
+                ) : null}
+                {canWrite && pending.length > 0 ? (
+                  <Button
+                    variant="secondary"
+                    className="mt-2 text-xs"
+                    onClick={() =>
+                      onPayPlanInstallment({
+                        debtId: debt.id,
+                        installmentNumber: pending[0]!.number,
+                      })
+                    }
+                  >
+                    Registrar parcela paga
+                  </Button>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
 
       {importedForecast.length > 0 ? (
         <div className="mt-4 rounded-lg border border-[color:var(--card-border)] p-3">
@@ -348,13 +428,26 @@ function CardSummary({
                 <div className="shrink-0 text-right">
                   <MoneyText value={statement.total} size="sm" tone="outflow" />
                   {canWrite && statement.remainingAmount.amount > 0 ? (
-                    <Button
-                      variant="secondary"
-                      className="mt-1 block w-full text-xs"
-                      onClick={() => onPayStatement(statement)}
-                    >
-                      Pagar
-                    </Button>
+                    <div className="mt-1 space-y-1">
+                      <Button
+                        variant="secondary"
+                        className="block w-full text-xs"
+                        onClick={() => onPayStatement(statement)}
+                      >
+                        Pagar
+                      </Button>
+                      {importedInvoices.some(
+                        (item) => item.referenceMonth === statement.referenceMonth,
+                      ) ? (
+                        <Button
+                          variant="secondary"
+                          className="block w-full text-xs"
+                          onClick={() => onFinanceStatement(statement)}
+                        >
+                          Parcelar
+                        </Button>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
               </li>
@@ -381,6 +474,8 @@ function StatementBadge({ statement, today }: { statement: CardStatement; today:
   switch (statement.status) {
     case "PAID":
       return <Badge tone="positive">Paga</Badge>;
+    case "FINANCED":
+      return <Badge tone="attention">Parcelada</Badge>;
     case "PARTIALLY_PAID":
       return <Badge tone="attention">Paga em parte</Badge>;
     case "CLOSED":

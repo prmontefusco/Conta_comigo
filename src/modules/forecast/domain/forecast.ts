@@ -13,7 +13,7 @@ import {
   type MonthKey,
 } from "@/core/date/calendar-date";
 import { type Money, add, clampToZero, subtract, sum, zero } from "@/core/money/money";
-import { upcomingInstallments } from "@/modules/debts/domain/debt";
+import { buildSchedule, upcomingInstallments } from "@/modules/debts/domain/debt";
 import {
   isOpen,
   materialisedOccurrenceKeys,
@@ -196,12 +196,16 @@ export function collectEvents(input: ForecastInput): ForecastEvent[] {
     const paid = input.paidDebtInstallments?.get(debt.id) ?? [];
 
     // `addDays(asOf, -1)` so an installment due today is still ahead of us.
-    for (const installment of upcomingInstallments(debt, addDays(input.asOf, -1), paid)) {
+    const installments = debt.sourceCardStatementId
+      ? buildSchedule(debt).filter((item) => !paid.includes(item.number))
+      : upcomingInstallments(debt, addDays(input.asOf, -1), paid);
+    for (const installment of installments) {
       if (materialisedDebtInstallments.has(`${debt.id}:${installment.number}`)) continue;
-      if (!isWithin(installment.dueDate, from, to)) continue;
+      const paymentDate = installment.dueDate < input.asOf ? input.asOf : installment.dueDate;
+      if (!isWithin(paymentDate, from, to)) continue;
 
       events.push({
-        date: installment.dueDate,
+        date: paymentDate,
         competenceMonth: installment.competenceMonth,
         direction: "OUTFLOW",
         amount: installment.total,

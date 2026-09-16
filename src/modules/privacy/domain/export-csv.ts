@@ -2,7 +2,7 @@ import { Money } from "@/core/money/money";
 import type { Account } from "@/modules/accounts/domain/account";
 import type { Category } from "@/modules/categories/domain/category";
 import type { CreditCard } from "@/modules/cards/domain/credit-card";
-import type { Debt } from "@/modules/debts/domain/debt";
+import { DEBT_KIND_LABELS, type Debt } from "@/modules/debts/domain/debt";
 import type { RecurringRule } from "@/modules/recurring/domain/recurring-rule";
 import type { Goal, Reserve } from "@/modules/reserves/domain/reserve";
 import type { Transaction } from "@/modules/transactions/domain/transaction";
@@ -71,7 +71,7 @@ export function buildTransactionsCsv(
                       : "Ajuste de Saldo";
 
     const catId = "categoryId" in t && typeof t.categoryId === "string" ? t.categoryId : undefined;
-    const cat = catId ? catMap.get(catId) ?? "Sem categoria" : "Não aplicável";
+    const cat = catId ? (catMap.get(catId) ?? "Sem categoria") : "Não aplicável";
 
     let accNome = "Não informada";
     if ("accountId" in t && typeof t.accountId === "string") {
@@ -146,20 +146,12 @@ export function buildDebtsCsv(
   ];
 
   const rows = debts.map((d) => {
-    const tipo =
-      d.kind === "PERSONAL_LOAN"
-        ? "Empréstimo Pessoal"
-        : d.kind === "PAYROLL_LOAN"
-          ? "Empréstimo Consignado"
-          : d.kind === "VEHICLE_FINANCING"
-            ? "Financiamento de Veículo"
-            : d.kind === "REAL_ESTATE_FINANCING"
-              ? "Financiamento Imobiliário"
-              : d.kind === "OVERDRAFT"
-                ? "Cheque Especial"
-                : d.kind === "CARD_RENEGOTIATION"
-                  ? "Renegociação de Cartão"
-                  : "Outra Dívida";
+    const tipo = DEBT_KIND_LABELS[d.kind]
+      .replace(
+        /(^|[\s/])(\p{L})/gu,
+        (_match, before, letter) => `${before}${String(letter).toLocaleUpperCase("pt-BR")}`,
+      )
+      .replace(/\b(De|Do|Da|Dos|Das|Ou)\b/g, (word) => word.toLocaleLowerCase("pt-BR"));
 
     const pagas = paidInstallmentsMap?.get(d.id)?.length ?? 0;
     const taxa = d.interestRateMonthly ? `${d.interestRateMonthly}%` : "Não informada";
@@ -221,7 +213,7 @@ export function buildRecurringCsv(
 
   const rows = rules.map((r) => {
     const tipo = r.direction === "OUTFLOW" ? "Despesa Fixa" : "Receita Fixa";
-    const cat = r.categoryId ? catMap.get(r.categoryId) ?? "Sem categoria" : "Sem categoria";
+    const cat = r.categoryId ? (catMap.get(r.categoryId) ?? "Sem categoria") : "Sem categoria";
     const freq =
       r.frequency === "MONTHLY"
         ? "Mensal"
@@ -259,29 +251,33 @@ export function buildReservesCsv(
     "Status",
   ];
 
-  const rowsReserves = reserves.map((r) => [
-    escapeCsv("Reserva Financeira"),
-    escapeCsv(r.name),
-    escapeCsv(formatMoneyCsv(r.currentAmount)),
-    escapeCsv(r.targetAmount ? formatMoneyCsv(r.targetAmount) : "Sem meta fixa"),
-    escapeCsv(r.archived ? "Arquivada" : "Ativa"),
-  ].join(";"));
+  const rowsReserves = reserves.map((r) =>
+    [
+      escapeCsv("Reserva Financeira"),
+      escapeCsv(r.name),
+      escapeCsv(formatMoneyCsv(r.currentAmount)),
+      escapeCsv(r.targetAmount ? formatMoneyCsv(r.targetAmount) : "Sem meta fixa"),
+      escapeCsv(r.archived ? "Arquivada" : "Ativa"),
+    ].join(";"),
+  );
 
-  const rowsGoals = goals.map((g) => [
-    escapeCsv("Meta Financeira"),
-    escapeCsv(g.name),
-    escapeCsv("Aporte vinculado"),
-    escapeCsv(formatMoneyCsv(g.targetAmount)),
-    escapeCsv(
-      g.status === "ACHIEVED"
-        ? "Concluída"
-        : g.status === "ACTIVE"
-          ? "Em andamento"
-          : g.status === "PAUSED"
-            ? "Pausada"
-            : "Cancelada",
-    ),
-  ].join(";"));
+  const rowsGoals = goals.map((g) =>
+    [
+      escapeCsv("Meta Financeira"),
+      escapeCsv(g.name),
+      escapeCsv("Aporte vinculado"),
+      escapeCsv(formatMoneyCsv(g.targetAmount)),
+      escapeCsv(
+        g.status === "ACHIEVED"
+          ? "Concluída"
+          : g.status === "ACTIVE"
+            ? "Em andamento"
+            : g.status === "PAUSED"
+              ? "Pausada"
+              : "Cancelada",
+      ),
+    ].join(";"),
+  );
 
   return UTF8_BOM + [headers.join(";"), ...rowsReserves, ...rowsGoals].join("\r\n");
 }

@@ -92,7 +92,7 @@ export function ImportedPurchasesManager({
     setError(null);
     try {
       const current = await collections.cardInvoices.get(invoiceId);
-      if (!current || current.creditCardId !== cardId)
+      if (!current || current.creditCardId !== cardId || current.financedDebtId)
         throw new Error("A fatura mudou. Reabra esta janela.");
       const latestPayments = (await collections.transactions.list()).filter(
         (item) =>
@@ -138,11 +138,17 @@ export function ImportedPurchasesManager({
                     <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
                       {invoice.forecastLines.length} itens para previsão
                       {hasPayment ? " · pagamento registrado" : ""}
+                      {invoice.financedDebtId ? " · fatura parcelada" : ""}
                     </p>
                   </div>
                   <Button
                     variant="secondary"
-                    disabled={saving || hasPayment || confirmation !== "EXCLUIR"}
+                    disabled={
+                      saving ||
+                      hasPayment ||
+                      Boolean(invoice.financedDebtId) ||
+                      confirmation !== "EXCLUIR"
+                    }
                     onClick={() => void undoInvoice(invoice.id)}
                   >
                     Remover

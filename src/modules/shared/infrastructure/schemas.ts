@@ -204,6 +204,7 @@ export const transactionSchema = z.discriminatedUnion("kind", [
     kind: z.literal("DEBT_PAYMENT"),
     accountId: idSchema,
     debtId: idSchema,
+    cardInvoicePlanInstallmentNumber: z.number().int().min(1).max(120).optional(),
     breakdown: debtBreakdownSchema.optional(),
     settlesObligationId: idSchema.optional(),
   }),
@@ -307,6 +308,8 @@ export const cardInvoiceSchema = base.extend({
   referenceMonth: monthKeySchema,
   dueDate: calendarDateSchema,
   totalAmount: moneySchema,
+  paymentRevision: z.number().int().min(0).default(0),
+  financedDebtId: idSchema.optional(),
   minimumPayment: moneySchema.optional(),
   installmentOffers: z
     .array(
@@ -340,6 +343,9 @@ export const debtSchema = base.extend({
     "VEHICLE_FINANCING",
     "REAL_ESTATE_FINANCING",
     "EQUIPMENT_FINANCING",
+    "STUDENT_FINANCING",
+    "RURAL_FINANCING",
+    "BUSINESS_FINANCING",
     "OVERDRAFT",
     "CARD_RENEGOTIATION",
     "OTHER",
@@ -363,6 +369,8 @@ export const debtSchema = base.extend({
   responsibleMemberId: idSchema.optional(),
   vehicleId: idSchema.optional(),
   notes: notesSchema,
+  sourceCardStatementId: idSchema.optional(),
+  sourceCardInvoiceId: idSchema.optional(),
 });
 
 export const recurringRuleSchema = base.extend({

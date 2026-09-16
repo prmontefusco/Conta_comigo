@@ -5,11 +5,10 @@ import Link from "next/link";
 import { deleteUser, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { Badge, Button, Callout, Card, CardTitle } from "@/components/ui/primitives";
-import { FormError, SelectField, TextField } from "@/components/ui/form";
+import { FormError, TextField } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
 import { getAuthClient, getDb } from "@/lib/firebase/client";
 import { instant } from "@/core/date/calendar-date";
-import { randomId } from "@/core/id/id";
 import { authErrorMessage } from "@/modules/auth/ui/auth-errors";
 import { useSession } from "@/modules/household/ui/session-provider";
 import {
@@ -18,7 +17,7 @@ import {
   planAccountDeletion,
   type DeletionPlan,
 } from "@/modules/privacy/application/data-portability";
-import type { FamilyMemberItem, FinancialGoal } from "@/modules/household/domain/household";
+import type { FinancialGoal } from "@/modules/household/domain/household";
 
 function formatCpf(val: string): string {
   const digits = val.replace(/\D/g, "").slice(0, 11);
@@ -61,15 +60,6 @@ export default function MyDataPage() {
   const [state, setState] = useState(profile?.address?.state ?? "");
   const [searchingCep, setSearchingCep] = useState(false);
 
-  // Composição Familiar
-  const [familyMembers, setFamilyMembers] = useState<FamilyMemberItem[]>(
-    profile?.familyMembers ? [...profile.familyMembers] : [],
-  );
-  const [newMemberName, setNewMemberName] = useState("");
-  const [newMemberRelationship, setNewMemberRelationship] = useState("Cônjuge / Companheiro(a)");
-  const [newMemberBirthDate, setNewMemberBirthDate] = useState("");
-  const [newMemberIsDependent, setNewMemberIsDependent] = useState(true);
-
   // Objetivo do Aplicativo
   const [financialGoal, setFinancialGoal] = useState<FinancialGoal>(
     profile?.financialGoal ?? "ORGANIZATION",
@@ -100,9 +90,6 @@ export default function MyDataPage() {
       setNeighborhood(profile.address?.neighborhood ?? "");
       setCity(profile.address?.city ?? "");
       setState(profile.address?.state ?? "");
-      if (profile.familyMembers) {
-        setFamilyMembers([...profile.familyMembers]);
-      }
       if (profile.financialGoal) {
         setFinancialGoal(profile.financialGoal);
       }
@@ -131,25 +118,6 @@ export default function MyDataPage() {
     }
   }
 
-  function handleAddFamilyMember() {
-    if (!newMemberName.trim()) return;
-    const member: FamilyMemberItem = {
-      id: randomId(),
-      name: newMemberName.trim(),
-      relationship: newMemberRelationship,
-      birthDate: newMemberBirthDate.trim() || undefined,
-      isDependent: newMemberIsDependent,
-    };
-    setFamilyMembers((prev) => [...prev, member]);
-    setNewMemberName("");
-    setNewMemberBirthDate("");
-    setNewMemberIsDependent(true);
-  }
-
-  function handleRemoveFamilyMember(id: string) {
-    setFamilyMembers((prev) => prev.filter((m) => m.id !== id));
-  }
-
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
@@ -174,7 +142,6 @@ export default function MyDataPage() {
           city: city.trim(),
           state: state.trim(),
         },
-        familyMembers,
         financialGoal,
         updatedAt: instant(),
       });
@@ -378,120 +345,10 @@ export default function MyDataPage() {
           </div>
         </Card>
 
-        {/* 3. COMPOSIÇÃO FAMILIAR & DEPENDENTES */}
-        <Card>
-          <CardTitle hint="Pessoas que compõem sua família e dependem financeiramente do mesmo orçamento">
-            3. Membros Familiares & Dependentes
-          </CardTitle>
-
-          <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>
-            O número e os dados dos dependentes são essenciais para o cálculo do{" "}
-            <strong>Mínimo Existencial Legal</strong> (Decreto nº 11.567/2023) e para demonstrar que
-            o salário da família não pode ser confiscado por parcelas de empréstimos.
-          </p>
-
-          {familyMembers.length > 0 ? (
-            <div className="mt-4 divide-y divide-[color:var(--card-border)] rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)]">
-              {familyMembers.map((member) => (
-                <div key={member.id} className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
-                  <div>
-                    <p className="font-semibold text-[color:var(--page-fg)]">{member.name}</p>
-                    <p className="text-2xs" style={{ color: "var(--muted-fg)" }}>
-                      {member.relationship} {member.birthDate ? `· Nasc: ${member.birthDate}` : ""}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {member.isDependent ? (
-                      <Badge tone="positive">Dependente Financeiro</Badge>
-                    ) : (
-                      <Badge tone="neutral">Membro Familiar</Badge>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFamilyMember(member.id)}
-                      className="cursor-pointer text-xs font-semibold text-[color:var(--tone-critical)] hover:underline"
-                    >
-                      Remover
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-3 rounded-lg border border-[color:var(--card-border)] bg-[color:var(--color-surface-sunken)] p-3 text-xs text-[color:var(--muted-fg)]">
-              Nenhum familiar cadastrado ainda. Adicione cônjuges, filhos ou pais dependentes abaixo.
-            </p>
-          )}
-
-          {/* Adicionar Novo Familiar */}
-          <div className="mt-4 rounded-xl border border-[color:var(--card-border)] bg-[color:var(--color-surface-sunken)] p-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[color:var(--page-fg)]">
-              + Adicionar Membro da Família
-            </h4>
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-12">
-              <div className="sm:col-span-5">
-                <TextField
-                  label="Nome do familiar"
-                  value={newMemberName}
-                  onChange={(e) => setNewMemberName(e.target.value)}
-                  placeholder="Nome completo do familiar"
-                />
-              </div>
-
-              <div className="sm:col-span-4">
-                <SelectField
-                  label="Grau de Parentesco"
-                  value={newMemberRelationship}
-                  onChange={(e) => setNewMemberRelationship(e.target.value)}
-                  options={[
-                    { value: "Cônjuge / Companheiro(a)", label: "Cônjuge / Companheiro(a)" },
-                    { value: "Filho(a)", label: "Filho(a)" },
-                    { value: "Enteado(a)", label: "Enteado(a)" },
-                    { value: "Pai / Mãe", label: "Pai / Mãe" },
-                    { value: "Irmão(ã)", label: "Irmão(ã)" },
-                    { value: "Outro Dependente", label: "Outro Dependente" },
-                  ]}
-                />
-              </div>
-
-              <div className="sm:col-span-3">
-                <TextField
-                  label="Data Nasc. (opcional)"
-                  type="date"
-                  value={newMemberBirthDate}
-                  onChange={(e) => setNewMemberBirthDate(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={newMemberIsDependent}
-                  onChange={(e) => setNewMemberIsDependent(e.target.checked)}
-                  className="size-4 rounded border-[color:var(--card-border)] text-[color:var(--color-brand-600)]"
-                />
-                Dependente financeiro direto (custos pagos pelo titular)
-              </label>
-
-              <Button
-                type="button"
-                variant="secondary"
-                className="text-xs"
-                onClick={handleAddFamilyMember}
-              >
-                + Incluir no Grupo Familiar
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        {/* 4. OBJETIVO DO APLICATIVO */}
+        {/* 3. OBJETIVO DO APLICATIVO */}
         <Card>
           <CardTitle hint="Define quais módulos e assistentes têm maior destaque para você">
-            4. Objetivo Principal de Uso
+            3. Objetivo Principal de Uso
           </CardTitle>
 
           <p className="mt-1 text-xs" style={{ color: "var(--muted-fg)" }}>

@@ -12,6 +12,7 @@ import { useFinance } from "@/modules/household/ui/finance-provider";
 import { MemberField } from "@/modules/household/ui/member-field";
 import { useSession } from "@/modules/household/ui/session-provider";
 import { useCollections } from "@/modules/shared/ui/use-collections";
+import { SourceColorField, sourceColor } from "@/modules/shared/ui/source-color";
 
 /**
  * Cadastrar ou corrigir um cartão.
@@ -46,6 +47,7 @@ export function NewCardDialog({
   const [visibility, setVisibility] = useState("HOUSEHOLD");
   const [holderMemberId, setHolderMemberId] = useState("");
   const [archived, setArchived] = useState(false);
+  const [color, setColor] = useState("#64748b");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -68,6 +70,7 @@ export function NewCardDialog({
       setVisibility("HOUSEHOLD");
       setHolderMemberId("");
       setArchived(false);
+      setColor("#64748b");
       return;
     }
 
@@ -80,6 +83,7 @@ export function NewCardDialog({
     setVisibility(card.visibility);
     setHolderMemberId(card.holderMemberId ?? "");
     setArchived(card.archived);
+    setColor(sourceColor(card.color));
   }, [open, card]);
 
   async function onSubmit(event: React.FormEvent) {
@@ -143,6 +147,7 @@ export function NewCardDialog({
           ? lastFourDigits.trim() || deleteField()
           : lastFourDigits.trim() || undefined,
         archived: card ? archived : false,
+        color,
       };
 
       if (card) {
@@ -223,6 +228,8 @@ export function NewCardDialog({
           onChange={(event) => setLimitText(event.target.value)}
           placeholder="0,00"
         />
+
+        <SourceColorField value={color} onChange={setColor} />
 
         <div className="grid grid-cols-2 gap-4">
           <TextField
