@@ -28,6 +28,30 @@ describe("parseCardStatementReading", () => {
       },
     ]);
   });
+
+  it("reads revolving rates and IOF without mixing them with installment offers", () => {
+    const reading = parseCardStatementReading(
+      JSON.stringify({
+        vencimento: "2026-09-18",
+        totalFatura: 1000,
+        rotativo: {
+          taxaMensal: 14.9,
+          taxaAnual: 430,
+          cetAnual: 510,
+          iofDiario: 0.0082,
+          iofAdicional: 0.38,
+        },
+        compras: [],
+      }),
+    );
+    expect(reading?.revolvingOffer).toEqual({
+      monthlyRatePercent: 14.9,
+      annualRatePercent: 430,
+      annualCetPercent: 510,
+      iofDailyPercent: 0.0082,
+      iofAdditionalPercent: 0.38,
+    });
+  });
   it("reads current statement totals and installment purchases", () => {
     const reading = parseCardStatementReading(`{
       "emissor": "Itaú",

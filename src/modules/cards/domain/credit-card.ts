@@ -116,11 +116,20 @@ export interface CardStatement {
   readonly closingDate: CalendarDate;
   readonly dueDate: CalendarDate;
   readonly installments: readonly CardInstallment[];
+  readonly agreementCharges: readonly CardStatementAgreementCharge[];
   readonly total: Money;
   readonly paidAmount: Money;
   readonly remainingAmount: Money;
   readonly status: CardStatementStatus;
   readonly paymentTransactionIds: readonly TransactionId[];
+}
+
+export interface CardStatementAgreementCharge {
+  readonly debtId: string;
+  readonly installmentNumber: number;
+  readonly description: string;
+  readonly amount: Money;
+  readonly statementMonth: MonthKey;
 }
 
 /* ------------------------------------------------------------------ */
@@ -233,6 +242,7 @@ export function projectStatements(
   today: CalendarDate,
   importedInvoices: readonly CardInvoiceDoc[] = [],
   financedStatementIds: ReadonlySet<CardStatementId> = new Set(),
+  agreementCharges: readonly CardStatementAgreementCharge[] = [],
 ): CardStatement[] {
   const installments = purchases
     .filter((purchase) => purchase.creditCardId === card.id)
@@ -256,6 +266,9 @@ export function projectStatements(
   let month = fromMonth;
   while (month <= toMonth) {
     const monthInstallments = byMonth.get(month) ?? [];
+    const monthAgreementCharges = agreementCharges.filter(
+      (charge) => charge.statementMonth === month,
+    );
     const confirmed = importedInvoices
       .filter((invoice) => invoice.creditCardId === card.id && invoice.referenceMonth === month)
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
@@ -263,11 +276,20 @@ export function projectStatements(
     const statementPayments = paymentsByStatement.get(id) ?? [];
 
     // A month with no activity and no payment is not a statement worth showing.
-    if (confirmed || monthInstallments.length > 0 || statementPayments.length > 0) {
+    if (
+      confirmed ||
+      monthInstallments.length > 0 ||
+      monthAgreementCharges.length > 0 ||
+      statementPayments.length > 0
+    ) {
       // The issuer's confirmed total replaces a derived sum for this month.
       // Forecast lines never enter this calculation.
       const total =
-        confirmed?.totalAmount ?? sum(monthInstallments.map((installment) => installment.amount));
+        confirmed?.totalAmount ??
+        sum([
+          ...monthInstallments.map((installment) => installment.amount),
+          ...monthAgreementCharges.map((charge) => charge.amount),
+        ]);
       const paidAmount = sum(statementPayments.map((payment) => payment.amount));
       const financed = financedStatementIds.has(id);
       const remaining = financed ? zero() : clampToZero(subtract(total, paidAmount));
@@ -280,6 +302,7 @@ export function projectStatements(
         closingDate,
         dueDate: confirmed?.dueDate ?? dueDateFor(card, month),
         installments: monthInstallments,
+        agreementCharges: monthAgreementCharges,
         total,
         paidAmount,
         remainingAmount: remaining,

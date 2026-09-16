@@ -64,7 +64,7 @@ describe("contracted card invoice plan", () => {
     expect(disbursementCost(debt).amount).toBe(0);
   });
 
-  it("removes the original invoice from payable statements after contracting", () => {
+  it("closes the original invoice and composes plan installments into future statements", () => {
     const card = aCreditCard({ closingDay: 12, dueDay: 18 });
     const id = statementId(card.id, monthKey("2026-09"));
     const invoice = {
@@ -75,30 +75,48 @@ describe("contracted card invoice plan", () => {
       totalAmount: brl(422.65),
       createdAt: "2026-09-15T00:00:00Z",
     } as CardInvoiceDoc;
-    const [statement] = projectStatements(
+    const statements = projectStatements(
       card,
       [],
       [{ transactionId: "entry", statementId: id, amount: brl(80) }],
       monthKey("2026-09"),
-      monthKey("2026-09"),
+      monthKey("2026-12"),
       on("2026-09-15"),
       [invoice],
       new Set([id]),
+      [
+        {
+          debtId: "debt-plan",
+          installmentNumber: 1,
+          description: "Acordo (1/3)",
+          amount: brl(164),
+          statementMonth: monthKey("2026-10"),
+        },
+        {
+          debtId: "debt-plan",
+          installmentNumber: 2,
+          description: "Acordo (2/3)",
+          amount: brl(164),
+          statementMonth: monthKey("2026-11"),
+        },
+        {
+          debtId: "debt-plan",
+          installmentNumber: 3,
+          description: "Acordo (3/3)",
+          amount: brl(164),
+          statementMonth: monthKey("2026-12"),
+        },
+      ],
     );
+    const statement = statements[0];
     expect(statement?.paidAmount).toEqual(brl(80));
     expect(statement?.remainingAmount).toEqual(brl(0));
     expect(statement?.status).toBe("FINANCED");
-    const debt = {
-      id: "debt-plan",
-      kind: "CARD_RENEGOTIATION",
-      sourceCardStatementId: id,
-      principalContracted: brl(342.65),
-      installmentCount: 3,
-      installmentAmount: brl(164),
-      firstDueDate: on("2026-10-15"),
-      amortisationSystem: "SIMPLE",
-      status: "ACTIVE",
-    } as Debt;
+    expect(statements.slice(1).map((item) => [item.referenceMonth, item.total.amount])).toEqual([
+      ["2026-10", 16400],
+      ["2026-11", 16400],
+      ["2026-12", 16400],
+    ]);
     const result = forecast({
       asOf: on("2026-09-15"),
       horizon: dateRange(on("2026-09-15"), on("2026-12-31")),
@@ -106,18 +124,18 @@ describe("contracted card invoice plan", () => {
       protectedReserve: zero(),
       obligations: [],
       recurringRules: [],
-      cardStatements: [statement!],
-      debts: [debt],
+      cardStatements: statements,
+      debts: [],
     });
-    expect(result.events.filter((item) => item.source === "CARD_STATEMENT")).toHaveLength(0);
     expect(
       result.events
-        .filter((item) => item.source === "DEBT_INSTALLMENT")
+        .filter((item) => item.source === "CARD_STATEMENT")
         .map((item) => [item.date, item.amount.amount]),
     ).toEqual([
-      ["2026-10-15", 16400],
-      ["2026-11-15", 16400],
-      ["2026-12-15", 16400],
+      ["2026-10-18", 16400],
+      ["2026-11-18", 16400],
+      ["2026-12-18", 16400],
     ]);
+    expect(result.events.filter((item) => item.source === "DEBT_INSTALLMENT")).toHaveLength(0);
   });
 });

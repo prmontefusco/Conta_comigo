@@ -5,6 +5,7 @@ import { collection, onSnapshot, type FirestoreError } from "firebase/firestore"
 import type { z } from "zod";
 import {
   addMonths,
+  addMonthsToKey,
   dateRange,
   monthKeyOf,
   todayIn,
@@ -27,7 +28,7 @@ import {
 } from "@/modules/cards/domain/credit-card";
 import type { Category } from "@/modules/categories/domain/category";
 import { buildOverview, type DashboardOverview } from "@/modules/dashboard/domain/overview";
-import { settledInstallmentNumbers, type Debt } from "@/modules/debts/domain/debt";
+import { buildSchedule, settledInstallmentNumbers, type Debt } from "@/modules/debts/domain/debt";
 import { sortDecisions, type Decision } from "@/modules/decisions/domain/decision";
 import { forecast } from "@/modules/forecast/domain/forecast";
 import { forecastImportedInvoices } from "@/modules/cards/domain/invoice-forecast";
@@ -313,6 +314,41 @@ export function deriveFinanceData(
     state.debts.flatMap((debt) => (debt.sourceCardStatementId ? [debt.sourceCardStatementId] : [])),
   );
 
+  // Explicit payments from older versions remain valid. New card-agreement
+  // installments are composed into their respective statements below.
+  const explicitlyPaidDebtInstallments = new Map(
+    state.debts.map((debt) => {
+      const payments = state.transactions.filter(
+        (transaction): transaction is Extract<Transaction, { kind: "DEBT_PAYMENT" }> =>
+          transaction.kind === "DEBT_PAYMENT" && transaction.debtId === debt.id,
+      );
+      return [
+        debt.id,
+        debt.sourceCardInvoiceId
+          ? paidCardInvoicePlanInstallments(payments, debt.id)
+          : settledInstallmentNumbers(debt, payments.length),
+      ] as const;
+    }),
+  );
+
+  const agreementChargesByCard = new Map<string, ReturnType<typeof buildSchedule>>();
+  for (const debt of state.debts) {
+    if (!debt.sourceCardInvoiceId || debt.status === "SETTLED") continue;
+    const sourceInvoice = (state.cardInvoices ?? []).find(
+      (invoice) => invoice.id === debt.sourceCardInvoiceId,
+    );
+    const card = sourceInvoice
+      ? state.creditCards.find((item) => item.id === sourceInvoice.creditCardId)
+      : undefined;
+    if (!card) continue;
+    const paid = new Set(explicitlyPaidDebtInstallments.get(debt.id) ?? []);
+    const pending = buildSchedule(debt).filter((item) => !paid.has(item.number));
+    agreementChargesByCard.set(card.id, [
+      ...(agreementChargesByCard.get(card.id) ?? []),
+      ...pending,
+    ]);
+  }
+
   const cardStatements = state.creditCards.flatMap((card) =>
     projectStatements(
       card,
@@ -323,6 +359,18 @@ export function deriveFinanceData(
       asOf,
       state.cardInvoices ?? [],
       financedStatementIds,
+      (agreementChargesByCard.get(card.id) ?? []).map((installment) => ({
+        debtId: installment.debtId,
+        installmentNumber: installment.number,
+        description: `Acordo de fatura (${installment.number}/${installment.of})`,
+        amount: installment.total,
+        // For cards due before their closing day, an October-closing statement
+        // is paid in November. Map the due date back to that statement month.
+        statementMonth:
+          card.dueDay <= card.closingDay
+            ? addMonthsToKey(installment.competenceMonth, -1)
+            : installment.competenceMonth,
+      })),
     ),
   );
   const importedInvoiceForecast = forecastImportedInvoices(
@@ -344,16 +392,16 @@ export function deriveFinanceData(
   // Ordinary debt schedules retain their historical count-based convention.
   const paidDebtInstallments = new Map(
     state.debts.map((debt) => {
-      const payments = state.transactions.filter(
-        (transaction): transaction is Extract<Transaction, { kind: "DEBT_PAYMENT" }> =>
-          transaction.kind === "DEBT_PAYMENT" && transaction.debtId === debt.id,
-      );
-      return [
-        debt.id,
-        debt.sourceCardInvoiceId
-          ? paidCardInvoicePlanInstallments(payments, debt.id)
-          : settledInstallmentNumbers(debt, payments.length),
-      ];
+      const paid = new Set(explicitlyPaidDebtInstallments.get(debt.id) ?? []);
+      if (debt.sourceCardInvoiceId) {
+        for (const statement of cardStatements) {
+          if (statement.status !== "PAID") continue;
+          for (const charge of statement.agreementCharges) {
+            if (charge.debtId === debt.id) paid.add(charge.installmentNumber);
+          }
+        }
+      }
+      return [debt.id, [...paid].sort((a, b) => a - b)] as const;
     }),
   );
   const effectiveDebts: Debt[] = state.debts.map((debt) =>
@@ -384,7 +432,9 @@ export function deriveFinanceData(
     obligations: state.obligations,
     recurringRules: forecastRecurringRules,
     cardStatements,
-    debts: effectiveDebts,
+    // Card agreements already live inside their future statements. Keeping
+    // them here too would charge the same installment twice.
+    debts: effectiveDebts.filter((debt) => !debt.sourceCardInvoiceId),
     paidDebtInstallments,
   };
 

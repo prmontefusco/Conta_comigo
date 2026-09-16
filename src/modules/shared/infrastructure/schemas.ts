@@ -311,6 +311,15 @@ export const cardInvoiceSchema = base.extend({
   paymentRevision: z.number().int().min(0).default(0),
   financedDebtId: idSchema.optional(),
   minimumPayment: moneySchema.optional(),
+  revolvingOffer: z
+    .object({
+      monthlyRatePercent: z.number().min(0).max(100).optional(),
+      annualRatePercent: z.number().min(0).max(10000).optional(),
+      annualCetPercent: z.number().min(0).max(10000).optional(),
+      iofDailyPercent: z.number().min(0).max(100).optional(),
+      iofAdditionalPercent: z.number().min(0).max(100).optional(),
+    })
+    .optional(),
   installmentOffers: z
     .array(
       z.object({

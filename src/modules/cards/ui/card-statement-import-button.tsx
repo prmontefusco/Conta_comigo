@@ -59,6 +59,13 @@ interface CardStatementReadingResponse {
     upfrontAmount: number;
     annualCetPercent: number | null;
   }[];
+  readonly revolvingOffer?: {
+    monthlyRatePercent: number | null;
+    annualRatePercent: number | null;
+    annualCetPercent: number | null;
+    iofDailyPercent: number | null;
+    iofAdditionalPercent: number | null;
+  } | null;
   readonly discarded: readonly { readonly reason: string; readonly line: string }[];
 }
 
@@ -231,6 +238,27 @@ export function CardStatementImportButton({ className }: { className?: string })
         ...(reading.minimumPayment && reading.minimumPayment > 0
           ? { minimumPayment: money(Math.round(reading.minimumPayment * 100)) }
           : {}),
+        ...(reading.revolvingOffer
+          ? {
+              revolvingOffer: {
+                ...(reading.revolvingOffer.monthlyRatePercent != null
+                  ? { monthlyRatePercent: reading.revolvingOffer.monthlyRatePercent }
+                  : {}),
+                ...(reading.revolvingOffer.annualRatePercent != null
+                  ? { annualRatePercent: reading.revolvingOffer.annualRatePercent }
+                  : {}),
+                ...(reading.revolvingOffer.annualCetPercent != null
+                  ? { annualCetPercent: reading.revolvingOffer.annualCetPercent }
+                  : {}),
+                ...(reading.revolvingOffer.iofDailyPercent != null
+                  ? { iofDailyPercent: reading.revolvingOffer.iofDailyPercent }
+                  : {}),
+                ...(reading.revolvingOffer.iofAdditionalPercent != null
+                  ? { iofAdditionalPercent: reading.revolvingOffer.iofAdditionalPercent }
+                  : {}),
+              },
+            }
+          : {}),
         forecastLines: toForecast
           .filter((purchase) => remainingInstallments(purchase) > 1)
           .map((purchase) => ({
@@ -347,6 +375,7 @@ export function CardStatementImportButton({ className }: { className?: string })
                       confidence: "BAIXA",
                       purchases: [],
                       installmentOffers: [],
+                      revolvingOffer: null,
                       discarded: [],
                     });
                   }}
@@ -470,6 +499,26 @@ export function CardStatementImportButton({ className }: { className?: string })
                       );
                     })}
                   </ul>
+                </Callout>
+              ) : null}
+
+              {reading.revolvingOffer ? (
+                <Callout tone="critical" title="Crédito rotativo informado na fatura">
+                  <p>Condições lidas para estimar o saldo que pode seguir para a próxima fatura.</p>
+                  <p className="mt-1 text-sm">
+                    {reading.revolvingOffer.monthlyRatePercent != null
+                      ? `Juros ${reading.revolvingOffer.monthlyRatePercent}% ao mês`
+                      : "Taxa mensal não lida"}
+                    {reading.revolvingOffer.annualCetPercent != null
+                      ? ` · CET anual ${reading.revolvingOffer.annualCetPercent}%`
+                      : ""}
+                    {reading.revolvingOffer.iofDailyPercent != null
+                      ? ` · IOF diário ${reading.revolvingOffer.iofDailyPercent}%`
+                      : ""}
+                    {reading.revolvingOffer.iofAdditionalPercent != null
+                      ? ` + IOF adicional ${reading.revolvingOffer.iofAdditionalPercent}%`
+                      : ""}
+                  </p>
                 </Callout>
               ) : null}
 

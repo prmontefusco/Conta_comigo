@@ -25,12 +25,13 @@ import { BillingCalendarCard } from "@/modules/cards/ui/billing-calendar-card";
 import { CardStatementImportButton } from "@/modules/cards/ui/card-statement-import-button";
 import { CommittedMonthsCard } from "@/modules/cards/ui/committed-months-card";
 import { ContractInvoicePlanDialog } from "@/modules/cards/ui/contract-invoice-plan-dialog";
+import { ContractCardRevolvingDialog } from "@/modules/cards/ui/contract-card-revolving-dialog";
 import { buildSchedule } from "@/modules/debts/domain/debt";
 import { InstallmentPlansCard } from "@/modules/cards/ui/installment-plans-card";
 import { ImportedPurchasesManager } from "@/modules/cards/ui/imported-purchases-manager";
 import { NewPurchaseDialog } from "@/modules/cards/ui/new-purchase-dialog";
 import { PayStatementDialog } from "@/modules/cards/ui/pay-statement-dialog";
-import { PayInvoicePlanInstallmentDialog } from "@/modules/cards/ui/pay-invoice-plan-installment-dialog";
+import { UndoStatementPaymentDialog } from "@/modules/cards/ui/undo-statement-payment-dialog";
 import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useSession } from "@/modules/household/ui/session-provider";
@@ -50,10 +51,8 @@ export default function CardsPage() {
   const [purchaseCardId, setPurchaseCardId] = useState<string | null>(null);
   const [payingStatement, setPayingStatement] = useState<CardStatement | null>(null);
   const [financingStatement, setFinancingStatement] = useState<CardStatement | null>(null);
-  const [payingPlanInstallment, setPayingPlanInstallment] = useState<{
-    debtId: string;
-    installmentNumber: number;
-  } | null>(null);
+  const [revolvingStatement, setRevolvingStatement] = useState<CardStatement | null>(null);
+  const [undoingStatement, setUndoingStatement] = useState<CardStatement | null>(null);
   const [manageImportsCardId, setManageImportsCardId] = useState<string | null>(null);
 
   if (finance.loading) return <Spinner label="Carregando seus cartões" />;
@@ -115,7 +114,8 @@ export default function CardsPage() {
               onAddPurchase={() => setPurchaseCardId(card.id)}
               onPayStatement={setPayingStatement}
               onFinanceStatement={setFinancingStatement}
-              onPayPlanInstallment={setPayingPlanInstallment}
+              onRevolveStatement={setRevolvingStatement}
+              onUndoStatementPayment={setUndoingStatement}
               onManageImports={() => setManageImportsCardId(card.id)}
             />
           ))}
@@ -128,14 +128,19 @@ export default function CardsPage() {
 
       <NewPurchaseDialog cardId={purchaseCardId} onClose={() => setPurchaseCardId(null)} />
       <PayStatementDialog statement={payingStatement} onClose={() => setPayingStatement(null)} />
+      <UndoStatementPaymentDialog
+        statement={undoingStatement}
+        onClose={() => setUndoingStatement(null)}
+      />
       <ContractInvoicePlanDialog
         statement={financingStatement}
         card={finance.cards.find((item) => item.id === financingStatement?.creditCardId) ?? null}
         onClose={() => setFinancingStatement(null)}
       />
-      <PayInvoicePlanInstallmentDialog
-        selection={payingPlanInstallment}
-        onClose={() => setPayingPlanInstallment(null)}
+      <ContractCardRevolvingDialog
+        statement={revolvingStatement}
+        card={finance.cards.find((item) => item.id === revolvingStatement?.creditCardId) ?? null}
+        onClose={() => setRevolvingStatement(null)}
       />
       <ImportedPurchasesManager
         cardId={manageImportsCardId}
@@ -150,14 +155,16 @@ function CardSummary({
   onAddPurchase,
   onPayStatement,
   onFinanceStatement,
-  onPayPlanInstallment,
+  onRevolveStatement,
+  onUndoStatementPayment,
   onManageImports,
 }: {
   cardId: string;
   onAddPurchase: () => void;
   onPayStatement: (statement: CardStatement) => void;
   onFinanceStatement: (statement: CardStatement) => void;
-  onPayPlanInstallment: (selection: { debtId: string; installmentNumber: number }) => void;
+  onRevolveStatement: (statement: CardStatement) => void;
+  onUndoStatementPayment: (statement: CardStatement) => void;
   onManageImports: () => void;
 }) {
   const finance = useFinance();
@@ -294,8 +301,8 @@ function CardSummary({
         <div className="mt-4 rounded-lg border border-[color:var(--card-border)] p-3">
           <h3 className="text-sm font-semibold">Parcelamentos de fatura contratados</h3>
           <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
-            A entrada já saiu da conta; abaixo ficam apenas parcelas ainda não registradas como
-            pagas.
+            A entrada já saiu da conta. Cada parcela seguinte compõe a fatura do mês indicado e é
+            quitada junto com ela.
           </p>
           {invoicePlans.map((debt) => {
             const paid = new Set(finance.paidDebtInstallments.get(debt.id) ?? []);
@@ -316,20 +323,6 @@ function CardSummary({
                 </ul>
                 {pending.length === 0 ? (
                   <p className="text-xs">Todas as parcelas foram registradas como pagas.</p>
-                ) : null}
-                {canWrite && pending.length > 0 ? (
-                  <Button
-                    variant="secondary"
-                    className="mt-2 text-xs"
-                    onClick={() =>
-                      onPayPlanInstallment({
-                        debtId: debt.id,
-                        installmentNumber: pending[0]!.number,
-                      })
-                    }
-                  >
-                    Registrar parcela paga
-                  </Button>
                 ) : null}
               </div>
             );
@@ -421,6 +414,17 @@ function CardSummary({
                       ? "total confirmado na importação"
                       : `${statement.installments.length} ${statement.installments.length === 1 ? "lançamento" : "lançamentos"}`}
                   </p>
+                  {statement.agreementCharges.length > 0 &&
+                  !importedInvoices.some(
+                    (item) => item.referenceMonth === statement.referenceMonth,
+                  ) ? (
+                    <p className="mt-1 text-xs text-[color:var(--muted-fg)]">
+                      Inclui{" "}
+                      {statement.agreementCharges
+                        .map((charge) => `${charge.description}: ${formatMoney(charge.amount)}`)
+                        .join(" · ")}
+                    </p>
+                  ) : null}
                   <div className="mt-1">
                     <StatementBadge statement={statement} today={finance.asOf} />
                   </div>
@@ -447,7 +451,28 @@ function CardSummary({
                           Parcelar
                         </Button>
                       ) : null}
+                      {statement.paidAmount.amount > 0 &&
+                      importedInvoices.some(
+                        (item) => item.referenceMonth === statement.referenceMonth,
+                      ) ? (
+                        <Button
+                          variant="danger"
+                          className="block w-full text-xs"
+                          onClick={() => onRevolveStatement(statement)}
+                        >
+                          Restante no rotativo
+                        </Button>
+                      ) : null}
                     </div>
+                  ) : null}
+                  {canWrite && statement.paymentTransactionIds.length > 0 ? (
+                    <Button
+                      variant="ghost"
+                      className="mt-1 block w-full text-xs"
+                      onClick={() => onUndoStatementPayment(statement)}
+                    >
+                      Desfazer pagamento
+                    </Button>
                   ) : null}
                 </div>
               </li>

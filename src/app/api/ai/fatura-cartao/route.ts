@@ -121,6 +121,15 @@ export async function POST(request: Request) {
           upfrontAmount: offer.upfrontCents,
           annualCetPercent: offer.annualCetPercent ?? null,
         })),
+        revolvingOffer: reading.revolvingOffer
+          ? {
+              monthlyRatePercent: reading.revolvingOffer.monthlyRatePercent ?? null,
+              annualRatePercent: reading.revolvingOffer.annualRatePercent ?? null,
+              annualCetPercent: reading.revolvingOffer.annualCetPercent ?? null,
+              iofDailyPercent: reading.revolvingOffer.iofDailyPercent ?? null,
+              iofAdditionalPercent: reading.revolvingOffer.iofAdditionalPercent ?? null,
+            }
+          : null,
         discarded: reading.discarded,
       },
     });
