@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import { isIndexable } from "@/lib/seo";
+import { getSiteUrl, isIndexable } from "@/lib/seo";
 import { JsonLd, buildOrganizationSchema, buildWebSiteSchema } from "@/lib/json-ld";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
@@ -29,7 +29,7 @@ const inter = localFont({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:5002";
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -69,6 +69,13 @@ export const metadata: Metadata = {
     title: "Conta comigo — planejamento financeiro pessoal e familiar",
     description: "Quanto tenho, quanto já comprometi e para onde minhas finanças estão indo.",
     url: siteUrl,
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Conta comigo" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Conta comigo — planejamento financeiro pessoal e familiar",
+    description: "Quanto tenho, quanto já comprometi e para onde minhas finanças estão indo.",
+    images: ["/opengraph-image"],
   },
   appleWebApp: {
     capable: true,

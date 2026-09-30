@@ -73,6 +73,30 @@ export const CONTENT_GUIDES: readonly ContentGuide[] = [
     shortDesc: "O passo a passo prático para sair da confusão sem pânico.",
     icon: "🧭",
   },
+  {
+    href: "/carro-novo-ou-usado",
+    title: "Carro Novo ou Usado",
+    shortDesc: "Compare financiamento, depreciação e custo total sem cair em contas simplistas.",
+    icon: "🚗",
+  },
+  {
+    href: "/alugar-ou-comprar-imovel",
+    title: "Alugar ou Comprar",
+    shortDesc: "Coloque juros, entrada, manutenção e mobilidade na mesma conta.",
+    icon: "🏠",
+  },
+  {
+    href: "/educacao-financeira-para-filhos",
+    title: "Dinheiro para Filhos",
+    shortDesc: "Mesada e atividades para ensinar escolhas financeiras em cada idade.",
+    icon: "🪴",
+  },
+  {
+    href: "/como-investir-primeiros-1000-reais",
+    title: "Primeiros R$ 1.000",
+    shortDesc: "Decida entre dívida, reserva, conhecimento e investimentos.",
+    icon: "💰",
+  },
 ] as const;
 
 export function PublicHeader() {

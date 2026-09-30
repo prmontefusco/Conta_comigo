@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
-import { isIndexable } from "@/lib/seo";
+import { getSiteUrl, isIndexable } from "@/lib/seo";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:5002";
+const SITE_URL = getSiteUrl();
 
 /**
  * Crawling rules.

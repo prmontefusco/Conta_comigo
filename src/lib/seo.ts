@@ -1,3 +1,42 @@
+import type { Metadata } from "next";
+
+const PRODUCTION_SITE_URL = "https://contacomigo.api.br";
+
+export function getSiteUrl(): string {
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? PRODUCTION_SITE_URL).replace(/\/$/, "");
+}
+
+export function buildPageMetadata({
+  title,
+  description,
+  path,
+}: {
+  title: string;
+  description: string;
+  path: `/${string}` | "/";
+}): Metadata {
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      type: "article",
+      locale: "pt_BR",
+      siteName: "Conta comigo",
+      title,
+      description,
+      url: path,
+      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Conta comigo" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ["/opengraph-image"],
+    },
+  };
+}
+
 /**
  * Indexação é opt-in explícito.
  *

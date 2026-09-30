@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { getSiteUrl } from "@/lib/seo";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:5002";
+const SITE_URL = getSiteUrl();
 
 /**
  * Only public, genuinely useful pages are listed.
@@ -18,6 +19,14 @@ const PAGES = [
   { path: "controle-de-cartao", priority: 0.7, changeFrequency: "monthly" as const },
   { path: "orcamento-familiar", priority: 0.7, changeFrequency: "monthly" as const },
   { path: "educacao-financeira", priority: 0.7, changeFrequency: "monthly" as const },
+  { path: "carro-novo-ou-usado", priority: 0.7, changeFrequency: "monthly" as const },
+  { path: "alugar-ou-comprar-imovel", priority: 0.7, changeFrequency: "monthly" as const },
+  { path: "educacao-financeira-para-filhos", priority: 0.7, changeFrequency: "monthly" as const },
+  {
+    path: "como-investir-primeiros-1000-reais",
+    priority: 0.7,
+    changeFrequency: "monthly" as const,
+  },
   { path: "como-sair-das-dividas", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "negociar-dividas", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "reserva-de-emergencia", priority: 0.8, changeFrequency: "monthly" as const },
@@ -33,7 +42,11 @@ const PAGES = [
   { path: "como-provar-superendividamento", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "minimo-existencial", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "acao-de-repactuacao-de-dividas", priority: 0.8, changeFrequency: "monthly" as const },
-  { path: "precisa-de-advogado-para-superendividamento", priority: 0.8, changeFrequency: "monthly" as const },
+  {
+    path: "precisa-de-advogado-para-superendividamento",
+    priority: 0.8,
+    changeFrequency: "monthly" as const,
+  },
   { path: "renda-extra", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "como-procurar-emprego", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "mudanca-de-carreira", priority: 0.8, changeFrequency: "monthly" as const },
@@ -45,10 +58,8 @@ const PAGES = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
   return PAGES.map((page) => ({
     url: page.path ? `${SITE_URL}/${page.path}` : SITE_URL,
-    lastModified,
     changeFrequency: page.changeFrequency,
     priority: page.priority,
   }));

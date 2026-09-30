@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { getSiteUrl } from "@/lib/seo";
 
 export interface FaqItem {
   readonly question: string;
@@ -7,14 +8,11 @@ export interface FaqItem {
 
 export function JsonLd({ data }: { readonly data: Record<string, unknown> }): ReactElement {
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
-    />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
   );
 }
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://contacomigo.api.br";
+const SITE_URL = getSiteUrl();
 
 export function buildOrganizationSchema(): Record<string, unknown> {
   return {
@@ -25,9 +23,6 @@ export function buildOrganizationSchema(): Record<string, unknown> {
     logo: `${SITE_URL}/icon.png`,
     description:
       "Plataforma de gestão financeira familiar, planejamento, renegociação de dívidas e proteção pelo superendividamento.",
-    sameAs: [
-      "https://contacomigo.api.br",
-    ],
   };
 }
 
@@ -71,13 +66,6 @@ export function buildSoftwareAppSchema(): Record<string, unknown> {
         name: "Plano Premium Anual",
       },
     ],
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.9",
-      ratingCount: "520",
-      bestRating: "5",
-      worstRating: "1",
-    },
   };
 }
 

@@ -63,3 +63,47 @@ export function Bullets({ items }: { items: readonly string[] }) {
     </ul>
   );
 }
+
+export function Callout({
+  title,
+  children,
+  tone = "info",
+}: {
+  title: string;
+  children: ReactNode;
+  tone?: "info" | "warning" | "success";
+}) {
+  const colors = {
+    info: "border-blue-200 bg-blue-50/70 text-blue-950",
+    warning: "border-amber-200 bg-amber-50/70 text-amber-950",
+    success: "border-emerald-200 bg-emerald-50/70 text-emerald-950",
+  } as const;
+
+  return (
+    <aside className={`rounded-xl border p-4 ${colors[tone]}`}>
+      <p className="font-semibold">{title}</p>
+      <div className="mt-1.5 text-sm leading-relaxed">{children}</div>
+    </aside>
+  );
+}
+
+export function Steps({ items }: { items: readonly { title: string; body: string }[] }) {
+  return (
+    <ol className="grid gap-3 sm:grid-cols-2">
+      {items.map((item, index) => (
+        <li
+          key={item.title}
+          className="rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-4"
+        >
+          <span className="text-xs font-semibold text-[color:var(--color-brand-700)]">
+            PASSO {index + 1}
+          </span>
+          <h3 className="mt-1 font-semibold">{item.title}</h3>
+          <p className="mt-1 text-sm" style={{ color: "var(--muted-fg)" }}>
+            {item.body}
+          </p>
+        </li>
+      ))}
+    </ol>
+  );
+}
