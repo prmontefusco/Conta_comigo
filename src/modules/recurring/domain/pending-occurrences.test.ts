@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { anObligation, aRecurringRule, brl, on } from "@/modules/shared/testing/builders";
-import { pendingOccurrences } from "./pending-occurrences";
+import { pendingOccurrenceAsObligation, pendingOccurrences } from "./pending-occurrences";
 
 /**
  * A lista de "a receber" precisa mostrar o salário **depois** de ele cair.
@@ -114,5 +114,41 @@ describe("pendingOccurrences", () => {
     });
 
     expect(pendentes.every((item) => item.occurrence.dueDate >= "2026-08-30")).toBe(true);
+  });
+
+  it("apresenta uma ocorrência de saída como conta aberta sem materializá-la", () => {
+    const internet = aRecurringRule({
+      id: "rule-internet",
+      direction: "OUTFLOW",
+      description: "Internet",
+      amount: brl(120),
+      frequency: "MONTHLY",
+      dayOfMonth: 10,
+      startDate: on("2026-01-10"),
+    });
+    const [pending] = pendingOccurrences({
+      rules: [internet],
+      obligations: [],
+      asOf: HOJE,
+      direction: "OUTFLOW",
+      lookbackDays: 0,
+      lookaheadMonths: 1,
+    });
+
+    expect(pending).toBeDefined();
+    const obligation = pendingOccurrenceAsObligation(pending!);
+
+    expect(obligation).toMatchObject({
+      id: "rule-internet:2026-09-10",
+      direction: "OUTFLOW",
+      origin: "RECURRING_RULE",
+      status: "SCHEDULED",
+      description: "Internet",
+      source: {
+        recurringRuleId: "rule-internet",
+        occurrenceKey: "rule-internet:2026-09-10",
+      },
+    });
+    expect(obligation.settledAmount).toEqual(brl(0));
   });
 });

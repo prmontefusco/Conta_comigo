@@ -32,9 +32,12 @@ const MONTHLY_FAMILY: readonly RecurringRule["frequency"][] = [
 export function EditRecurringRuleDialog({
   rule,
   onClose,
+  lockDirection = false,
 }: {
   rule: RecurringRule | null;
   onClose: () => void;
+  /** Keep edits within the page's focused flow (bills or expected income). */
+  lockDirection?: boolean;
 }) {
   const { categories } = useFinance();
   const collections = useCollections();
@@ -145,15 +148,17 @@ export function EditRecurringRuleDialog({
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         {error ? <FormError>{error}</FormError> : null}
 
-        <SelectField
-          label="Tipo"
-          value={direction}
-          onChange={(event) => setDirection(event.target.value as "OUTFLOW" | "INFLOW")}
-          options={[
-            { value: "OUTFLOW", label: "Vou pagar" },
-            { value: "INFLOW", label: "Vou receber" },
-          ]}
-        />
+        {lockDirection ? null : (
+          <SelectField
+            label="Tipo"
+            value={direction}
+            onChange={(event) => setDirection(event.target.value as "OUTFLOW" | "INFLOW")}
+            options={[
+              { value: "OUTFLOW", label: "Vou pagar" },
+              { value: "INFLOW", label: "Vou receber" },
+            ]}
+          />
+        )}
 
         <TextField
           label="Descrição"

@@ -37,6 +37,10 @@ import type { ForecastInput, ForecastResult } from "@/modules/forecast/domain/fo
 import type { Obligation } from "@/modules/obligations/domain/obligation";
 import type { RecurringRule } from "@/modules/recurring/domain/recurring-rule";
 import { recurringRulesWithHistoricalAverages } from "@/modules/recurring/domain/variable-expense-estimator";
+import {
+  pendingOccurrenceAsObligation,
+  pendingOccurrences,
+} from "@/modules/recurring/domain/pending-occurrences";
 import { protectedTotal, type Goal, type Reserve } from "@/modules/reserves/domain/reserve";
 import { computeBalances, totalCash } from "@/modules/accounts/domain/account";
 import type { Transaction } from "@/modules/transactions/domain/transaction";
@@ -440,11 +444,24 @@ export function deriveFinanceData(
 
   const projection = forecast(forecastInput);
 
+  // A recurring bill is stored as a rule, not as one document per month. The
+  // dashboard still needs to see its pending occurrences when answering how
+  // many bills are due and how much of today's balance is already committed.
+  const dashboardObligations = [
+    ...state.obligations,
+    ...pendingOccurrences({
+      rules: forecastRecurringRules,
+      obligations: state.obligations,
+      asOf,
+      direction: "OUTFLOW",
+    }).map(pendingOccurrenceAsObligation),
+  ];
+
   const overview = buildOverview({
     asOf,
     accounts: state.accounts,
     transactions: state.transactions,
-    obligations: state.obligations,
+    obligations: dashboardObligations,
     reserves: state.reserves,
     cards: state.creditCards,
     cardStatements,

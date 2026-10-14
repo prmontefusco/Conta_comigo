@@ -84,3 +84,44 @@ export function pendingOccurrences(input: PendingOccurrencesInput): PendingOccur
         : 1,
   );
 }
+
+/**
+ * Presents an occurrence as an open bill to read-only summaries and lists.
+ *
+ * The returned object is deliberately not persisted. Recurring rules remain the
+ * source of truth, while screens that answer "what do I have to pay?" can treat
+ * the next occurrence exactly like a manually entered obligation.
+ */
+export function pendingOccurrenceAsObligation(item: PendingOccurrence): Obligation {
+  const { rule, occurrence } = item;
+
+  return {
+    id: occurrence.occurrenceKey,
+    householdId: rule.householdId,
+    direction: rule.direction,
+    origin: "RECURRING_RULE",
+    source: {
+      recurringRuleId: rule.id,
+      occurrenceKey: occurrence.occurrenceKey,
+    },
+    description: rule.description,
+    amount: occurrence.amount,
+    dueDate: occurrence.dueDate,
+    competenceDate: occurrence.competenceDate,
+    ...(rule.categoryId ? { categoryId: rule.categoryId } : {}),
+    ...(rule.expectedAccountId ? { expectedAccountId: rule.expectedAccountId } : {}),
+    expenseNature: rule.expenseNature,
+    confidence: rule.confidence,
+    visibility: rule.visibility,
+    ...(rule.responsibleMemberId ? { responsibleMemberId: rule.responsibleMemberId } : {}),
+    ...(rule.vehicleId ? { vehicleId: rule.vehicleId } : {}),
+    ...(rule.propertyId ? { propertyId: rule.propertyId } : {}),
+    status: "SCHEDULED",
+    settledAmount: { amount: 0, currency: occurrence.amount.currency },
+    settlementTransactionIds: [],
+    createdAt: rule.createdAt,
+    updatedAt: rule.updatedAt,
+    createdBy: rule.createdBy,
+    ...(rule.notes ? { notes: rule.notes } : {}),
+  };
+}

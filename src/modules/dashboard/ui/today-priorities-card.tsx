@@ -41,6 +41,8 @@ export function TodayPrioritiesCard() {
   const dueToday = finance.overview.today.dueSoon.filter(
     (obligation) => obligation.dueDate === finance.asOf,
   );
+  const dueSoon = finance.overview.today.dueSoon;
+  const nextDueDate = dueSoon[0]?.dueDate;
 
   if (priorities.items.length === 0) {
     return (
@@ -61,6 +63,8 @@ export function TodayPrioritiesCard() {
           safeToSpend={safeToSpend}
           overdueCount={finance.overview.today.overdue.length}
           dueTodayCount={dueToday.length}
+          dueSoonCount={dueSoon.length}
+          nextDueDate={nextDueDate}
           hasDebts={finance.debts.length > 0 || finance.overview.today.cardDebt.amount > 0}
         />
       </Card>
@@ -143,6 +147,8 @@ export function TodayPrioritiesCard() {
         safeToSpend={safeToSpend}
         overdueCount={finance.overview.today.overdue.length}
         dueTodayCount={dueToday.length}
+        dueSoonCount={dueSoon.length}
+        nextDueDate={nextDueDate}
         hasDebts={finance.debts.length > 0 || finance.overview.today.cardDebt.amount > 0}
       />
     </Card>
@@ -153,11 +159,15 @@ function ActionCenter({
   safeToSpend,
   overdueCount,
   dueTodayCount,
+  dueSoonCount,
+  nextDueDate,
   hasDebts,
 }: {
   safeToSpend: ReturnType<typeof safeToSpendToday>;
   overdueCount: number;
   dueTodayCount: number;
+  dueSoonCount: number;
+  nextDueDate?: string;
   hasDebts: boolean;
 }) {
   return (
@@ -189,8 +199,22 @@ function ActionCenter({
         <ActionTile
           href="/app/contas"
           title="Contas"
-          value={overdueCount > 0 ? `${overdueCount} atrasada(s)` : `${dueTodayCount} hoje`}
-          detail={overdueCount > 0 ? "Regularizar primeiro" : "Ver vencimentos"}
+          value={
+            overdueCount > 0
+              ? `${overdueCount} ${overdueCount === 1 ? "atrasada" : "atrasadas"}`
+              : dueTodayCount > 0
+                ? `${dueTodayCount} ${dueTodayCount === 1 ? "vence" : "vencem"} hoje`
+                : dueSoonCount > 0
+                  ? `${dueSoonCount} a vencer`
+                  : "Sem vencimentos próximos"
+          }
+          detail={
+            overdueCount > 0
+              ? "Regularizar primeiro"
+              : nextDueDate
+                ? `Próxima: ${formatCalendarDate(nextDueDate)}`
+                : "Ver vencimentos"
+          }
           urgent={overdueCount > 0}
         />
         <ActionTile

@@ -299,11 +299,9 @@ export default function ImportStatementPage() {
           ) : null}
 
           <p className="text-2xs mt-3" style={{ color: "var(--muted-fg)" }}>
-            O <strong>OFX</strong> e o <strong>CSV</strong> são lidos no seu próprio aparelho e não
-            saem daqui. O <strong>PDF</strong> e a <strong>foto</strong> precisam de leitura
-            automática: o arquivo é enviado para ser lido, não fica guardado em lugar nenhum e some
-            junto com a resposta. Em qualquer um dos casos, só os lançamentos que você confirmar são
-            gravados.
+            O <strong>OFX</strong> e o <strong>CSV</strong> são lidos no seu aparelho. O{" "}
+            <strong>PDF</strong> e a <strong>foto</strong> são enviados para leitura automática. Em
+            qualquer formato, revise os dados: só os lançamentos que você confirmar são importados.
           </p>
         </Card>
       )}
@@ -322,8 +320,8 @@ export default function ImportStatementPage() {
           {parsed.format === "IA" ? (
             <div className="mt-3">
               <Callout tone="attention" title="Confira valor e data linha por linha">
-                A leitura de PDF e de foto acerta quase sempre, mas não é o arquivo do banco:
-                confira antes de confirmar.{" "}
+                A leitura automática pode interpretar algum dado errado. Compare cada linha com o
+                extrato antes de confirmar.{" "}
                 {summary?.institution ? `Identifiquei o extrato como ${summary.institution}. ` : ""}
                 {summary?.periodStart && summary?.periodEnd
                   ? `Período de ${formatCalendarDate(summary.periodStart as CalendarDate)} a ${formatCalendarDate(summary.periodEnd as CalendarDate)}. `

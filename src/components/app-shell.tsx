@@ -47,6 +47,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [passwordJustChanged, setPasswordJustChanged] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    const updateConnection = () => setIsOnline(navigator.onLine);
+    updateConnection();
+    window.addEventListener("online", updateConnection);
+    window.addEventListener("offline", updateConnection);
+    return () => {
+      window.removeEventListener("online", updateConnection);
+      window.removeEventListener("offline", updateConnection);
+    };
+  }, []);
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -167,6 +179,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
+      {!isOnline ? (
+        <aside
+          role="status"
+          aria-live="polite"
+          className="border-b border-amber-600/30 bg-amber-100 px-4 py-2 text-sm text-amber-950"
+        >
+          Sem conexão. Os saldos e previsões podem estar desatualizados; confira os dados antes de
+          tomar decisões financeiras.
+        </aside>
+      ) : null}
+
       {!isEmailVerified && user?.email ? (
         <aside
           aria-label="Confirmação de e-mail"
@@ -208,25 +231,32 @@ export function AppShell({ children }: { children: ReactNode }) {
                 key={section.title}
                 className="rounded-lg border border-[color:var(--card-border)] bg-white/48 p-2 shadow-2xs"
               >
-                <p className="px-2 pb-1.5 text-[0.68rem] font-bold tracking-wider text-[color:var(--muted-fg)] uppercase">
-                  {section.title}
-                </p>
-                <ul className="space-y-0.5">
-                  {section.items.map((item) => (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        aria-current={isActive(pathname, item.href) ? "page" : undefined}
-                        className={navLinkClass(isActive(pathname, item.href))}
-                      >
-                        <span aria-hidden="true" className="text-base">
-                          {item.icon}
-                        </span>
-                        <span>{item.label}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                <details
+                  open={
+                    ["Hoje", "Movimentos", "Cartões", "Dívidas"].includes(section.title) ||
+                    section.items.some((item) => isActive(pathname, item.href))
+                  }
+                >
+                  <summary className="cursor-pointer px-2 pb-1.5 text-[0.68rem] font-bold tracking-wider text-[color:var(--muted-fg)] uppercase">
+                    {section.title}
+                  </summary>
+                  <ul className="space-y-0.5">
+                    {section.items.map((item) => (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          aria-current={isActive(pathname, item.href) ? "page" : undefined}
+                          className={navLinkClass(isActive(pathname, item.href))}
+                        >
+                          <span aria-hidden="true" className="text-base">
+                            {item.icon}
+                          </span>
+                          <span>{item.label}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               </section>
             ))}
           </div>

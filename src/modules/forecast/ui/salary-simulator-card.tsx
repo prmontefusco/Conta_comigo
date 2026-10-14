@@ -179,7 +179,7 @@ export function SalarySimulatorCard() {
           </div>
 
           <Link
-            href="/app/contas"
+            href="/app/entradas"
             className="text-xs font-medium text-[color:var(--color-brand-600)] hover:underline"
           >
             Gerenciar receitas fixas →
@@ -577,7 +577,7 @@ export function SalarySimulatorCard() {
             </p>
 
             <Link
-              href="/app/contas"
+              href="/app/entradas"
               className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-2xs transition-colors hover:bg-blue-700"
             >
               <span>💾</span> Cadastrar este salário como regra fixa

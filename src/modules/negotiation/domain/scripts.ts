@@ -128,7 +128,7 @@ export const NEGOTIATION_SCRIPTS: readonly NegotiationScript[] = [
     id: "PORTABILIDADE",
     title: "Pedir portabilidade para juros menores",
     whenToUse:
-      "Quando outro banco oferece a mesma dívida com juros mais baixos. A portabilidade de crédito é regulamentada pelo Banco Central e não pode ser cobrada como tarifa.",
+      "Quando outra instituição apresenta uma proposta para transferir uma operação de crédito. Confirme com as instituições se a modalidade e o contrato são elegíveis e quais custos se aplicam.",
     channel: "Telefone ou aplicativo do banco",
     checklist: [
       "Peça ao banco atual o saldo devedor para portabilidade e o CET do contrato.",
@@ -156,11 +156,11 @@ export const NEGOTIATION_SCRIPTS: readonly NegotiationScript[] = [
     id: "PRAZO",
     title: "Pedir prazo antes de atrasar",
     whenToUse:
-      "Quando você já sabe que a próxima parcela não vai caber. Avisar antes costuma abrir opções que o atraso fecha.",
+      "Quando você já sabe que a próxima parcela não vai caber. Entrar em contato antes pode ajudar a conhecer as opções disponíveis.",
     channel: "Telefone ou aplicativo do banco",
     checklist: [
       "Ligue antes do vencimento, não depois.",
-      "Pergunte o custo da mudança: prorrogar quase sempre cobra juros.",
+      "Pergunte se a mudança tem juros, tarifas ou outros custos.",
       "Confirme por escrito antes de deixar de pagar qualquer coisa.",
     ],
     build: (params) =>

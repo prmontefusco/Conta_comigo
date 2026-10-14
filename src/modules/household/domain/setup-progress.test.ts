@@ -9,22 +9,25 @@ const profile = {
 } as unknown as UserProfile;
 
 describe("initialSetupProgress", () => {
-  it("follows the five setup stages using real registered data", () => {
+  it("follows the six setup stages using real registered data", () => {
     const progress = initialSetupProgress(profile, {
       accounts: [anAccount()],
       cards: [aCreditCard()],
-      recurringRules: [aRecurringRule({ direction: "OUTFLOW", active: true })],
+      recurringRules: [
+        aRecurringRule({ direction: "OUTFLOW", active: true }),
+        aRecurringRule({ direction: "INFLOW", active: true }),
+      ],
       debts: [aDebt()],
     });
     expect(progress.done).toBe(true);
-    expect(progress.completed).toBe(5);
+    expect(progress.completed).toBe(6);
   });
 
   it("accepts explicit not-applicable choices for cards and debts", () => {
     const progress = initialSetupProgress(
       {
         ...profile,
-        onboardingCompletedSteps: ["ADD_CARDS", "ADD_DEBTS"],
+        onboardingCompletedSteps: ["ADD_MAIN_INCOME", "ADD_CARDS", "ADD_DEBTS"],
       },
       {
         accounts: [anAccount()],
@@ -34,6 +37,7 @@ describe("initialSetupProgress", () => {
       },
     );
     expect(progress.steps.cards).toBe(true);
+    expect(progress.steps.mainIncome).toBe(true);
     expect(progress.steps.debts).toBe(true);
     expect(progress.done).toBe(true);
   });

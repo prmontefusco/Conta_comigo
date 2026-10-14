@@ -36,7 +36,16 @@ import { NewEntryDialog } from "@/modules/daily/ui/new-entry-dialog";
 import { Modal } from "@/components/ui/modal";
 import { QuickIncomeBar } from "@/modules/daily/ui/quick-income-bar";
 import { SettleObligationDialog } from "@/modules/obligations/ui/settle-obligation-dialog";
+import { NewObligationDialog } from "@/modules/obligations/ui/new-obligation-dialog";
 import type { Obligation } from "@/modules/obligations/domain/obligation";
+import { ConfirmOccurrenceDialog } from "@/modules/recurring/ui/confirm-occurrence-dialog";
+import { EditRecurringRuleDialog } from "@/modules/recurring/ui/edit-recurring-rule-dialog";
+import { RecurringPatternsCard } from "@/modules/recurring/ui/recurring-patterns-card";
+import {
+  pendingOccurrences,
+  type PendingOccurrence,
+} from "@/modules/recurring/domain/pending-occurrences";
+import type { RecurringRule } from "@/modules/recurring/domain/recurring-rule";
 import { useFinance } from "@/modules/household/ui/finance-provider";
 import { useMembers } from "@/modules/household/ui/use-members";
 import { useSession } from "@/modules/household/ui/session-provider";
@@ -44,11 +53,9 @@ import { SourceColorMark } from "@/modules/shared/ui/source-color";
 import { useCollections } from "@/modules/shared/ui/use-collections";
 
 /**
- * Tela dedicada ao registro e acompanhamento de Entradas e Recebimentos extras.
+ * Tela dedicada ao registro e acompanhamento de renda e outros recebimentos.
  *
- * Salários, PIX de parentes/pais, devoluções, restituição do imposto de renda,
- * ganho de ações judiciais, inventário familiar ou qualquer valor extra que entra
- * nas contas bancárias da casa.
+ * Renda de trabalho, benefícios e outros valores que entram nas contas da casa.
  */
 export default function EntradasPage() {
   const finance = useFinance();
@@ -63,6 +70,9 @@ export default function EntradasPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSaving, setDeleteSaving] = useState(false);
   const [confirming, setConfirming] = useState<Obligation | null>(null);
+  const [planning, setPlanning] = useState(false);
+  const [confirmingRecurring, setConfirmingRecurring] = useState<PendingOccurrence | null>(null);
+  const [editingRule, setEditingRule] = useState<RecurringRule | null>(null);
 
   const entries = useMemo(
     () =>
@@ -99,6 +109,16 @@ export default function EntradasPage() {
     [planned],
   );
   const plannedSum = useMemo(() => plannedTotals(planned), [planned]);
+  const recurringReceipts = useMemo(
+    () =>
+      pendingOccurrences({
+        rules: finance.recurringRules,
+        obligations: finance.obligations,
+        asOf: finance.asOf,
+        direction: "INFLOW",
+      }).filter((item) => monthKeyOf(item.occurrence.dueDate) === month),
+    [finance.recurringRules, finance.obligations, finance.asOf, month],
+  );
 
   // Distribuição de entradas por categoria
   const byCategory = useMemo(() => {
@@ -155,18 +175,26 @@ export default function EntradasPage() {
         <div>
           <h1 className="text-xl font-semibold">Entradas</h1>
           <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
-            Registro de entradas de saldo e recebimentos extras (parentes, imposto de renda, ganho
-            judicial, inventário, etc.)
+            Acompanhe o que já entrou, o que está previsto e a renda que se repete.
           </p>
         </div>
         {canWrite ? (
           <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setPlanning(true)}>
+              Planejar recebimento
+            </Button>
             <Button onClick={() => setCreating("INCOME")}>+ Registrar entrada</Button>
           </div>
         ) : null}
       </div>
 
       <QuickIncomeBar onOpenFullForm={() => setCreating("INCOME")} />
+
+      <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+        Use o lançamento rápido para dinheiro que já caiu. Para salário ou outro valor futuro,
+        escolha <strong>Planejar recebimento</strong>; para renda que se repete, registre a entrada
+        completa e marque a repetição no formulário.
+      </p>
 
       <Card>
         <div className="flex items-center justify-between gap-3">
@@ -213,7 +241,7 @@ export default function EntradasPage() {
       <Card>
         <div className="mb-3 flex items-center justify-between gap-3">
           <CardTitle hint="Valores que efetivamente entraram na sua conta">
-            Entradas Realizadas
+            Já entrou
           </CardTitle>
           <span className="text-xs font-semibold" style={{ color: "var(--color-positive-700)" }}>
             {realisedIncomes.length} {realisedIncomes.length === 1 ? "registro" : "registros"}
@@ -223,7 +251,7 @@ export default function EntradasPage() {
         {days.length === 0 ? (
           <EmptyState
             title="Nenhuma entrada registrada neste mês"
-            description="Quando receber um valor de um parente, pai, restituição de imposto de renda, ação judicial ganha, inventário ou renda extra, registre aqui para atualizar seu saldo."
+            description="Registre aqui salário, benefício ou outro valor que já caiu na conta. Se ainda vai receber, use Planejar recebimento para não contar esse dinheiro no saldo antes da hora."
             action={
               canWrite ? (
                 <Button onClick={() => setCreating("INCOME")}>Registrar primeira entrada</Button>
@@ -306,6 +334,51 @@ export default function EntradasPage() {
         </Card>
       ) : null}
 
+      {recurringReceipts.length > 0 ? (
+        <Card>
+          <CardTitle
+            hint={`Ainda não caiu na conta em ${formatMonthKey(month)}. Confirme quando receber para atualizar o saldo.`}
+          >
+            Recebimentos recorrentes a confirmar
+          </CardTitle>
+          <ul className="divide-y divide-[color:var(--card-border)]">
+            {recurringReceipts.map((item) => (
+              <li
+                key={item.occurrence.occurrenceKey}
+                className="flex flex-wrap items-center gap-3 py-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{item.rule.description}</p>
+                  <p className="text-xs text-[color:var(--muted-fg)]">
+                    {formatCalendarDate(item.occurrence.dueDate)}
+                    {item.rule.confidence === "ESTIMATED" ? " · valor estimado" : ""}
+                  </p>
+                  {item.late ? (
+                    <div className="mt-1">
+                      <Badge tone="attention">Data passou</Badge>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <MoneyText value={item.occurrence.amount} size="sm" tone="positive" />
+                  {canWrite ? (
+                    <Button variant="secondary" onClick={() => setConfirmingRecurring(item)}>
+                      Recebi
+                    </Button>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
+      <RecurringPatternsCard
+        direction="INFLOW"
+        onCreate={() => setPlanning(true)}
+        onEdit={setEditingRule}
+      />
+
       {byCategory.length > 0 ? (
         <Card>
           <CardTitle hint={`Origem das entradas de ${formatMonthKey(month)}`}>
@@ -365,6 +438,21 @@ export default function EntradasPage() {
       />
 
       <SettleObligationDialog obligation={confirming} onClose={() => setConfirming(null)} />
+      <ConfirmOccurrenceDialog
+        pending={confirmingRecurring}
+        onClose={() => setConfirmingRecurring(null)}
+      />
+      <EditRecurringRuleDialog
+        rule={editingRule}
+        onClose={() => setEditingRule(null)}
+        lockDirection
+      />
+      <NewObligationDialog
+        open={planning}
+        defaultDirection="INFLOW"
+        lockDirection
+        onClose={() => setPlanning(false)}
+      />
 
       <Modal
         open={Boolean(deleting)}

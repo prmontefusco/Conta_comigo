@@ -37,12 +37,15 @@ export function NewObligationDialog({
   obligation = null,
   onClose,
   defaultDirection = "OUTFLOW",
+  lockDirection = false,
 }: {
   open: boolean;
   /** A conta sendo corrigida, quando houver. */
   obligation?: Obligation | null;
   onClose: () => void;
   defaultDirection?: "OUTFLOW" | "INFLOW";
+  /** Hide the type selector when the user is already inside a focused flow. */
+  lockDirection?: boolean;
 }) {
   const { categories, transactions, obligations, asOf } = useFinance();
   const { household, user } = useSession();
@@ -278,6 +281,7 @@ export function NewObligationDialog({
     <Modal
       open={open}
       onClose={onClose}
+      closeDisabled={saving}
       title={editing ? "Corrigir conta" : "Nova conta"}
       description={
         editing
@@ -295,15 +299,17 @@ export function NewObligationDialog({
           </Callout>
         ) : null}
 
-        <SelectField
-          label="Tipo"
-          value={direction}
-          onChange={(event) => setDirection(event.target.value as "OUTFLOW" | "INFLOW")}
-          options={[
-            { value: "OUTFLOW", label: "Vou pagar" },
-            { value: "INFLOW", label: "Vou receber" },
-          ]}
-        />
+        {lockDirection ? null : (
+          <SelectField
+            label="Tipo"
+            value={direction}
+            onChange={(event) => setDirection(event.target.value as "OUTFLOW" | "INFLOW")}
+            options={[
+              { value: "OUTFLOW", label: "Vou pagar" },
+              { value: "INFLOW", label: "Vou receber" },
+            ]}
+          />
+        )}
 
         {editing ? null : (
           <SelectField
@@ -351,7 +357,7 @@ export function NewObligationDialog({
             shape === "INSTALLMENTS"
               ? "O valor total será dividido entre as parcelas, sem perder centavos."
               : direction === "INFLOW"
-                ? "Informe o valor líquido que efetivamente cai na conta (não utilize o valor bruto do holerite). É esse valor real que garante a projeção correta de saldo."
+                ? "Informe o valor líquido que efetivamente cai na conta, não o valor bruto do holerite. Isso ajuda a aproximar a projeção do saldo real."
                 : undefined
           }
         />
@@ -507,7 +513,7 @@ export function NewObligationDialog({
           <Button type="submit" className="flex-1" disabled={saving}>
             {saving ? "Salvando…" : "Salvar"}
           </Button>
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
         </div>

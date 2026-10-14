@@ -9,12 +9,12 @@ export type NivelRunway = "CRITICO" | "VULNERAVEL" | "ESTAVEL" | "SEGURO" | "IND
 
 export interface RunwayInput {
   readonly liquidezTotalDisponivel: Money;
-  readonly custoMensalEssencial: Money;
+  readonly saidasMensaisConsideradas: Money;
 }
 
 export interface RunwayCalculado {
   readonly liquidezDisponivel: Money;
-  readonly custoMensalEssencial: Money;
+  readonly saidasMensaisConsideradas: Money;
   readonly burnRateDiario: Money;
   readonly diasAutonomia: number;
   readonly mesesAutonomia: number;
@@ -25,30 +25,29 @@ export interface RunwayCalculado {
 }
 
 /**
- * Calcula os Dias de Liberdade Financeira (Runway) da família.
- * Representa quantos dias a família sobreviveria mantendo suas despesas básicas
- * caso todas as fontes de renda fossem interrompidas hoje.
+ * Estima por quantos dias o caixa cobriria as saídas mensais usadas no cálculo.
+ * É uma referência baseada nos dados cadastrados, não uma garantia de cobertura.
  */
 export function calcularRunway(input: RunwayInput): RunwayCalculado {
   const moeda = input.liquidezTotalDisponivel.currency;
 
-  if (!isPositive(input.custoMensalEssencial) || !isPositive(input.liquidezTotalDisponivel)) {
+  if (!isPositive(input.saidasMensaisConsideradas) || !isPositive(input.liquidezTotalDisponivel)) {
     return {
       liquidezDisponivel: input.liquidezTotalDisponivel,
-      custoMensalEssencial: input.custoMensalEssencial,
+      saidasMensaisConsideradas: input.saidasMensaisConsideradas,
       burnRateDiario: zero(moeda),
       diasAutonomia: 0,
       mesesAutonomia: 0,
       nivel: "CRITICO",
       tituloNivel: "Caixa em Risco Imediato",
-      descricao: "A família não possui cobertura de liquidez para despesas essenciais.",
+      descricao: "Ainda não há dados suficientes para estimar a cobertura do caixa.",
       recomendacaoAcao:
-        "Foque em formar a Reserva de Respiro de R$ 500 a R$ 1.000 antes de qualquer outro investimento.",
+        "Confira se o saldo das contas e os compromissos do mês estão atualizados.",
     };
   }
 
   // Custo diário estimado (despesa mensal / 30)
-  const custoDiarioAmount = Math.max(1, Math.round(input.custoMensalEssencial.amount / 30));
+  const custoDiarioAmount = Math.max(1, Math.round(input.saidasMensaisConsideradas.amount / 30));
   const burnRateDiario = money(custoDiarioAmount, moeda);
 
   const diasAutonomia = Math.floor(input.liquidezTotalDisponivel.amount / custoDiarioAmount);
@@ -62,38 +61,33 @@ export function calcularRunway(input: RunwayInput): RunwayCalculado {
   if (diasAutonomia < 30) {
     nivel = "CRITICO";
     tituloNivel = "Fôlego Curto (< 1 mês)";
-    descricao = `Seus recursos cobrem aproximadamente ${diasAutonomia} dias de sobrevivência básica.`;
-    recomendacaoAcao =
-      "Evite novas parcelas e estanque despesas supérfluas para alcançar pelo menos 30 dias de cobertura.";
+    descricao = `Pelos valores cadastrados, o caixa cobre cerca de ${diasAutonomia} dias das saídas consideradas.`;
+    recomendacaoAcao = "Revise os saldos e vencimentos cadastrados para conferir esta estimativa.";
   } else if (diasAutonomia < 90) {
     nivel = "VULNERAVEL";
-    tituloNivel = "Colchão Inicial (1 a 3 meses)";
-    descricao = `Você possui ${diasAutonomia} dias (${mesesAutonomia} meses) de tranquilidade garantida.`;
-    recomendacaoAcao =
-      "Mantenha o foco em amortizar dívidas com juros altos para depois expandir a reserva para 6 meses.";
+    tituloNivel = "Estimativa: 1 a 3 meses";
+    descricao = `Pelos valores cadastrados, o caixa cobre cerca de ${diasAutonomia} dias (${mesesAutonomia} meses) das saídas consideradas.`;
+    recomendacaoAcao = "A estimativa pode mudar se saldo, compromissos ou despesas variarem.";
   } else if (diasAutonomia < 180) {
     nivel = "ESTAVEL";
-    tituloNivel = "Estabilidade Padrão (3 a 6 meses)";
-    descricao = `Cobertura sólida de ${diasAutonomia} dias (${mesesAutonomia} meses) para imprevistos do cotidiano.`;
-    recomendacaoAcao =
-      "Patrimônio suficiente para atravessar transições de emprego ou emergências médicas com calma.";
+    tituloNivel = "Estimativa: 3 a 6 meses";
+    descricao = `Pelos valores cadastrados, o caixa cobre cerca de ${diasAutonomia} dias (${mesesAutonomia} meses) das saídas consideradas.`;
+    recomendacaoAcao = "A estimativa não considera mudanças inesperadas nas entradas ou despesas.";
   } else if (diasAutonomia < 365) {
     nivel = "SEGURO";
-    tituloNivel = "Segurança Avançada (6 a 12 meses)";
-    descricao = `Excelente proteção de ${mesesAutonomia} meses sem depender de renda ativa.`;
-    recomendacaoAcao =
-      "Você já pode começar a diversificar aportes em investimentos de maior prazo com liquidez planejada.";
+    tituloNivel = "Estimativa: 6 a 12 meses";
+    descricao = `Pelos valores cadastrados, o caixa cobre cerca de ${mesesAutonomia} meses das saídas consideradas.`;
+    recomendacaoAcao = "Use este número como referência e mantenha os dados do mês atualizados.";
   } else {
     nivel = "INDEPENDENTE";
-    tituloNivel = "Liberdade Financeira (1 ano+)";
-    descricao = `Você atingiu mais de 1 ano completo (${mesesAutonomia} meses) de autonomia e resiliência financeira.`;
-    recomendacaoAcao =
-      "Excelente estrutura patrimonial. Mantenha os custos essenciais sob controle e foque em valorização de longo prazo.";
+    tituloNivel = "Estimativa: mais de 12 meses";
+    descricao = `Pelos valores cadastrados, o caixa cobre cerca de ${mesesAutonomia} meses das saídas consideradas.`;
+    recomendacaoAcao = "Esta estimativa depende dos saldos e compromissos informados no aplicativo.";
   }
 
   return {
     liquidezDisponivel: input.liquidezTotalDisponivel,
-    custoMensalEssencial: input.custoMensalEssencial,
+    saidasMensaisConsideradas: input.saidasMensaisConsideradas,
     burnRateDiario,
     diasAutonomia,
     mesesAutonomia,

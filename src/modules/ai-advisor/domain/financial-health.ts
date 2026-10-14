@@ -267,8 +267,8 @@ export function evaluateFinancialHealth(
         : `Seus compromissos com dívidas e parcelas consomem ${debtCommitmentRatio}% da sua renda mensal.`,
     recommendation:
       debtCommitmentRatio > 30
-        ? "O ideal é manter o comprometimento com dívidas abaixo de 30% da renda para evitar o efeito bola de neve."
-        : "Comprometimento sob controle. Continue amortizando para reduzir juros.",
+        ? "O app usa 30% como referência para sinalizar comprometimento elevado. O valor que cabe depende das despesas essenciais e da situação da família."
+        : "A proporção calculada está abaixo da referência usada pelo app; isso não substitui a revisão do orçamento e dos contratos.",
   };
 
   // -------------------------------------------------------------
@@ -506,7 +506,7 @@ function buildFinancialTips(debtRatio: number, reserveMonths: number): string[] 
     // deeper, and it is a credit recommendation the terms of use rule out.
     // What is safe to say is the criterion, and where to check it.
     tips.push(
-      "Antes de trocar uma dívida cara por outra, compare pelo CET (Custo Efetivo Total), não pela parcela: uma parcela menor com prazo maior quase sempre custa mais no fim. Peça o CET por escrito das duas.",
+      "Antes de trocar uma dívida por outra, compare o CET (Custo Efetivo Total), não apenas a parcela: prazo maior pode aumentar o custo final. Peça os valores por escrito às instituições.",
     );
   }
 

@@ -1,30 +1,22 @@
 import {
   type Money,
-  add,
   isPositive,
-  multiply,
   subtract,
   zero,
 } from "@/core/money/money";
 
 export interface PortabilidadeContratoAtual {
   readonly instituicaoAtual: string;
-  readonly saldoDevedor: Money;
+  readonly custoTotalRestanteAtual: Money;
   readonly parcelaAtual: Money;
-  readonly parcelasRestantes: number;
-  readonly taxaJurosMensal: number; // ex: 2.8%
-  readonly cetAnual?: number;
 }
 
 export interface PortabilidadeNovaProposta {
   readonly novaInstituicao: string;
-  readonly novaTaxaMensal: number; // ex: 1.6%
-  readonly novasParcelasCount: number;
-  readonly novaParcelaMensal: Money;
-  /** Seguro prestamista embutido no saldo financiado pelo novo banco. */
-  readonly seguroPrestamistaEmbutido?: Money;
-  /** Tarifas de cadastro ou abertura de crédito embutidas. */
-  readonly tarifasEmbutidas?: Money;
+  readonly custoTotalInformado: Money;
+  readonly novaParcelaMensal?: Money;
+  /** Custos adicionais informados pela pessoa ao ler a proposta. */
+  readonly custosAdicionaisInformados?: Money;
 }
 
 export interface AnalisePortabilidadeResultado {
@@ -33,64 +25,35 @@ export interface AnalisePortabilidadeResultado {
   readonly custoTotalRestanteAtual: Money;
   readonly custoTotalNovaProposta: Money;
   readonly economiaTotal: Money;
-  readonly diferencaParcelaMensal: Money; // Atual - Nova (positivo = redução na parcela)
-  readonly ehVantajosa: boolean;
-  readonly detectouVendaCasada: boolean;
-  readonly valorVendaCasadaTotal: Money;
-  readonly cetRealEstimadoMensal: number;
-  readonly recomendacao: string;
-  readonly alertaVendaCasadaMensagem?: string;
+  readonly diferencaParcelaMensal: Money | null; // Atual - Nova (positivo = redução na parcela)
+  readonly totalPropostoMenor: boolean;
+  readonly temCustosAdicionaisInformados: boolean;
+  readonly custosAdicionaisInformados: Money;
+  readonly comparacao: string;
 }
 
 /**
- * Avalia a viabilidade financeira e a legalidade da proposta de portabilidade de crédito.
- * Alerta sobre práticas abusivas de venda casada (Art. 39, I, da Lei 8.078/1990 - CDC).
+ * Compara os totais informados, sem concluir se uma proposta é adequada ou legal.
  */
 export function avaliarPortabilidadeCredito(
   atual: PortabilidadeContratoAtual,
   proposta: PortabilidadeNovaProposta,
 ): AnalisePortabilidadeResultado {
-  const moeda = atual.saldoDevedor.currency;
+  const moeda = atual.parcelaAtual.currency;
 
-  const custoTotalAtual = multiply(atual.parcelaAtual, atual.parcelasRestantes);
-  const custoTotalProposta = multiply(proposta.novaParcelaMensal, proposta.novasParcelasCount);
+  const custoTotalAtual = atual.custoTotalRestanteAtual;
+  const custoTotalProposta = proposta.custoTotalInformado;
 
   const economiaTotal = subtract(custoTotalAtual, custoTotalProposta);
-  const diferencaParcela = subtract(atual.parcelaAtual, proposta.novaParcelaMensal);
+  const diferencaParcela = proposta.novaParcelaMensal
+    ? subtract(atual.parcelaAtual, proposta.novaParcelaMensal)
+    : null;
 
-  // Venda casada: seguros ou tarifas embutidas
-  const seguro = proposta.seguroPrestamistaEmbutido ?? zero(moeda);
-  const tarifas = proposta.tarifasEmbutidas ?? zero(moeda);
-  const totalEmbutido = add(seguro, tarifas);
-  const detectouVendaCasada = isPositive(totalEmbutido);
-
-  // Se o novo banco embutiu encargos, a taxa real (CET) é superior à taxa nominal anunciada
-  let cetRealEstimado = proposta.novaTaxaMensal;
-  if (detectouVendaCasada && atual.saldoDevedor.amount > 0) {
-    const proporcaoAcrescimo = totalEmbutido.amount / atual.saldoDevedor.amount;
-    cetRealEstimado = Math.round((proposta.novaTaxaMensal * (1 + proporcaoAcrescimo)) * 100) / 100;
-  }
-
-  const ehVantajosa = isPositive(economiaTotal);
-
-  let recomendacao: string;
-  let alertaVendaCasadaMensagem: string | undefined;
-
-  if (detectouVendaCasada) {
-    alertaVendaCasadaMensagem =
-      "ALERTA DE VENDA CASADA (Art. 39, I, do CDC): A nova proposta incluiu cobrança de seguro prestamista ou tarifas acessórias embutidas no financiamento. Você tem o direito legal de recusar essas contratações ou exigir a exclusão imediata do seguro, mantendo a redução da taxa de juros.";
-  }
-
-  if (ehVantajosa && !detectouVendaCasada) {
-    recomendacao =
-      "Portabilidade altamente recomendada. A nova taxa reduz tanto o desembolso mensal quanto o custo total da dívida, sem acréscimos indevidos.";
-  } else if (ehVantajosa && detectouVendaCasada) {
-    recomendacao =
-      "A portabilidade é vantajosa, mas pode ser AINDA MELHOR se você exigir a retirada do seguro prestamista embutido, economizando mais no valor total.";
-  } else {
-    recomendacao =
-      "Proposta desfavorável: O novo contrato alonga o prazo excessivamente ou encarece o custo final somado. Não assine esta proposta.";
-  }
+  const custosAdicionaisInformados = proposta.custosAdicionaisInformados ?? zero(moeda);
+  const totalPropostoMenor = isPositive(economiaTotal);
+  const comparacao = totalPropostoMenor
+    ? "Pelos valores informados, a soma das parcelas da proposta é menor. Confira se todos os custos estão incluídos nos valores e no prazo apresentados."
+    : "Pelos valores informados, a soma das parcelas da proposta não é menor. Confira os valores, o prazo e os custos incluídos antes de comparar.";
 
   return {
     instituicaoAtual: atual.instituicaoAtual,
@@ -99,11 +62,9 @@ export function avaliarPortabilidadeCredito(
     custoTotalNovaProposta: custoTotalProposta,
     economiaTotal,
     diferencaParcelaMensal: diferencaParcela,
-    ehVantajosa,
-    detectouVendaCasada,
-    valorVendaCasadaTotal: totalEmbutido,
-    cetRealEstimadoMensal: cetRealEstimado,
-    recomendacao,
-    alertaVendaCasadaMensagem,
+    totalPropostoMenor,
+    temCustosAdicionaisInformados: isPositive(custosAdicionaisInformados),
+    custosAdicionaisInformados,
+    comparacao,
   };
 }

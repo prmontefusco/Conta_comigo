@@ -24,7 +24,8 @@ export default function OfflinePage() {
         mostrar nada a mostrar um saldo de ontem como se fosse o de hoje.
       </p>
       <p className="mt-4 text-sm leading-relaxed text-slate-600">
-        Assim que a conexão voltar, é só recarregar. Nada do que você cadastrou se perdeu.
+        Quando a conexão voltar, recarregue o aplicativo e confira se o último lançamento aparece.
+        Se uma operação não tinha sido confirmada, pode ser necessário fazê-la novamente.
       </p>
     </main>
   );

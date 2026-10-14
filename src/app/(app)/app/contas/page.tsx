@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { addDays, endOfMonth, formatCalendarDate } from "@/core/date/calendar-date";
+import { addDays, endOfMonth, formatCalendarDate, startOfMonth } from "@/core/date/calendar-date";
 import { sum } from "@/core/money/money";
 import {
   Badge,
@@ -26,26 +26,24 @@ import { ConfirmOccurrenceDialog } from "@/modules/recurring/ui/confirm-occurren
 import { EditRecurringRuleDialog } from "@/modules/recurring/ui/edit-recurring-rule-dialog";
 import { RecurringPatternsCard } from "@/modules/recurring/ui/recurring-patterns-card";
 import {
+  pendingOccurrenceAsObligation,
   pendingOccurrences,
   type PendingOccurrence,
 } from "@/modules/recurring/domain/pending-occurrences";
 import type { RecurringRule } from "@/modules/recurring/domain/recurring-rule";
 import { SettleObligationDialog } from "@/modules/obligations/ui/settle-obligation-dialog";
 import { DocumentImportButton } from "@/modules/receipts/ui/document-import-button";
-import { FinancialInsightCard } from "@/modules/education/ui/financial-insight-card";
 
 type Filter = "OPEN" | "OVERDUE" | "THIS_MONTH" | "SETTLED";
-type Direction = "OUTFLOW" | "INFLOW";
-
 const FILTER_LABELS: Record<Filter, string> = {
-  OPEN: "Em aberto",
+  OPEN: "Todas em aberto",
   OVERDUE: "Vencidas",
   THIS_MONTH: "Este mês",
   SETTLED: "Quitadas",
 };
 
 /**
- * Bills and expected income.
+ * Bills awaiting payment.
  *
  * A late bill is never hidden or auto-closed: it stays in the list, and in the
  * projection, until someone records that it was actually paid.
@@ -53,7 +51,6 @@ const FILTER_LABELS: Record<Filter, string> = {
 export default function ObligationsPage() {
   const finance = useFinance();
   const { canWrite } = useSession();
-  const [direction, setDirection] = useState<Direction>("OUTFLOW");
   const [filter, setFilter] = useState<Filter>("OPEN");
   const [creating, setCreating] = useState(false);
   const [settling, setSettling] = useState<Obligation | null>(null);
@@ -61,28 +58,34 @@ export default function ObligationsPage() {
   const [confirming, setConfirming] = useState<PendingOccurrence | null>(null);
   const [editingRule, setEditingRule] = useState<RecurringRule | null>(null);
 
-  const items = useMemo(
-    () => filterObligations(finance.obligations, direction, filter, finance.asOf),
-    [finance.obligations, direction, filter, finance.asOf],
-  );
-
-  /**
-   * O que se repete e ainda espera confirmação.
-   *
-   * Um salário mensal é uma regra: até agora ele só existia na projeção, e não
-   * havia onde dizer quanto realmente caiu. A janela olha para trás, porque é
-   * depois do dia 5 que alguém confirma o salário do dia 5 — a projeção, essa
-   * continua olhando só para frente.
-   */
+  /** Ocorrências de contas recorrentes ainda não confirmadas como pagas. */
   const recurring = useMemo(
     () =>
       pendingOccurrences({
         rules: finance.recurringRules,
         obligations: finance.obligations,
         asOf: finance.asOf,
-        direction,
+        direction: "OUTFLOW",
       }),
-    [finance.recurringRules, finance.obligations, finance.asOf, direction],
+    [finance.recurringRules, finance.obligations, finance.asOf],
+  );
+
+  const items = useMemo(
+    () =>
+      filterObligations(
+        [
+          ...finance.obligations,
+          ...(filter === "SETTLED" ? [] : recurring.map(pendingOccurrenceAsObligation)),
+        ],
+        filter,
+        finance.asOf,
+      ),
+    [finance.obligations, recurring, filter, finance.asOf],
+  );
+
+  const recurringByOccurrenceKey = useMemo(
+    () => new Map(recurring.map((item) => [item.occurrence.occurrenceKey, item])),
+    [recurring],
   );
 
   const total = sum(items.filter(isOpen).map(remainingAmount));
@@ -92,7 +95,13 @@ export default function ObligationsPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Contas a pagar e receber</h1>
+        <div>
+          <h1 className="text-xl font-semibold">Contas a pagar</h1>
+          <p className="mt-1 text-sm text-[color:var(--muted-fg)]">
+            Veja os vencimentos e marque quando pagar. As próximas contas recorrentes também
+            aparecem nesta lista.
+          </p>
+        </div>
         {canWrite ? (
           <div className="flex flex-wrap items-center gap-2">
             <DocumentImportButton />
@@ -101,33 +110,7 @@ export default function ObligationsPage() {
         ) : null}
       </div>
 
-      <FinancialInsightCard
-        tag="Serviços essenciais"
-        title="Água, luz e moradia precisam aparecer primeiro"
-        description="Quando o dinheiro não cobre tudo, contas que mantêm a casa funcionando merecem atenção antes de dívidas sem garantia. A tela ajuda a enxergar essas escolhas sem misturar tudo."
-        tips={[
-          "Se uma conta essencial atrasou, falar com a concessionária antes do corte pode evitar taxa de religação e abrir parcelamento.",
-          "Verifique se você tem direito à Tarifa Social de Energia Elétrica (descontos de até 65% na conta de luz para famílias inscritas no CadÚnico).",
-          "Boletos atrasados costumam ter multa e juros por dia. Ver o custo ajuda a decidir o que resolver primeiro.",
-        ]}
-        helpTopic="Use o botão 'Importar Conta / Fatura' para ler o PDF ou foto do boleto pela câmera sem digitar nada, ou clique em 'Nova conta' para lançar manualmente."
-      />
-
-      <div role="tablist" aria-label="Tipo" className="flex gap-2">
-        {(["OUTFLOW", "INFLOW"] as const).map((value) => (
-          <button
-            key={value}
-            role="tab"
-            aria-selected={direction === value}
-            onClick={() => setDirection(value)}
-            className={tabClass(direction === value)}
-          >
-            {value === "OUTFLOW" ? "A pagar" : "A receber"}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
+      <div role="group" aria-label="Filtrar contas" className="flex flex-wrap gap-2">
         {(Object.keys(FILTER_LABELS) as Filter[]).map((value) => (
           <button
             key={value}
@@ -145,15 +128,15 @@ export default function ObligationsPage() {
           hint={
             filter === "SETTLED"
               ? `${items.length} ${items.length === 1 ? "registro" : "registros"}`
-              : undefined
+              : `${items.length} ${items.length === 1 ? "conta" : "contas"} nesta lista`
           }
         >
-          {direction === "OUTFLOW" ? "A pagar" : "A receber"}
+          A pagar
         </CardTitle>
 
         {filter !== "SETTLED" ? (
           <p className="mb-3 text-sm" style={{ color: "var(--muted-fg)" }}>
-            Total em aberto: <MoneyText value={total} size="sm" tone="outflow" />
+            Total previsto nesta lista: <MoneyText value={total} size="sm" tone="outflow" />
           </p>
         ) : null}
 
@@ -163,7 +146,7 @@ export default function ObligationsPage() {
             description={
               filter === "OVERDUE"
                 ? "Nenhuma conta em atraso neste momento."
-                : "Cadastre suas contas para que elas apareçam na projeção dos próximos meses."
+                : "Cadastre uma conta ou uma conta recorrente para ver os próximos vencimentos aqui."
             }
             action={
               canWrite ? <Button onClick={() => setCreating(true)}>Nova conta</Button> : undefined
@@ -174,6 +157,9 @@ export default function ObligationsPage() {
             {items.map((obligation) => {
               const status = displayStatus(obligation, finance.asOf);
               const remaining = remainingAmount(obligation);
+              const pending = obligation.source?.occurrenceKey
+                ? recurringByOccurrenceKey.get(obligation.source.occurrenceKey)
+                : undefined;
 
               return (
                 <li key={obligation.id} className="flex items-center gap-3 py-3">
@@ -187,6 +173,7 @@ export default function ObligationsPage() {
                         : ""}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
+                      {pending ? <Badge tone="neutral">Recorrente</Badge> : null}
                       {status === "OVERDUE" ? <Badge tone="critical">Vencida</Badge> : null}
                       {status === "PARTIALLY_SETTLED" ? (
                         <Badge tone="attention">Parcialmente paga</Badge>
@@ -205,19 +192,21 @@ export default function ObligationsPage() {
                       <Button
                         variant="secondary"
                         className="mt-1 block w-full text-xs"
-                        onClick={() => setSettling(obligation)}
+                        onClick={() => (pending ? setConfirming(pending) : setSettling(obligation))}
                       >
-                        {obligation.direction === "INFLOW" ? "Recebi" : "Paguei"}
+                        Paguei
                       </Button>
                     ) : null}
                     {canWrite ? (
                       <Button
                         variant="ghost"
                         className="mt-1 block w-full text-xs"
-                        onClick={() => setEditing(obligation)}
-                        aria-label={`Corrigir ${obligation.description}`}
+                        onClick={() =>
+                          pending ? setEditingRule(pending.rule) : setEditing(obligation)
+                        }
+                        aria-label={`${pending ? "Editar regra de" : "Corrigir"} ${obligation.description}`}
                       >
-                        Corrigir
+                        {pending ? "Editar" : "Corrigir"}
                       </Button>
                     ) : null}
                   </div>
@@ -228,73 +217,24 @@ export default function ObligationsPage() {
         )}
       </Card>
 
-      {recurring.length > 0 && filter !== "SETTLED" ? (
-        <Card>
-          <CardTitle hint="Vêm de uma conta que se repete. Confirme o valor real quando o dinheiro se mover — ele pode ser diferente do previsto.">
-            {direction === "OUTFLOW" ? "Contas que se repetem" : "Recebimentos que se repetem"}
-          </CardTitle>
-
-          <ul className="divide-y divide-[color:var(--card-border)]">
-            {recurring.slice(0, 8).map((item) => (
-              <li key={item.occurrence.occurrenceKey} className="flex items-center gap-3 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{item.rule.description}</p>
-                  <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
-                    {formatCalendarDate(item.occurrence.dueDate)}
-                    {item.rule.confidence === "ESTIMATED" ? " · valor estimado" : ""}
-                  </p>
-                  {item.late ? (
-                    <div className="mt-1">
-                      <Badge tone="attention">Já passou da data</Badge>
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="shrink-0 text-right">
-                  <MoneyText
-                    value={item.occurrence.amount}
-                    size="sm"
-                    tone={direction === "INFLOW" ? "positive" : "outflow"}
-                  />
-                  {canWrite ? (
-                    <Button
-                      variant="secondary"
-                      className="mt-1 block w-full text-xs"
-                      onClick={() => setConfirming(item)}
-                    >
-                      {direction === "INFLOW" ? "Recebi" : "Paguei"}
-                    </Button>
-                  ) : null}
-                  {canWrite ? (
-                    <Button
-                      variant="ghost"
-                      className="mt-1 block w-full text-xs"
-                      onClick={() => setEditingRule(item.rule)}
-                      aria-label={`Editar ${item.rule.description}`}
-                    >
-                      Editar
-                    </Button>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ) : null}
-
       <RecurringPatternsCard
-        direction={direction}
+        direction="OUTFLOW"
         onCreate={() => setCreating(true)}
         onEdit={setEditingRule}
       />
 
       <ConfirmOccurrenceDialog pending={confirming} onClose={() => setConfirming(null)} />
-      <EditRecurringRuleDialog rule={editingRule} onClose={() => setEditingRule(null)} />
+      <EditRecurringRuleDialog
+        rule={editingRule}
+        onClose={() => setEditingRule(null)}
+        lockDirection
+      />
 
       <NewObligationDialog
         open={creating || editing !== null}
         obligation={editing}
-        defaultDirection={direction}
+        defaultDirection="OUTFLOW"
+        lockDirection
         onClose={() => {
           setCreating(false);
           setEditing(null);
@@ -307,11 +247,10 @@ export default function ObligationsPage() {
 
 function filterObligations(
   obligations: readonly Obligation[],
-  direction: Direction,
   filter: Filter,
   today: ReturnType<typeof useFinance>["asOf"],
 ): Obligation[] {
-  const scoped = obligations.filter((item) => item.direction === direction);
+  const scoped = obligations.filter((item) => item.direction === "OUTFLOW");
 
   const filtered = scoped.filter((item) => {
     switch (filter) {
@@ -320,7 +259,9 @@ function filterObligations(
       case "OVERDUE":
         return isOpen(item) && item.dueDate < today;
       case "THIS_MONTH":
-        return isOpen(item) && item.dueDate <= endOfMonth(today);
+        return (
+          isOpen(item) && item.dueDate >= startOfMonth(today) && item.dueDate <= endOfMonth(today)
+        );
       case "SETTLED":
         return item.status === "SETTLED";
     }
@@ -329,15 +270,6 @@ function filterObligations(
   return filter === "SETTLED"
     ? filtered.sort((a, b) => (a.dueDate < b.dueDate ? 1 : -1)).slice(0, 100)
     : filtered.sort(byUrgency).filter((item) => item.dueDate <= addDays(today, 400));
-}
-
-function tabClass(active: boolean): string {
-  return [
-    "min-h-11 flex-1 rounded-lg px-4 text-sm font-medium",
-    active
-      ? "bg-[color:var(--color-brand-600)] text-white"
-      : "border border-[color:var(--card-border)] bg-[color:var(--card-bg)]",
-  ].join(" ");
 }
 
 function chipClass(active: boolean): string {

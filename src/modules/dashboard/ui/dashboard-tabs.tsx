@@ -2,15 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatCalendarDate } from "@/core/date/calendar-date";
+import { endOfMonth, formatCalendarDate, startOfMonth } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
 import { isNegative, money, subtract, sum } from "@/core/money/money";
 import { Button, Card, CardTitle, Stat } from "@/components/ui/primitives";
 import { firstWholeMonth } from "@/modules/forecast/domain/forecast";
-import { HealthScoreCard } from "@/modules/ai-advisor/ui/health-score-card";
 import { MonthBlock, Next30DaysBlock } from "@/modules/dashboard/ui/month-block";
 import { TodayBlock } from "@/modules/dashboard/ui/today-block";
-import { outstandingPrincipal } from "@/modules/debts/domain/debt";
 import { EducationPillsCard } from "@/modules/education/ui/pills-card";
 import { MonthsTable } from "@/modules/forecast/ui/months-table";
 import { useFinance } from "@/modules/household/ui/finance-provider";
@@ -20,12 +18,13 @@ import { FutureTimelineCard } from "@/modules/recovery-timeline/ui/future-timeli
 import { StarterReserveCard } from "@/modules/reserves/ui/starter-reserve-card";
 import { RunwayCard } from "@/modules/dashboard/ui/runway-card";
 import { GhostSubscriptionsCard } from "@/modules/recurring/ui/ghost-subscriptions-card";
+import {
+  pendingOccurrenceAsObligation,
+  pendingOccurrences,
+} from "@/modules/recurring/domain/pending-occurrences";
 import { ReserveTiersCard } from "@/modules/reserves/ui/reserve-tiers-card";
 import { PayoffStrategyComparator } from "@/modules/recovery-timeline/ui/payoff-strategy-comparator";
-import { calculateFinancialHealthScore } from "@/modules/health-score/domain/health-score";
-import { HealthScoreCard as QuantitativeHealthScoreCard } from "@/modules/health-score/ui/health-score-card";
-import { loadLocalReflections } from "@/modules/purchase-advisor/domain/impulse-lock";
-import { useSession } from "@/modules/household/ui/session-provider";
+import { byUrgency, isOpen, remainingAmount } from "@/modules/obligations/domain/obligation";
 
 export type DashboardTab = "GERAL" | "ENTRADAS" | "DESPESAS" | "RESERVAS" | "DIVIDAS";
 
@@ -50,55 +49,39 @@ export function DashboardTabs() {
   );
 
   // Obrigações de saída do mês
-  const openObligations = finance.obligations.filter(
-    (o) =>
-      o.direction === "OUTFLOW" && (o.status === "SCHEDULED" || o.status === "PARTIALLY_SETTLED"),
-  );
-
-  // Total de Dívidas
-  const activeDebts = finance.debts.filter((d) => d.status !== "SETTLED");
-  const totalDebtBalance = sum(
-    activeDebts.map((d) => outstandingPrincipal(d, finance.paidDebtInstallments.get(d.id) ?? [])),
-    currency,
-  );
-
-  const session = useSession();
-  const householdId = session.household?.id ?? "default";
-  const overdueCount = finance.obligations.filter(
-    (o) =>
-      o.direction === "OUTFLOW" &&
-      (o.status === "SCHEDULED" || o.status === "PARTIALLY_SETTLED") &&
-      o.dueDate < finance.asOf,
-  ).length;
-
-  const reflections = loadLocalReflections(householdId);
-  const impulseSavingsCount = reflections.filter((r) => r.status === "ABANDONED").length;
-
-  const quantitativeHealthScore = calculateFinancialHealthScore({
-    monthlyIncome: monthlyInflows,
-    monthlyEssentialOutflows: monthlyOutflows,
-    reserveBalance: finance.protectedReserve,
-    overdueBillsCount: overdueCount,
-    totalDebtsBalance: totalDebtBalance,
-    impulseSavingsCount,
-    hasBudgetsConfigured: finance.budgets.length > 0,
-    hasRegisteredBills: finance.obligations.length > 0,
-    hasActiveAccounts:
-      finance.accounts.length > 0 ||
-      finance.transactions.length > 0 ||
-      finance.recurringRules.length > 0,
-  });
+  const openObligations = [
+    ...finance.obligations,
+    ...pendingOccurrences({
+      rules: finance.recurringRules,
+      obligations: finance.obligations,
+      asOf: finance.asOf,
+      direction: "OUTFLOW",
+    }).map(pendingOccurrenceAsObligation),
+  ]
+    .filter(
+      (obligation) =>
+        obligation.direction === "OUTFLOW" &&
+        isOpen(obligation) &&
+        obligation.dueDate >= startOfMonth(finance.asOf) &&
+        obligation.dueDate <= endOfMonth(finance.asOf),
+    )
+    .sort(byUrgency);
 
   return (
     <div className="space-y-6">
-      {/* 0. Hero da Meta Prioritária */}
+      {/* Meta principal da família */}
       <CurrentGoalHeroCard />
 
       {/* Seletor de Pilares Segmentados */}
-      <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--color-surface-sunken)] p-1.5 shadow-2xs">
+      <div
+        role="group"
+        aria-label="Seções do resumo financeiro"
+        className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--color-surface-sunken)] p-1.5 shadow-2xs"
+      >
         <button
           type="button"
           onClick={() => setActiveTab("GERAL")}
+          aria-pressed={activeTab === "GERAL"}
           className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${
             activeTab === "GERAL"
               ? "tab-active shadow-sm"
@@ -112,6 +95,7 @@ export function DashboardTabs() {
         <button
           type="button"
           onClick={() => setActiveTab("ENTRADAS")}
+          aria-pressed={activeTab === "ENTRADAS"}
           className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${
             activeTab === "ENTRADAS"
               ? "bg-[color:var(--color-positive-600)] text-white shadow-sm"
@@ -125,6 +109,7 @@ export function DashboardTabs() {
         <button
           type="button"
           onClick={() => setActiveTab("DESPESAS")}
+          aria-pressed={activeTab === "DESPESAS"}
           className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${
             activeTab === "DESPESAS"
               ? "bg-[color:var(--color-attention-600)] text-white shadow-sm"
@@ -138,6 +123,7 @@ export function DashboardTabs() {
         <button
           type="button"
           onClick={() => setActiveTab("RESERVAS")}
+          aria-pressed={activeTab === "RESERVAS"}
           className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${
             activeTab === "RESERVAS"
               ? "bg-[color:var(--color-brand-600)] text-white shadow-sm"
@@ -151,6 +137,7 @@ export function DashboardTabs() {
         <button
           type="button"
           onClick={() => setActiveTab("DIVIDAS")}
+          aria-pressed={activeTab === "DIVIDAS"}
           className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${
             activeTab === "DIVIDAS"
               ? "bg-[color:var(--color-critical-600)] text-white shadow-sm"
@@ -167,14 +154,19 @@ export function DashboardTabs() {
       {/* 1. VISÃO GERAL */}
       {activeTab === "GERAL" && (
         <div className="animate-in fade-in space-y-5 duration-200">
-          <QuantitativeHealthScoreCard score={quantitativeHealthScore} />
-          <HealthScoreCard />
           <TodayBlock />
           <MonthBlock />
           <RunwayCard />
-          <Next30DaysBlock />
-          <MonthsTable months={finance.forecast.months} limit={6} />
-          <EducationPillsCard />
+          <details className="rounded-xl border border-[color:var(--card-border)] bg-[color:var(--card-bg)] p-4">
+            <summary className="cursor-pointer font-medium">
+              Ver próximos dias, projeções e orientações
+            </summary>
+            <div className="mt-4 space-y-5">
+              <Next30DaysBlock />
+              <MonthsTable months={finance.forecast.months} limit={6} />
+              <EducationPillsCard />
+            </div>
+          </details>
         </div>
       )}
 
@@ -191,7 +183,7 @@ export function DashboardTabs() {
                   Entradas e Recebimentos do Mês
                 </h3>
               </div>
-              <Link href="/app/contas">
+              <Link href="/app/entradas">
                 <Button variant="secondary" className="px-3 py-1.5 text-xs">
                   + Adicionar Salário Líquido / Renda
                 </Button>
@@ -227,8 +219,11 @@ export function DashboardTabs() {
             {recurringInflows.length === 0 ? (
               <p className="mt-3 text-sm" style={{ color: "var(--muted-fg)" }}>
                 Nenhuma receita fixa cadastrada. Adicione os salários líquidos e rendas da casa em{" "}
-                <Link href="/app/contas" className="text-[color:var(--color-brand-600)] underline">
-                  Recorrentes
+                <Link
+                  href="/app/entradas"
+                  className="text-[color:var(--color-brand-600)] underline"
+                >
+                  Entradas
                 </Link>
                 .
               </p>
@@ -286,7 +281,10 @@ export function DashboardTabs() {
               <Stat
                 label="Contas Pendentes"
                 value={money(
-                  openObligations.reduce((acc, o) => acc + o.amount.amount, 0),
+                  openObligations.reduce(
+                    (acc, obligation) => acc + remainingAmount(obligation).amount,
+                    0,
+                  ),
                   currency,
                 )}
                 tone="attention"
@@ -329,7 +327,7 @@ export function DashboardTabs() {
                       </p>
                     </div>
                     <span className="tabular text-sm font-bold text-[color:var(--color-critical-fg)]">
-                      {formatMoney(obligation.amount)}
+                      {formatMoney(remainingAmount(obligation))}
                     </span>
                   </div>
                 ))}

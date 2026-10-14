@@ -138,6 +138,62 @@ export default function ActionPlanPage() {
       ) : null}
 
       <Card>
+        <CardTitle hint="Siga na ordem que fizer sentido para sua situação. Cada etapa abre uma ferramenta específica.">
+          Por onde começar a resolver as dívidas
+        </CardTitle>
+        <ol className="grid gap-3 sm:grid-cols-3">
+          <li className="rounded-lg border border-[color:var(--card-border)] p-3">
+            <p className="text-xs font-semibold text-[color:var(--color-brand-700)]">
+              1 · Proteja o essencial
+            </p>
+            <p className="mt-1 text-sm" style={{ color: "var(--muted-fg)" }}>
+              Veja o que priorizar quando o dinheiro não cobre tudo.
+            </p>
+            <Link
+              href="/app/emergencia"
+              className="mt-3 inline-block text-sm font-medium text-[color:var(--color-brand-700)] hover:underline"
+            >
+              Ver o que pagar primeiro →
+            </Link>
+          </li>
+          <li className="rounded-lg border border-[color:var(--card-border)] p-3">
+            <p className="text-xs font-semibold text-[color:var(--color-brand-700)]">
+              2 · Entenda seus contratos
+            </p>
+            <p className="mt-1 text-sm" style={{ color: "var(--muted-fg)" }}>
+              Confira parcelas, saldo devedor e compromissos do próximo mês.
+            </p>
+            <Link
+              href="/app/dividas"
+              className="mt-3 inline-block text-sm font-medium text-[color:var(--color-brand-700)] hover:underline"
+            >
+              Ver empréstimos e financiamentos →
+            </Link>
+          </li>
+          <li className="rounded-lg border border-[color:var(--card-border)] p-3">
+            <p className="text-xs font-semibold text-[color:var(--color-brand-700)]">
+              3 · Negocie sem comprometer o mês
+            </p>
+            <p className="mt-1 text-sm" style={{ color: "var(--muted-fg)" }}>
+              Calcule uma parcela que caiba e prepare a conversa com o credor.
+            </p>
+            <Link
+              href="/app/negociar"
+              className="mt-3 inline-block text-sm font-medium text-[color:var(--color-brand-700)] hover:underline"
+            >
+              Preparar uma negociação →
+            </Link>
+          </li>
+        </ol>
+        <p className="mt-3 text-xs" style={{ color: "var(--muted-fg)" }}>
+          Se as parcelas impedem o pagamento de alimentação, moradia ou remédios, veja também o{" "}
+          <Link href="/app/superendividamento" className="font-medium underline underline-offset-2">
+            apoio para superendividamento
+          </Link>.
+        </p>
+      </Card>
+
+      <Card>
         <CardTitle hint="Tarefas derivadas automaticamente das suas contas, dívidas e projeção.">
           Próximos passos
         </CardTitle>

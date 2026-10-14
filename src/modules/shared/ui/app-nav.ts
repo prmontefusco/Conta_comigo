@@ -77,26 +77,26 @@ export const APP_NAV_SECTIONS: readonly NavSection[] = [
   {
     title: "Dívidas",
     items: [
-      { href: "/app/emergencia", label: "Pagar primeiro", icon: "🚨" },
+      { href: "/app/emergencia", label: "1 · O que pagar primeiro", icon: "🚨" },
       {
         href: "/app/dividas",
-        label: "Dívidas e empréstimos",
+        label: "2 · Meus empréstimos",
         icon: "🏛️",
         restrictedForDependent: true,
       },
       {
         href: "/app/negociar",
-        label: "Negociar dívidas",
+        label: "3 · Preparar negociação",
         icon: "🤝",
         restrictedForDependent: true,
       },
       {
         href: "/app/superendividamento",
-        label: "Superendividamento",
+        label: "Apoio para superendividamento",
         icon: "⚖️",
         restrictedForDependent: true,
       },
-      { href: "/app/plano", label: "Plano de recuperação", icon: "🧭" },
+      { href: "/app/plano", label: "Meu plano de ação", icon: "🧭" },
     ],
   },
   {

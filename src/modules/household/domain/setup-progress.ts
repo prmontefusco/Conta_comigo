@@ -23,6 +23,9 @@ export function initialSetupProgress(profile: UserProfile | null, data: InitialS
   );
   const steps = {
     personalData,
+    mainIncome:
+      data.recurringRules.some((rule) => rule.active && rule.direction === "INFLOW") ||
+      completed.has("ADD_MAIN_INCOME"),
     bankAccounts: data.accounts.some((account) => !account.archived),
     cards: data.cards.some((card) => !card.archived) || completed.has("ADD_CARDS"),
     monthlyBills: data.recurringRules.some((rule) => rule.active && rule.direction === "OUTFLOW"),

@@ -196,26 +196,28 @@ export default function EmergencyPage() {
         <Card>
           <CardTitle>O que fazer com o que não coube</CardTitle>
           <p className="mt-2 text-sm" style={{ color: "var(--muted-fg)" }}>
-            Faltam {formatMoney(triage.unpayable)} para cobrir tudo. Deixar vencer em silêncio é o
-            caminho mais caro: quase todo credor abre parcelamento para quem liga <em>antes</em> do
-            corte ou da negativação, e fecha depois.
+            Faltam {formatMoney(triage.unpayable)} para cobrir tudo com o valor disponível. Antes de
+            atrasar ou assumir uma nova parcela, procure o credor ou prestador para conhecer as
+            alternativas. Condições, prazos e encargos variam: confirme o custo total e se a parcela
+            cabe no orçamento antes de aceitar.
           </p>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
-              <strong>Concessionária de água, luz ou gás:</strong> peça parcelamento antes da data
-              de corte. Religação tem taxa e costuma custar mais que a diferença.
+              <strong>Água, luz ou gás:</strong> confirme com a prestadora os prazos, avisos,
+              encargos e opções disponíveis para sua situação.
             </li>
             <li>
-              <strong>Banco, com bem em garantia:</strong> peça prorrogação ou carência antes de
-              atrasar. Depois da busca e apreensão não há acordo que devolva o bem.
+              <strong>Empréstimo com bem em garantia:</strong> confira o contrato e pergunte ao
+              credor sobre as consequências do atraso e as opções disponíveis. Se houver risco para
+              um bem essencial, procure orientação especializada.
             </li>
             <li>
-              <strong>Cartão:</strong> peça o parcelamento da fatura. Quase sempre custa muito menos
-              que deixar rolar no rotativo.
+              <strong>Cartão:</strong> compare o custo total do parcelamento da fatura com outras
+              opções; não avalie apenas o valor da parcela.
             </li>
             <li>
-              <strong>Cobrança sem garantia:</strong> é a última da fila e a primeira a negociar.
-              Aceite prazo maior aqui para proteger as de cima.
+              <strong>Outras dívidas:</strong> compare juros, encargos de atraso e impacto no mês.
+              Preserve primeiro dinheiro para moradia, alimentação, saúde e serviços essenciais.
             </li>
           </ul>
 

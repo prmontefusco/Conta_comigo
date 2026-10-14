@@ -302,13 +302,18 @@ export default function SuperendividamentoPage() {
             Lei nº 14.181/2021 & Decreto nº 11.567/2023
           </span>
           <h1 className="text-xl font-bold text-[color:var(--page-fg)]">
-            Dossiê de Superendividamento & Repactuação em 5 Anos
+            Organize suas dívidas e prepare uma proposta de repactuação
           </h1>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div
+          role="group"
+          aria-label="Modos do dossiê"
+          className="flex flex-wrap items-center gap-2"
+        >
           <button
             type="button"
+            aria-pressed={modoVisualizacao === "DIAGNOSTICO"}
             onClick={() => setModoVisualizacao("DIAGNOSTICO")}
             className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
               modoVisualizacao === "DIAGNOSTICO"
@@ -320,6 +325,7 @@ export default function SuperendividamentoPage() {
           </button>
           <button
             type="button"
+            aria-pressed={modoVisualizacao === "DOSSIE"}
             onClick={() => setModoVisualizacao("DOSSIE")}
             disabled={diagnostico.status === "DADOS_INSUFICIENTES"}
             className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
@@ -332,6 +338,7 @@ export default function SuperendividamentoPage() {
           </button>
           <button
             type="button"
+            aria-pressed={modoVisualizacao === "PETICAO"}
             onClick={() => setModoVisualizacao("PETICAO")}
             disabled={diagnostico.status === "DADOS_INSUFICIENTES"}
             className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
@@ -351,7 +358,10 @@ export default function SuperendividamentoPage() {
       </div>
 
       {/* Aviso Importante de Escopo do Software & Isenção de Garantia */}
-      <details className="rounded-xl border border-[color:var(--color-attention-600)]/35 bg-[color:var(--color-attention-100)]/65 p-4 text-xs text-[color:var(--color-ink-900)] print:hidden">
+      <details
+        open
+        className="rounded-xl border border-[color:var(--color-attention-600)]/35 bg-[color:var(--color-attention-100)]/65 p-4 text-xs text-[color:var(--color-ink-900)] print:hidden"
+      >
         <summary className="cursor-pointer font-semibold text-[color:var(--color-attention-700)]">
           O aplicativo organiza dados, mas não substitui orientação jurídica nem garante resultado
         </summary>

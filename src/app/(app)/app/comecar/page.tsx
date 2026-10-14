@@ -27,6 +27,17 @@ export default function OnboardingPage() {
       done: progress.steps.personalData,
     },
     {
+      id: "mainIncome" as const,
+      href: "/app/entradas",
+      title: "Cadastre sua renda principal",
+      description:
+        "Salário líquido, benefício, aposentadoria, comissão ou outra renda recorrente.",
+      unlocks: "Ajuda a calcular o que sobra depois dos compromissos do mês.",
+      done: progress.steps.mainIncome,
+      skipStep: "ADD_MAIN_INCOME" as OnboardingStep,
+      skipLabel: "Sem renda no momento",
+    },
+    {
       id: "bankAccounts" as const,
       href: "/app/contas-bancarias",
       title: "Cadastre suas contas bancárias",

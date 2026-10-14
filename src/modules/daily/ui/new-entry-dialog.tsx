@@ -472,6 +472,7 @@ export function NewEntryDialog({
     <Modal
       open={open}
       onClose={onClose}
+      closeDisabled={saving}
       title={
         editing
           ? isIncome
@@ -504,8 +505,10 @@ export function NewEntryDialog({
             valor que não existe mais.
           </Callout>
           <div className="flex gap-2">
-            <Link href="/app/contas" className="flex-1">
-              <Button className="w-full">Abrir Contas</Button>
+            <Link href={isIncome ? "/app/entradas" : "/app/contas"} className="flex-1">
+              <Button className="w-full">
+                {isIncome ? "Abrir Entradas" : "Abrir Contas"}
+              </Button>
             </Link>
             <Button type="button" variant="secondary" onClick={onClose}>
               Fechar
@@ -681,7 +684,7 @@ export function NewEntryDialog({
             <Button type="submit" className="flex-1" disabled={saving}>
               {saving ? "Salvando…" : planning ? "Planejar" : "Salvar"}
             </Button>
-            <Button type="button" variant="secondary" onClick={onClose}>
+            <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>
               Cancelar
             </Button>
           </div>

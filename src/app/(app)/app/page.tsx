@@ -16,7 +16,7 @@ import { useFinance } from "@/modules/household/ui/finance-provider";
  * gráfico de saúde financeira para descobrir isso.
  *
  * Depois dele, os pilares:
- * - Visão Geral: Hero goal, Health Score, Today & 30-day forecast.
+ * - Visão Geral: saldo e compromissos imediatos; análises detalhadas sob demanda.
  * - Entradas: Income streams and received vs pending inflows.
  * - Despesas: Fixed bills, credit cards, variable spending.
  * - Reservas: Starter cushion and full emergency reserve.
@@ -48,16 +48,15 @@ export default function DashboardPage() {
                 Primeiros Passos
               </span>
               <h2 className="text-base font-bold text-[color:var(--page-fg)]">
-                Vamos calibrar o Conta Comigo para a sua realidade
+                Vamos organizar suas finanças, um passo de cada vez
               </h2>
             </div>
             <span className="text-xs font-medium text-[color:var(--muted-fg)]">
-              Leva menos de 3 minutos
+              Você pode completar no seu ritmo
             </span>
           </div>
           <p className="mt-1 text-xs text-[color:var(--muted-fg)]">
-            Para que o diagnóstico de saúde financeira, a projeção de até 24 meses e a linha do
-            tempo comecem a fazer sentido, cadastre os dados básicos da sua casa:
+            Comece pelas informações que já tem. Você pode completar o restante no seu ritmo.
           </p>
 
           <Link href="/app/comecar" className="mt-4 inline-block">

@@ -129,7 +129,7 @@ const TERMS: Readonly<Record<GlossaryTermId, GlossaryTerm>> = {
     term: "Confirmado ou estimado",
     what: "Confirmado é valor que você já sabe (o aluguel do contrato). Estimado é o que você ainda vai descobrir (a comissão do mês).",
     impact:
-      "A projeção mostra os dois, mas nunca apresenta um palpite como se fosse dinheiro garantido. Marcar como estimado é o que permite confiar no número quando ele diz que o mês fecha.",
+      "A projeção usa os valores cadastrados; marcar uma estimativa ajuda a identificar números que ainda podem mudar. Confira essa informação antes de tomar decisões.",
   },
 };
 

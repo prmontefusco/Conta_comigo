@@ -12,12 +12,15 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 export function Modal({
   open,
   onClose,
+  closeDisabled = false,
   title,
   description,
   children,
 }: {
   open: boolean;
   onClose: () => void;
+  /** Evita perder o contexto enquanto uma gravação está em andamento. */
+  closeDisabled?: boolean;
   title: string;
   description?: string;
   children: ReactNode;
@@ -48,11 +51,11 @@ export function Modal({
 
     const handleCancel = (event: Event) => {
       event.preventDefault();
-      onClose();
+      if (!closeDisabled) onClose();
     };
     dialog.addEventListener("cancel", handleCancel);
     return () => dialog.removeEventListener("cancel", handleCancel);
-  }, [onClose]);
+  }, [closeDisabled, onClose]);
 
   return (
     <dialog
@@ -62,7 +65,7 @@ export function Modal({
       className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-[color:var(--color-surface)] p-0 text-[color:var(--page-fg)] shadow-2xl backdrop:bg-slate-950/55"
       onClick={(event) => {
         // Clicking the backdrop (the dialog element itself) closes it.
-        if (event.target === ref.current) onClose();
+        if (event.target === ref.current && !closeDisabled) onClose();
       }}
     >
       <div className="max-h-[85dvh] overflow-y-auto p-4 sm:p-5">
@@ -79,7 +82,10 @@ export function Modal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => {
+              if (!closeDisabled) onClose();
+            }}
+            disabled={closeDisabled}
             className="-m-2 shrink-0 rounded-lg p-2 text-xl leading-none"
             aria-label="Fechar"
           >

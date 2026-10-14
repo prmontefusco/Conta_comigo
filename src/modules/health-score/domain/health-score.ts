@@ -111,7 +111,7 @@ export function calculateEmergencyReservePillar(
       current: 250,
       max,
       label: "Reserva de Emergência",
-      feedback: `Excelente! ${monthsCovered.toFixed(1)} meses de custos essenciais cobertos.`,
+      feedback: `O saldo cadastrado equivale a ${monthsCovered.toFixed(1)} meses dos gastos considerados.`,
     };
   }
   if (monthsCovered >= 3) {
@@ -119,7 +119,7 @@ export function calculateEmergencyReservePillar(
       current: 200,
       max,
       label: "Reserva de Emergência",
-      feedback: `Forte. ${monthsCovered.toFixed(1)} meses garantidos de proteção.`,
+      feedback: `Forte. O saldo cadastrado equivale a ${monthsCovered.toFixed(1)} meses dos gastos considerados.`,
     };
   }
   if (monthsCovered >= 1) {
@@ -127,7 +127,7 @@ export function calculateEmergencyReservePillar(
       current: 140,
       max,
       label: "Reserva de Emergência",
-      feedback: `Inicial. ${monthsCovered.toFixed(1)} mês coberto. Meta recomendada: 3 meses.`,
+      feedback: `Inicial. O saldo cadastrado equivale a ${monthsCovered.toFixed(1)} mês dos gastos considerados.`,
     };
   }
   if (reserve.amount > 0) {
@@ -135,14 +135,14 @@ export function calculateEmergencyReservePillar(
       current: 70,
       max,
       label: "Reserva de Emergência",
-      feedback: "Em construção. Qualquer valor poupado já evita novas dívidas.",
+      feedback: "Em construção. O saldo cadastrado ainda cobre menos de um mês dos gastos considerados.",
     };
   }
   return {
     current: 15,
     max,
     label: "Reserva de Emergência",
-    feedback: "Vulnerável. Sem reserva financeira para imprevistos imediatos.",
+    feedback: "Sem saldo de reserva cadastrado para comparar com os gastos do mês.",
   };
 }
 

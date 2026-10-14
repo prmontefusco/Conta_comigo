@@ -97,10 +97,10 @@ export function HealthScoreCard() {
                 + Contas do Mês
               </Link>
               <Link
-                href="/app/dia-a-dia"
+                href="/app/entradas"
                 className="inline-flex items-center rounded-lg border border-[color:var(--card-border)] bg-[color:var(--card-bg)] px-2.5 py-1 text-xs font-semibold hover:bg-[color:var(--color-ink-100)]"
               >
-                + Renda / Saldo
+                + Registrar renda
               </Link>
             </div>
           ) : null}

@@ -78,22 +78,26 @@ export default function MorePage() {
 
       {sections.map((section) => (
         <Card key={section.title}>
-          <CardTitle>{section.title}</CardTitle>
-          <ul className="divide-y divide-[color:var(--card-border)]">
-            {section.items.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="flex min-h-12 items-center gap-3 py-2 text-sm hover:underline"
-                >
-                  <span aria-hidden="true" className="text-lg">
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <details open={["Hoje", "Movimentos", "Dívidas"].includes(section.title)}>
+            <summary className="mb-3 cursor-pointer text-sm font-semibold tracking-wide uppercase opacity-70">
+              {section.title}
+            </summary>
+            <ul className="divide-y divide-[color:var(--card-border)]">
+              {section.items.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="flex min-h-12 items-center gap-3 py-2 text-sm hover:underline"
+                  >
+                    <span aria-hidden="true" className="text-lg">
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
         </Card>
       ))}
     </div>
