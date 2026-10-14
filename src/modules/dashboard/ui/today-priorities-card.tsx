@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { CalendarDate } from "@/core/date/calendar-date";
 import { formatCalendarDate } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
 import { Card, MoneyText } from "@/components/ui/primitives";
@@ -167,7 +168,7 @@ function ActionCenter({
   overdueCount: number;
   dueTodayCount: number;
   dueSoonCount: number;
-  nextDueDate?: string;
+  nextDueDate?: CalendarDate;
   hasDebts: boolean;
 }) {
   return (

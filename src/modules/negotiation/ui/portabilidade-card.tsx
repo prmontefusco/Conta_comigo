@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { formatMoney } from "@/core/money/format";
-import { fromDecimalString, sum, zero } from "@/core/money/money";
+import { fromDecimalString, sum } from "@/core/money/money";
 import { Callout, Card, Stat } from "@/components/ui/primitives";
 import { MoneyField, TextField } from "@/components/ui/form";
 import { useFinance } from "@/modules/household/ui/finance-provider";

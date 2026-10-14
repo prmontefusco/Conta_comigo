@@ -4,9 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { endOfMonth, formatCalendarDate, startOfMonth } from "@/core/date/calendar-date";
 import { formatMoney } from "@/core/money/format";
-import { isNegative, money, subtract, sum } from "@/core/money/money";
+import { isNegative, money, subtract } from "@/core/money/money";
 import { Button, Card, CardTitle, Stat } from "@/components/ui/primitives";
 import { firstWholeMonth } from "@/modules/forecast/domain/forecast";
+import { summariseDebts } from "@/modules/debts/domain/debt";
 import { MonthBlock, Next30DaysBlock } from "@/modules/dashboard/ui/month-block";
 import { TodayBlock } from "@/modules/dashboard/ui/today-block";
 import { EducationPillsCard } from "@/modules/education/ui/pills-card";
@@ -42,6 +43,7 @@ export function DashboardTabs() {
   const monthlyInflows = currentMonth?.expectedInflows ?? money(0, currency);
   const monthlyOutflows = currentMonth?.committedOutflows ?? money(0, currency);
   const monthlySurplus = subtract(monthlyInflows, monthlyOutflows);
+  const debtSummary = summariseDebts(finance.debts, finance.asOf, finance.paidDebtInstallments);
 
   // Entradas recorrentes
   const recurringInflows = finance.recurringRules.filter(
@@ -421,15 +423,15 @@ export function DashboardTabs() {
             <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Stat
                 label="Saldo Devedor Total"
-                value={totalDebtBalance}
+                value={debtSummary.totalOutstanding}
                 tone="critical"
                 size="lg"
               />
               <Stat
                 label="Contratos Ativos"
-                value={money(activeDebts.length, currency)}
+                value={money(debtSummary.activeDebts, currency)}
                 tone="neutral"
-                hint={`${activeDebts.length} dívida(s) ou financiamento(s)`}
+                hint={`${debtSummary.activeDebts} dívida(s) ou financiamento(s)`}
               />
               <Stat
                 label="Parcelas Mensais em Dívidas"
